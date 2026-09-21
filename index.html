@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="1.1.0">
+    <meta name="app-version" content="1.2.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -43,6 +43,7 @@
         .btn-cancel { background: #9e9e9e; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; }
         .btn-submit { background: #4caf50; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; }
         .btn-trash { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+        .btn-edit { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; margin-right: 4px; }
         .btn-edit-loc { background: #e0f2f1; color: #00796b; border: 1px solid #b2dfdb; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-top: 5px; display: inline-block; }
         
         .filter-bar { background: #f1f3f5; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -90,7 +91,6 @@
     <div class="main-nav">
         <button class="main-nav-btn active" id="navSlide1" onclick="switchSlide(1)">📁 Slide 1: Catat & Riwayat</button>
         <button class="main-nav-btn" id="navSlide2" onclick="switchSlide(2)">📍 Slide 2: Kelola Lokasi Bangunan</button>
-        <button class="main-nav-btn" id="navSlide3" onclick="switchSlide(3)">📊 Slide 3: Rekapitulasi Bulanan</button>
     </div>
 
     <!-- SLIDE 1: PENCATATAN & RIWAYAT -->
@@ -193,7 +193,7 @@
                     <thead>
                         <tr>
                             <th>Aksi</th>
-                            <th>Waktu</th>
+                            <th>Tanggal & Waktu</th>
                             <th>Arus</th>
                             <th>Kategori</th>
                             <th>Detail Lokasi / Keterangan</th>
@@ -226,50 +226,19 @@
             </div>
         </div>
     </div>
+</div>
 
-    <!-- SLIDE 3: REKAPITULASI BULANAN -->
-    <div class="slide-section" id="slide3">
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                <h3 style="margin: 0;">📊 Rekapitulasi Bulanan Kas (Pusat & Operasional)</h3>
-                <div style="display: flex; gap: 10px;">
-                    <select id="recapMonthSelect" onchange="renderMonthlyRecap()" style="padding: 6px; font-size: 0.9rem;">
-                        <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option>
-                        <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
-                        <option value="07">Juli</option><option value="08">Agustus</option><option value="09">September</option>
-                        <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
-                    </select>
-                    <select id="recapYearSelect" onchange="renderMonthlyRecap()" style="padding: 6px; font-size: 0.9rem;">
-                        <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="summary-grid" style="margin-bottom: 25px;">
-                <div class="summary-card in">
-                    <label>TOTAL PEMASUKAN TOKO (BULAN INI)</label>
-                    <div class="val" id="recapStoreIncome">Rp 0</div>
-                </div>
-                <div class="summary-card out">
-                    <label>TOTAL PENGELUARAN OPERASIONAL (BULAN INI)</label>
-                    <div class="val" id="recapOpExpense">Rp 0</div>
-                </div>
-                <div class="summary-card">
-                    <label>SELISIH BERSIH (NET BULANAN)</label>
-                    <div class="val" id="recapNetBalance">Rp 0</div>
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #ddd;">
-                    <h4 style="margin-top: 0; color: #2e7d32; border-bottom: 2px solid #c8e6c9; padding-bottom: 5px;">🟢 Rincian Pemasukan Toko</h4>
-                    <div id="storeIncomeDetailBox" style="font-size: 0.9rem; line-height: 1.6;">Memuat data...</div>
-                </div>
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #ddd;">
-                    <h4 style="margin-top: 0; color: #c62828; border-bottom: 2px solid #ffcdd2; padding-bottom: 5px;">🔴 Rincian Pengeluaran Operasional</h4>
-                    <div id="opExpenseDetailBox" style="font-size: 0.9rem; line-height: 1.6;">Memuat data...</div>
-                </div>
-            </div>
+<!-- MODAL EDIT TRANSAKSI -->
+<div class="modal" id="editTxModal">
+    <div class="modal-content" style="width: 400px; text-align: left;">
+        <h3 style="text-align: center;">Edit Transaksi Operasional</h3>
+        <input type="hidden" id="modalEditTxId">
+        <div class="form-group"><label>Keterangan</label><input type="text" id="editTxDescInput"></div>
+        <div class="form-group"><label>Tanggal (DD/MM/YYYY)</label><input type="text" id="editTxDateInput" placeholder="DD/MM/YYYY"></div>
+        <div class="form-group"><label>Waktu (HH:MM)</label><input type="text" id="editTxTimeInput" placeholder="HH:MM"></div>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn-cancel" onclick="document.getElementById('editTxModal').style.display='none'">Batal</button>
+            <button class="btn-submit" onclick="submitEditTransaction()">Simpan</button>
         </div>
     </div>
 </div>
@@ -321,7 +290,6 @@
 
     let opTransactions = [];
     let buildingLocations = ['Lokasi Pembangunan 1', 'Lokasi Pembangunan 2', 'Lokasi Pembangunan 3'];
-    let cloudStoreClosings = [];
     let masterPin = '9999';
 
     auth.onAuthStateChanged(user => {
@@ -348,7 +316,6 @@
         db.ref('operasional_pengeluaran').on('value', snapshot => {
             opTransactions = snapshot.val() || [];
             renderTransactions();
-            renderMonthlyRecap();
         });
 
         db.ref('operasional_lokasi').on('value', snapshot => {
@@ -357,16 +324,6 @@
             renderLocationsDropdown();
             renderLocationsTable();
         });
-
-        db.ref('store_closings').on('value', snapshot => {
-            cloudStoreClosings = snapshot.val() || [];
-            renderMonthlyRecap();
-        });
-
-        // Set default current month in selector
-        const now = new Date();
-        document.getElementById('recapMonthSelect').value = String(now.getMonth() + 1).padStart(2, '0');
-        document.getElementById('recapYearSelect').value = String(now.getFullYear());
     }
 
     function syncCloud() {
@@ -379,11 +336,8 @@
     function switchSlide(num) {
         document.getElementById('slide1').className = num === 1 ? 'slide-section active' : 'slide-section';
         document.getElementById('slide2').className = num === 2 ? 'slide-section active' : 'slide-section';
-        document.getElementById('slide3').className = num === 3 ? 'slide-section active' : 'slide-section';
         document.getElementById('navSlide1').className = num === 1 ? 'main-nav-btn active' : 'main-nav-btn';
         document.getElementById('navSlide2').className = num === 2 ? 'main-nav-btn active' : 'main-nav-btn';
-        document.getElementById('navSlide3').className = num === 3 ? 'main-nav-btn active' : 'main-nav-btn';
-        if (num === 3) renderMonthlyRecap();
     }
 
     function formatNumber(num) { return isNaN(num) ? '' : new Intl.NumberFormat('id-ID').format(num); }
@@ -472,6 +426,9 @@
         if (amount <= 0) { alert('Nominal harus lebih dari 0'); return; }
 
         let now = new Date();
+        let mStr = String(now.getMonth() + 1).padStart(2, '0');
+        let yStr = String(now.getFullYear());
+
         opTransactions.push({
             id: Date.now(),
             flowType,
@@ -482,8 +439,8 @@
             description: desc,
             date: now.toLocaleDateString('id-ID'),
             time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-            month: String(now.getMonth() + 1).padStart(2, '0'),
-            year: String(now.getFullYear())
+            month: mStr,
+            year: yStr
         });
 
         syncCloud();
@@ -535,8 +492,11 @@
             let sign = i.flowType === 'masuk' ? '+' : '-';
 
             tbody.innerHTML += `<tr>
-                <td><button class="btn-trash" onclick="requestDelete(${i.id})">🗑️</button></td>
-                <td>${i.date} ${i.time}</td>
+                <td>
+                    <button class="btn-edit" onclick="openEditTx(${i.id})">✏️</button>
+                    <button class="btn-trash" onclick="requestDelete(${i.id})">🗑️</button>
+                </td>
+                <td>${i.date} ${i.time || ''}</td>
                 <td>${badge}</td>
                 <td>${catDisplay}</td>
                 <td>${i.description}</td>
@@ -546,74 +506,33 @@
         });
     }
 
-    function renderMonthlyRecap() {
-        let m = document.getElementById('recapMonthSelect').value;
-        let y = document.getElementById('recapYearSelect').value;
+    function openEditTx(id) {
+        let tx = opTransactions.find(i => i.id === id);
+        if (!tx) return;
+        document.getElementById('modalEditTxId').value = id;
+        document.getElementById('editTxDescInput').value = tx.description;
+        document.getElementById('editTxDateInput').value = tx.date;
+        document.getElementById('editTxTimeInput').value = tx.time || '';
+        document.getElementById('editTxModal').style.display = 'flex';
+    }
 
-        // 1. Rekap Pemasukan Toko dari cloudStoreClosings
-        let storePhys = 0, storeDebit = 0, storeQris = 0, storePark = 0;
-        cloudStoreClosings.forEach(item => {
-            if (!item.date) return;
-            let parts = item.date.split('/');
-            if (parts.length < 3) return;
-            if (parts[1] === m && parts[2] === y) {
-                storePhys += (item.physicalCash || 0);
-                storeDebit += (item.debit || 0);
-                storeQris += (item.qris || 0);
-                storePark += (item.parking || 0);
-            }
-        });
-        let totalStoreIncome = storePhys + storeDebit + storeQris + storePark;
+    function submitEditTransaction() {
+        let id = parseInt(document.getElementById('modalEditTxId').value);
+        let desc = document.getElementById('editTxDescInput').value.trim();
+        let date = document.getElementById('editTxDateInput').value.trim();
+        let time = document.getElementById('editTxTimeInput').value.trim();
 
-        // 2. Rekap Pengeluaran Operasional dari opTransactions
-        let opOutTunai = 0, opOutTransfer = 0, opIn = 0;
-        let catSummary = {};
-        opTransactions.forEach(i => {
-            if (i.month === m && i.year === y) {
-                if (i.flowType === 'masuk') {
-                    opIn += i.amount;
-                } else {
-                    if (i.method === 'Tunai') opOutTunai += i.amount;
-                    else opOutTransfer += i.amount;
+        if (!desc || !date) { alert('Keterangan dan tanggal wajib diisi!'); return; }
 
-                    let cKey = i.category;
-                    if (cKey === 'Material Pembangunan') cKey += ` (${i.location})`;
-                    catSummary[cKey] = (catSummary[cKey] || 0) + i.amount;
-                }
-            }
-        });
-        let totalOpExpense = opOutTunai + opOutTransfer;
-        let netRecap = totalStoreIncome - totalOpExpense;
+        // Perbarui bulan dan tahun otomatis berdasarkan tanggal baru (format DD/MM/YYYY)
+        let parts = date.split('/');
+        let mStr = parts.length >= 2 ? parts[1] : '01';
+        let yStr = parts.length >= 3 ? parts[2] : '2026';
 
-        document.getElementById('recapStoreIncome').innerText = formatRp(totalStoreIncome);
-        document.getElementById('recapOpExpense').innerText = formatRp(totalOpExpense);
-        document.getElementById('recapNetBalance').innerText = formatRp(netRecap);
-        document.getElementById('recapNetBalance').style.color = netRecap >= 0 ? '#2e7d32' : '#c62828';
-
-        // Tampilkan Rincian Pemasukan Toko
-        document.getElementById('storeIncomeDetailBox').innerHTML = `
-            • Permen Fisik: <b>${formatRp(storePhys)}</b><br>
-            • Kartu Debit: <b>${formatRp(storeDebit)}</b><br>
-            • QRIS: <b>${formatRp(storeQris)}</b><br>
-            • Parkir: <b>${formatRp(storePark)}</b><br>
-            <hr style="border:0; border-top:1px dashed #ccc; margin:8px 0;">
-            <b>Total Pemasukan Toko: ${formatRp(totalStoreIncome)}</b>
-        `;
-
-        // Tampilkan Rincian Pengeluaran Operasional
-        let catHtml = '';
-        for (let key in catSummary) {
-            catHtml += `• ${key}: <b>${formatRp(catSummary[key])}</b><br>`;
-        }
-        if (!catHtml) catHtml = '<i>Belum ada pengeluaran di bulan ini.</i>';
-
-        document.getElementById('opExpenseDetailBox').innerHTML = `
-            ${catHtml}
-            <hr style="border:0; border-top:1px dashed #ccc; margin:8px 0;">
-            • Pembayaran Tunai: <b>${formatRp(opOutTunai)}</b><br>
-            • Pembayaran Transfer: <b>${formatRp(opOutTransfer)}</b><br>
-            <b>Total Pengeluaran: ${formatRp(totalOpExpense)}</b>
-        `;
+        opTransactions = opTransactions.map(i => i.id === id ? { ...i, description: desc, date, time, month: mStr, year: yStr } : i);
+        syncCloud();
+        document.getElementById('editTxModal').style.display = 'none';
+        alert('Transaksi berhasil diperbarui!');
     }
 
     function requestDelete(id) {
