@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="2.7.0">
+    <meta name="app-version" content="2.8.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -76,7 +76,7 @@
     <p style="font-size: 0.85rem; color: #666; margin-bottom: 20px;">Masukkan PIN Master atau PIN Brankas</p>
     <div class="form-group">
         <label>PIN Akses</label>
-        <input type="password" id="loginPinInput" placeholder="••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.3rem;" onkeydown="if(event.key==='Enter'){ handlePinLogin(); }">
+        <input type="password" id="loginPinInput" placeholder="••••••" maxlength="10" style="text-align: center; letter-spacing: 5px; font-size: 1.3rem;" onkeydown="if(event.key==='Enter'){ handlePinLogin(); }">
     </div>
     <button type="button" class="btn-primary" onclick="handlePinLogin()">Masuk</button>
     <div id="loginError" style="color: #c62828; font-size: 0.85rem; margin-top: 15px;"></div>
@@ -308,8 +308,8 @@
 <div class="modal" id="pinModal">
     <div class="modal-content">
         <h3>Verifikasi Keamanan</h3>
-        <p style="font-size: 0.85rem; color: #666;">Masukkan Master PIN (9999) untuk menghapus data:</p>
-        <input type="password" id="modalPinVal" placeholder="••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.2rem; margin-bottom: 15px;">
+        <p style="font-size: 0.85rem; color: #666;">Masukkan PIN Master (945336) untuk menghapus data:</p>
+        <input type="password" id="modalPinVal" placeholder="••••••" maxlength="10" style="text-align: center; letter-spacing: 5px; font-size: 1.2rem; margin-bottom: 15px;">
         <input type="hidden" id="modalDeleteId">
         <div style="display: flex; gap: 10px;">
             <button class="btn-cancel" onclick="document.getElementById('pinModal').style.display='none'">Batal</button>
@@ -336,9 +336,9 @@
     let opTransactions = [];
     let buildingLocations = ['Kandang Dilem', 'Toko Beji', 'Rumah Owner'];
     
-    // PIN yang diizinkan masuk: PIN Master ('9999') atau PIN Brankas Uang Tukar ('8888' / silakan sesuaikan jika berbeda)
-    const allowedPins = ['9999', '8888']; 
-    let masterPin = '9999';
+    // PIN yang diizinkan masuk: PIN Master ('945336') atau PIN Brankas Uang Tukar ('123123')
+    const allowedPins = ['945336', '123123']; 
+    let masterPin = '945336';
 
     function handlePinLogin() {
         let pin = document.getElementById('loginPinInput').value.trim();
