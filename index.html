@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="1.2.0">
+    <meta name="app-version" content="2.0.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -38,6 +38,8 @@
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
         
         .highlight-box { background: #e3f2fd; border: 2px dashed #1565c0; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+        .material-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
+        
         .btn-primary { background: #2196F3; color: white; border: none; padding: 12px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem; }
         .btn-success { background: #2e7d32; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-cancel { background: #9e9e9e; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; }
@@ -133,9 +135,39 @@
                     </div>
                 </div>
 
-                <div class="form-group" id="locationGroup">
-                    <label>📍 PILIH LOKASI / TEMPAT PEMBANGUNAN:</label>
-                    <select id="buildingLocationSelect" required></select>
+                <!-- FORM KHUSUS KATEGORI MATERIAL PEMBANGUNAN -->
+                <div class="material-box" id="materialFormBox">
+                    <h4 style="margin-top: 0; color: #2e7d32; border-bottom: 1px dashed #2e7d32; padding-bottom: 5px;">🏗️ Detail Belanja Material & Kas Bon</h4>
+                    
+                    <div class="form-group">
+                        <label>📍 Pilih Lokasi / Tempat Pembangunan:</label>
+                        <select id="buildingLocationSelect"></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📅 Tanggal Pemberian Dana:</label>
+                        <input type="date" id="matDateInput">
+                    </div>
+
+                    <div class="form-group">
+                        <label>👤 Nama Penerima Dana (Yang Belanja):</label>
+                        <input type="text" id="matReceiverInput" placeholder="Contoh: Pak Joko / Mas Budi">
+                    </div>
+
+                    <div class="form-group">
+                        <label>💰 Nominal Pemberian Dana (Rp):</label>
+                        <input type="text" id="matGivenAmountInput" inputmode="numeric" placeholder="Contoh: 1.500.000" oninput="formatInputNumber(this); calculateMaterialDiff();">
+                    </div>
+
+                    <div class="form-group">
+                        <label>🧾 Total Nilai Nota Belanja (Rp):</label>
+                        <input type="text" id="matNoteAmountInput" inputmode="numeric" placeholder="Contoh: 1.350.000" oninput="formatInputNumber(this); calculateMaterialDiff();">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>🔄 Selisih / Sisa Kembalian (Rp):</label>
+                        <input type="text" id="matDiffAmountInput" readonly style="background: #f1f3f5; font-weight: bold; color: #1565c0;" placeholder="Otomatis terhitung (Sisa / Kurang)">
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -146,9 +178,9 @@
                     </select>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="generalAmountGroup">
                     <label>Nominal (Rp)</label>
-                    <input type="text" id="amountInput" inputmode="numeric" placeholder="Contoh: 150.000" oninput="formatInputNumber(this)" required>
+                    <input type="text" id="amountInput" inputmode="numeric" placeholder="Contoh: 150.000" oninput="formatInputNumber(this)">
                 </div>
 
                 <div class="form-group">
@@ -196,9 +228,9 @@
                             <th>Tanggal & Waktu</th>
                             <th>Arus</th>
                             <th>Kategori</th>
-                            <th>Detail Lokasi / Keterangan</th>
+                            <th>Detail / Kas Bon Material</th>
                             <th>Metode</th>
-                            <th>Nominal</th>
+                            <th>Nominal Keluar / Masuk</th>
                         </tr>
                     </thead>
                     <tbody id="transactionTableBody">
@@ -296,6 +328,7 @@
         if (user) {
             document.getElementById('loginCard').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('matDateInput').value = new Date().toISOString().split('T')[0];
             loadData();
         } else {
             document.getElementById('loginCard').style.display = 'block';
@@ -347,7 +380,36 @@
 
     function toggleCategoryOptions() {
         let cat = document.getElementById('categorySelect').value;
-        document.getElementById('locationGroup').style.display = cat === 'Material Pembangunan' ? 'block' : 'none';
+        let matBox = document.getElementById('materialFormBox');
+        let amtGroup = document.getElementById('generalAmountGroup');
+
+        if (cat === 'Material Pembangunan') {
+            matBox.style.display = 'block';
+            amtGroup.style.display = 'none'; // Nominal dihitung otomatis dari nilai nota material
+            document.getElementById('amountInput').removeAttribute('required');
+        } else {
+            matBox.style.display = 'none';
+            amtGroup.style.display = 'block';
+            document.getElementById('amountInput').setAttribute('required', 'true');
+        }
+    }
+
+    function calculateMaterialDiff() {
+        let given = parseCleanNumber(document.getElementById('matGivenAmountInput').value);
+        let note = parseCleanNumber(document.getElementById('matNoteAmountInput').value);
+        let diff = given - note; // Positif = kembalian sisa uang, Negatif = kurang / kasbon tambahan
+        
+        let diffField = document.getElementById('matDiffAmountInput');
+        if (diff > 0) {
+            diffField.value = `Kembalian Sisa: +${formatRp(diff)}`;
+            diffField.style.color = '#2e7d32';
+        } else if (diff < 0) {
+            diffField.value = `Kurang / Talangan: ${formatRp(diff)}`;
+            diffField.style.color = '#c62828';
+        } else {
+            diffField.value = `Pas (Rp 0)`;
+            diffField.style.color = '#1565c0';
+        }
     }
 
     function renderLocationsDropdown() {
@@ -395,7 +457,7 @@
     }
 
     function submitEditLocation() {
-        let oldName = document.getElementById('editLocOldName').value;
+        let oldName = document.getElementById('editLocOldName.value');
         let newName = document.getElementById('editLocNewNameInput').value.trim();
         if (!newName) { alert('Nama lokasi baru tidak boleh kosong!'); return; }
         let idx = buildingLocations.indexOf(oldName);
@@ -418,12 +480,42 @@
         e.preventDefault();
         let flowType = document.getElementById('flowTypeSelect').value;
         let category = document.getElementById('categorySelect').value;
-        let location = category === 'Material Pembangunan' ? document.getElementById('buildingLocationSelect').value : '-';
         let method = document.getElementById('paymentMethodSelect').value;
-        let amount = parseCleanNumber(document.getElementById('amountInput').value);
         let desc = document.getElementById('descriptionInput').value.trim();
 
-        if (amount <= 0) { alert('Nominal harus lebih dari 0'); return; }
+        let amount = 0;
+        let materialData = null;
+        let location = '-';
+
+        if (category === 'Material Pembangunan') {
+            location = document.getElementById('buildingLocationSelect').value;
+            let rawDate = document.getElementById('matDateInput').value;
+            let receiver = document.getElementById('matReceiverInput').value.trim();
+            let given = parseCleanNumber(document.getElementById('matGivenAmountInput').value);
+            let noteAmt = parseCleanNumber(document.getElementById('matNoteAmountInput').value);
+
+            if (!receiver || given <= 0 || noteAmt <= 0) {
+                alert('Mohon lengkapi nama penerima, nominal pemberian, dan nilai nota belanja material!');
+                return;
+            }
+
+            let diff = given - noteAmt;
+            amount = noteAmt; // Nominal pengeluaran arus kas dihitung dari total nilai nota belanja asli
+
+            let p = rawDate ? rawDate.split('-') : [];
+            let formattedMatDate = p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : new Date().toLocaleDateString('id-ID');
+
+            materialData = {
+                dateGiven: formattedMatDate,
+                receiver,
+                givenAmount: given,
+                noteAmount: noteAmt,
+                difference: diff
+            };
+        } else {
+            amount = parseCleanNumber(document.getElementById('amountInput').value);
+            if (amount <= 0) { alert('Nominal harus lebih dari 0'); return; }
+        }
 
         let now = new Date();
         let mStr = String(now.getMonth() + 1).padStart(2, '0');
@@ -436,6 +528,7 @@
             location,
             method,
             amount,
+            materialData,
             description: desc,
             date: now.toLocaleDateString('id-ID'),
             time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
@@ -446,6 +539,10 @@
         syncCloud();
         document.getElementById('amountInput').value = '';
         document.getElementById('descriptionInput').value = '';
+        document.getElementById('matReceiverInput').value = '';
+        document.getElementById('matGivenAmountInput').value = '';
+        document.getElementById('matNoteAmountInput').value = '';
+        document.getElementById('matDiffAmountInput').value = '';
         alert('Transaksi operasional berhasil disimpan!');
     }
 
@@ -484,9 +581,21 @@
                 `<span style="color:#2e7d32; font-weight:bold;">🟢 Masuk (+)</span>` : 
                 `<span style="color:#c62828; font-weight:bold;">🔴 Keluar (-)</span>`;
             
-            let catDisplay = i.category === 'Material Pembangunan' ? 
-                `🏗️ ${i.category} <div style="font-size:0.75rem; color:#00796b;">📍 ${i.location}</div>` : 
-                `📌 ${i.category}`;
+            let detailDisplay = '';
+            if (i.category === 'Material Pembangunan' && i.materialData) {
+                let md = i.materialData;
+                let diffText = md.difference > 0 ? `Kembalian Sisa: +${formatRp(md.difference)}` : (md.difference < 0 ? `Kurang: ${formatRp(md.difference)}` : `Pas`);
+                let diffColor = md.difference > 0 ? '#2e7d32' : (md.difference < 0 ? '#c62828' : '#1565c0');
+                
+                detailDisplay = `🏗️ <b>Lokasi:</b> ${i.location}<br>
+                                 📅 <b>Pemberian:</b> ${md.dateGiven}<br>
+                                 👤 <b>Penerima:</b> ${md.receiver}<br>
+                                 💵 <b>Diberikan:</b> ${formatRp(md.givenAmount)} | 🧾 <b>Nota:</b> ${formatRp(md.noteAmount)}<br>
+                                 🔄 <span style="color:${diffColor}; font-weight:bold;">${diffText}</span><br>
+                                 📝 <b>Ket:</b> ${i.description}`;
+            } else {
+                detailDisplay = `📌 <b>${i.category}</b><br>📝 ${i.description}`;
+            }
 
             let nominalClass = i.flowType === 'masuk' ? 'nominal-masuk' : 'nominal-keluar';
             let sign = i.flowType === 'masuk' ? '+' : '-';
@@ -498,8 +607,8 @@
                 </td>
                 <td>${i.date} ${i.time || ''}</td>
                 <td>${badge}</td>
-                <td>${catDisplay}</td>
-                <td>${i.description}</td>
+                <td>${i.category}</td>
+                <td class="vertical-details" style="white-space:normal; line-height:1.5;">${detailDisplay}</td>
                 <td><b>${i.method}</b></td>
                 <td class="${nominalClass}">${sign}${formatRp(i.amount)}</td>
             </tr>`;
@@ -524,7 +633,6 @@
 
         if (!desc || !date) { alert('Keterangan dan tanggal wajib diisi!'); return; }
 
-        // Perbarui bulan dan tahun otomatis berdasarkan tanggal baru (format DD/MM/YYYY)
         let parts = date.split('/');
         let mStr = parts.length >= 2 ? parts[1] : '01';
         let yStr = parts.length >= 3 ? parts[2] : '2026';
