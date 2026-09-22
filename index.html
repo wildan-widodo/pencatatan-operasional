@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="2.12.0">
+    <meta name="app-version" content="2.13.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -347,7 +347,7 @@
 
     let opTransactions = [];
     let buildingLocations = ['Kandang Dilem', 'Toko Beji', 'Rumah Owner'];
-    let centerStoreData = {}; // Menyimpan data transaksi dari aplikasi pusat (toko)
+    let centerStoreData = {}; 
     
     const allowedPins = ['945336', '123123']; 
     let masterPin = '945336';
@@ -373,20 +373,18 @@
     }
 
     function loadData() {
-        // Ambil data operasional
         db.ref('operasional_pengeluaran').on('value', snapshot => {
             opTransactions = snapshot.val() || [];
             renderTransactions();
         });
 
-        // Ambil data lokasi bangunan
         db.ref('operasional_lokasi').on('value', snapshot => {
             let data = snapshot.val();
             if (data) buildingLocations = data;
             renderLocationsTable();
         });
 
-        // Ambil data pemasukan toko dari aplikasi pusat (path: 'transaksi')
+        // Mendengarkan data transaksi dari aplikasi pusat (toko)
         db.ref('transaksi').on('value', snapshot => {
             centerStoreData = snapshot.val() || {};
             renderTransactions();
@@ -809,13 +807,18 @@
         let fCat = document.getElementById('filterCategory').value;
         let fMethod = document.getElementById('filterMethod').value;
 
-        // 1. Hitung Total Pemasukan Toko otomatis dari data aplikasi pusat (db.ref('transaksi'))
+        // 1. Menghitung Total Pemasukan Toko Pusat berdasarkan (Permen Fisik + QRIS + Debit + Parkir) dari semua toko
         let totalStoreIncomeFromCenter = 0;
         Object.values(centerStoreData).forEach(item => {
-            totalStoreIncomeFromCenter += parseCleanNumber(item.total || item.nominal || item.jumlah || 0);
+            let permenFisik = parseCleanNumber(item.permenFisik || item.tunai || item.cash || 0);
+            let qris = parseCleanNumber(item.qris || 0);
+            let debit = parseCleanNumber(item.debit || 0);
+            let parkir = parseCleanNumber(item.parkir || 0);
+
+            totalStoreIncomeFromCenter += (permenFisik + qris + debit + parkir);
         });
 
-        // 2. Hitung total pemasukan manual lain (jika ada input pemasukan manual di aplikasi operasional)
+        // 2. Menghitung pemasukan manual lain (jika ada input manual di aplikasi operasional)
         let totalManualIn = 0;
         let totalOut = 0;
 
