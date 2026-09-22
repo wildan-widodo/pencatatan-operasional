@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="2.9.0">
+    <meta name="app-version" content="2.11.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -117,8 +117,12 @@
             <form onsubmit="saveOpTransaction(event)">
                 <div class="highlight-box">
                     <div class="form-group" style="margin-bottom: 12px;">
+                        <label>📅 Tanggal Transaksi:</label>
+                        <input type="date" id="generalDateInput" onchange="checkAndAutoFillPemasukan()">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
                         <label>⚡ JENIS ARUS DANA:</label>
-                        <select id="flowTypeSelect" required>
+                        <select id="flowTypeSelect" onchange="toggleFlowTypeOptions()" required>
                             <option value="keluar">🔴 Pengeluaran Operasional (-)</option>
                             <option value="masuk">🟢 Pemasukan / Refund Barang (+)</option>
                         </select>
@@ -139,10 +143,6 @@
                 <div class="material-box" id="materialFormBox">
                     <h4 style="margin-top: 0; color: #2e7d32; border-bottom: 1px dashed #2e7d32; padding-bottom: 5px;">🏗️ Catat Penyerahan Dana Material (Kas Bon)</h4>
                     <div class="form-group">
-                        <label>📅 Tanggal Penyerahan Dana:</label>
-                        <input type="date" id="matDateInput">
-                    </div>
-                    <div class="form-group">
                         <label>👤 Nama Penerima (Yang Diberi Uang):</label>
                         <input type="text" id="matReceiverInput" placeholder="Contoh: Mas Aprin">
                     </div>
@@ -161,8 +161,9 @@
                 </div>
 
                 <div class="form-group" id="generalAmountGroup">
-                    <label>Nominal Total Pembayaran / Setoran (Rp)</label>
-                    <input type="text" id="amountInput" inputmode="numeric" placeholder="Contoh: 50.000.000" oninput="formatInputNumber(this)" required>
+                    <label id="amountLabel">Nominal (Rp)</label>
+                    <input type="text" id="amountInput" inputmode="numeric" placeholder="Contoh: 150.000" oninput="formatInputNumber(this)" required>
+                    <small id="autoInfoText" style="color: #2e7d32; font-weight: bold; display: none; margin-top: 4px;"></small>
                 </div>
 
                 <div class="form-group">
@@ -347,6 +348,7 @@
 
     let opTransactions = [];
     let buildingLocations = ['Kandang Dilem', 'Toko Beji', 'Rumah Owner'];
+    let centerStoreData = {}; // Menyimpan data pemasukan dari aplikasi pusat
     
     const allowedPins = ['945336', '123123']; 
     let masterPin = '945336';
@@ -356,7 +358,7 @@
         if (allowedPins.includes(pin)) {
             document.getElementById('loginCard').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
-            document.getElementById('matDateInput').value = new Date().toISOString().split('T')[0];
+            document.getElementById('generalDateInput').value = new Date().toISOString().split('T')[0];
             loadData();
         } else {
             document.getElementById('loginError').innerText = 'PIN Akses Salah!';
@@ -372,15 +374,23 @@
     }
 
     function loadData() {
+        // Ambil data operasional
         db.ref('operasional_pengeluaran').on('value', snapshot => {
             opTransactions = snapshot.val() || [];
             renderTransactions();
         });
 
+        // Ambil data lokasi bangunan
         db.ref('operasional_lokasi').on('value', snapshot => {
             let data = snapshot.val();
             if (data) buildingLocations = data;
             renderLocationsTable();
+        });
+
+        // Ambil data pemasukan toko dari aplikasi pusat (sesuaikan path database pusat Anda, contoh: 'transaksi' atau 'riwayat_toko')
+        db.ref('transaksi').on('value', snapshot => {
+            centerStoreData = snapshot.val() || {};
+            checkAndAutoFillPemasukan();
         });
     }
 
@@ -403,12 +413,36 @@
     function formatRp(num) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num); }
     function formatInputNumber(el) { el.value = parseCleanNumber(el.value) > 0 ? formatNumber(parseCleanNumber(el.value)) : ''; }
 
+    function toggleFlowTypeOptions() {
+        let flowType = document.getElementById('flowTypeSelect').value;
+        let catSelect = document.getElementById('categorySelect');
+
+        if (flowType === 'masuk') {
+            catSelect.innerHTML = `
+                <option value="Pemasukan Toko">🟢 Pemasukan Toko (Otomatis dari Pusat)</option>
+                <option value="Refund Barang">🟢 Refund / Retur Barang</option>
+                <option value="Lain-lain">📌 Lain-lain</option>
+            `;
+        } else {
+            catSelect.innerHTML = `
+                <option value="Material Pembangunan">🏗️ Material Pembangunan (Pemberian Dana Kas Bon)</option>
+                <option value="Rumah & Dapur">🏠 Pengeluaran Rumah & Dapur</option>
+                <option value="Operasional Gudang">📦 Operasional Gudang</option>
+                <option value="Order Barang">🛒 Order Barang / Pembayaran Supplier</option>
+                <option value="Lain-lain">📌 Lain-lain</option>
+            `;
+        }
+        toggleCategoryOptions();
+        checkAndAutoFillPemasukan();
+    }
+
     function toggleCategoryOptions() {
+        let flowType = document.getElementById('flowTypeSelect').value;
         let cat = document.getElementById('categorySelect').value;
         let matBox = document.getElementById('materialFormBox');
         let amtGroup = document.getElementById('generalAmountGroup');
 
-        if (cat === 'Material Pembangunan') {
+        if (flowType === 'keluar' && cat === 'Material Pembangunan') {
             matBox.style.display = 'block';
             amtGroup.style.display = 'none';
             document.getElementById('amountInput').removeAttribute('required');
@@ -418,6 +452,40 @@
             matBox.style.display = 'none';
             amtGroup.style.display = 'block';
             document.getElementById('amountInput').setAttribute('required', 'true');
+        }
+    }
+
+    // Fungsi Cek dan Tarik Otomatis Pemasukan Toko Berdasarkan Tanggal
+    function checkAndAutoFillPemasukan() {
+        let flowType = document.getElementById('flowTypeSelect').value;
+        let cat = document.getElementById('categorySelect').value;
+        let rawDate = document.getElementById('generalDateInput').value;
+        let amtInput = document.getElementById('amountInput');
+        let infoText = document.getElementById('autoInfoText');
+
+        if (flowType === 'masuk' && cat === 'Pemasukan Toko' && rawDate) {
+            let p = rawDate.split('-');
+            let formattedDate = `${p[2]}/${p[1]}/${p[0]}`; // Format DD/MM/YYYY
+
+            let totalStoreIncome = 0;
+            // Menjumlahkan seluruh transaksi pusat pada tanggal yang dipilih
+            Object.values(centerStoreData).forEach(item => {
+                if (item.date === formattedDate || (item.tanggal && item.tanggal === formattedDate)) {
+                    totalStoreIncome += parseCleanNumber(item.total || item.nominal || item.jumlah || 0);
+                }
+            });
+
+            if (totalStoreIncome > 0) {
+                amtInput.value = formatNumber(totalStoreIncome);
+                infoText.style.display = 'block';
+                infoText.innerText = `💡 Terisi otomatis dari Aplikasi Pusat: ${formatRp(totalStoreIncome)}`;
+            } else {
+                amtInput.value = '';
+                infoText.style.display = 'block';
+                infoText.innerText = `⚠️ Tidak ada data pemasukan di aplikasi pusat untuk tanggal ${formattedDate}`;
+            }
+        } else {
+            infoText.style.display = 'none';
         }
     }
 
@@ -476,17 +544,28 @@
 
     function saveOpTransaction(e) {
         e.preventDefault();
+        let rawDate = document.getElementById('generalDateInput').value;
         let flowType = document.getElementById('flowTypeSelect').value;
         let category = document.getElementById('categorySelect').value;
         let method = document.getElementById('paymentMethodSelect').value;
         let desc = document.getElementById('descriptionInput').value.trim();
 
+        let targetDate = new Date();
+        if (rawDate) {
+            let p = rawDate.split('-');
+            if (p.length === 3) {
+                targetDate = new Date(p[0], p[1] - 1, p[2]);
+            }
+        }
+        let formattedDate = `${String(targetDate.getDate()).padStart(2, '0')}/${String(targetDate.getMonth() + 1).padStart(2, '0')}/${targetDate.getFullYear()}`;
+        let mStr = String(targetDate.getMonth() + 1).padStart(2, '0');
+        let yStr = String(targetDate.getFullYear());
+
         let amount = 0;
         let materialData = null;
         let orderData = null;
 
-        if (category === 'Material Pembangunan') {
-            let rawDate = document.getElementById('matDateInput').value;
+        if (flowType === 'keluar' && category === 'Material Pembangunan') {
             let receiver = document.getElementById('matReceiverInput').value.trim();
             let given = parseCleanNumber(document.getElementById('matGivenAmountInput').value);
 
@@ -495,12 +574,9 @@
                 return;
             }
 
-            let p = rawDate ? rawDate.split('-') : [];
-            let formattedMatDate = p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : new Date().toLocaleDateString('id-ID');
-
             amount = given;
             materialData = {
-                dateGiven: formattedMatDate,
+                dateGiven: formattedDate,
                 receiver,
                 givenAmount: given,
                 recapStatus: 'belum',
@@ -508,7 +584,7 @@
                 totalSpend: 0,
                 difference: 0
             };
-        } else if (category === 'Order Barang') {
+        } else if (flowType === 'keluar' && category === 'Order Barang') {
             amount = parseCleanNumber(document.getElementById('amountInput').value);
             if (amount <= 0) { alert('Nominal total harus lebih dari 0'); return; }
             orderData = {
@@ -522,8 +598,7 @@
         }
 
         let now = new Date();
-        let mStr = String(now.getMonth() + 1).padStart(2, '0');
-        let yStr = String(now.getFullYear());
+        let timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
         opTransactions.push({
             id: Date.now(),
@@ -533,9 +608,9 @@
             amount,
             materialData,
             orderData,
-            description: desc,
-            date: now.toLocaleDateString('id-ID'),
-            time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+            description: desc || (category === 'Pemasukan Toko' ? 'Pemasukan harian dari aplikasi pusat' : 'Transaksi operasional'),
+            date: formattedDate,
+            time: timeStr,
             month: mStr,
             year: yStr
         });
@@ -545,6 +620,8 @@
         document.getElementById('descriptionInput').value = '';
         document.getElementById('matReceiverInput').value = '';
         document.getElementById('matGivenAmountInput').value = '';
+        document.getElementById('generalDateInput').value = new Date().toISOString().split('T')[0];
+        checkAndAutoFillPemasukan();
         alert('Transaksi berhasil disimpan!');
     }
 
