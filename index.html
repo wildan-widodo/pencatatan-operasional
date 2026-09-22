@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="2.15.0">
+    <meta name="app-version" content="2.16.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -348,6 +348,7 @@
 
     let opTransactions = [];
     let buildingLocations = ['Kandang Dilem', 'Toko Beji', 'Rumah Owner'];
+    let centerStoreData = {}; // Menyimpan data rekapitulasi pusat
     
     const allowedPins = ['945336', '123123']; 
     let masterPin = '945336';
@@ -373,15 +374,23 @@
     }
 
     function loadData() {
+        // Ambil data pengeluaran operasional
         db.ref('operasional_pengeluaran').on('value', snapshot => {
             opTransactions = snapshot.val() || [];
             renderTransactions();
         });
 
+        // Ambil data lokasi bangunan
         db.ref('operasional_lokasi').on('value', snapshot => {
             let data = snapshot.val();
             if (data) buildingLocations = data;
             renderLocationsTable();
+        });
+
+        // Ambil data dari rekapitulasi aplikasi pusat (path 'transaksi') untuk otomatis mengisi Total Pemasukan
+        db.ref('transaksi').on('value', snapshot => {
+            centerStoreData = snapshot.val() || {};
+            renderTransactions();
         });
     }
 
@@ -799,23 +808,41 @@
         let fCat = document.getElementById('filterCategory').value;
         let fMethod = document.getElementById('filterMethod').value;
 
+        // 1. Menghitung Total Pemasukan secara otomatis dari aplikasi pusat (meniru banner rekapitulasi)
+        let totalStoreIncomeFromCenter = 0;
+        Object.values(centerStoreData).forEach(item => {
+            let permenFisik = parseCleanNumber(item.permen || item.totalPermen || item.omsetPermen || item.permenFisik || item.tunai || item.cash || 0);
+            let qris = parseCleanNumber(item.qris || item.totalQris || 0);
+            let debit = parseCleanNumber(item.debit || item.totalDebit || item.edc || 0);
+            let parkir = parseCleanNumber(item.parkir || item.totalParkir || 0);
+
+            totalStoreIncomeFromCenter += (permenFisik + qris + debit + parkir);
+        });
+
+        // 2. Menghitung pemasukan manual (jika ada di aplikasi operasional) dan total pengeluaran
+        let totalManualIn = 0;
+        let totalOut = 0;
+
+        opTransactions.forEach(i => {
+            if (i.flowType === 'masuk') totalManualIn += i.amount;
+            else totalOut += i.amount;
+        });
+
+        let finalTotalIn = totalStoreIncomeFromCenter + totalManualIn;
+
+        document.getElementById('totalInVal').innerText = formatRp(finalTotalIn);
+        document.getElementById('totalOutVal').innerText = formatRp(totalOut);
+        
+        let net = finalTotalIn - totalOut;
+        let netValEl = document.getElementById('netVal');
+        netValEl.innerText = formatRp(net);
+        netValEl.style.color = net >= 0 ? '#2e7d32' : '#c62828';
+
         let filtered = opTransactions.filter(item => {
             if (fCat !== 'all' && item.category !== fCat) return false;
             if (fMethod !== 'all' && item.method !== fMethod) return false;
             return true;
         });
-
-        let totalIn = 0, totalOut = 0;
-        opTransactions.forEach(i => {
-            if (i.flowType === 'masuk') totalIn += i.amount;
-            else totalOut += i.amount;
-        });
-
-        document.getElementById('totalInVal').innerText = formatRp(totalIn);
-        document.getElementById('totalOutVal').innerText = formatRp(totalOut);
-        let net = totalIn - totalOut;
-        document.getElementById('netVal').innerText = formatRp(net);
-        document.getElementById('netVal').style.color = net >= 0 ? '#2e7d32' : '#c62828';
 
         if (filtered.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #777;">Belum ada data transaksi.</td></tr>`;
