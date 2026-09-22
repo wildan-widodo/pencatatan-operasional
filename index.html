@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="2.8.0">
+    <meta name="app-version" content="2.9.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -38,12 +38,12 @@
         
         .highlight-box { background: #e3f2fd; border: 2px dashed #1565c0; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
         .material-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
-        .order-box { background: #fff3e0; border: 2px dashed #ef6c00; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
         
-        .location-spend-row, .order-item-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-        .order-item-row input.ord-supplier { flex: 2; }
-        .order-item-row select.ord-status { flex: 1.2; }
-        .order-item-row input.ord-cost { flex: 1.5; }
+        .location-spend-row, .order-supplier-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .order-supplier-row input.ord-sup-name { flex: 2; }
+        .order-supplier-row select.ord-sup-status { flex: 1.2; }
+        .order-supplier-row input.ord-sup-date { flex: 1.3; }
+        .order-supplier-row input.ord-sup-cost { flex: 1.5; }
         .btn-add-row { background: #ef6c00; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; }
         .btn-del-row { background: #c62828; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
 
@@ -65,7 +65,7 @@
         .nominal-keluar { color: #c62828; font-weight: bold; }
 
         .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 450px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: center; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 600px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: center; max-height: 90vh; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -129,7 +129,7 @@
                             <option value="Material Pembangunan">🏗️ Material Pembangunan (Pemberian Dana Kas Bon)</option>
                             <option value="Rumah & Dapur">🏠 Pengeluaran Rumah & Dapur</option>
                             <option value="Operasional Gudang">📦 Operasional Gudang</option>
-                            <option value="Order Barang">🛒 Order Barang / Stok</option>
+                            <option value="Order Barang">🛒 Order Barang / Pembayaran Supplier</option>
                             <option value="Lain-lain">📌 Lain-lain</option>
                         </select>
                     </div>
@@ -152,27 +152,6 @@
                     </div>
                 </div>
 
-                <!-- FORM KHUSUS ORDER BARANG -->
-                <div class="order-box" id="orderFormBox">
-                    <h4 style="margin-top: 0; color: #ef6c00; border-bottom: 1px dashed #ef6c00; padding-bottom: 5px;">🛒 Rincian Order Supplier (Bon / Lunas)</h4>
-                    
-                    <div class="form-group">
-                        <label>Daftar Supplier & Status Pembayaran:</label>
-                        <div id="orderRowsContainer">
-                            <div class="order-item-row">
-                                <input type="text" class="ord-supplier" placeholder="Nama Supplier (Cth: Toko A)" required>
-                                <select class="ord-status" required>
-                                    <option value="Lunas">🟢 Lunas</option>
-                                    <option value="Bon">🔴 Bon</option>
-                                </select>
-                                <input type="text" class="ord-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this)" required>
-                                <button type="button" class="btn-del-row" onclick="removeOrderRow(this)" style="display:none;">✕</button>
-                            </div>
-                        </div>
-                        <button type="button" class="btn-add-row" onclick="addOrderRow()">+ Tambah Supplier Lain</button>
-                    </div>
-                </div>
-
                 <div class="form-group">
                     <label>💳 METODE TRANSAKSI:</label>
                     <select id="paymentMethodSelect" required>
@@ -182,13 +161,13 @@
                 </div>
 
                 <div class="form-group" id="generalAmountGroup">
-                    <label>Nominal (Rp)</label>
-                    <input type="text" id="amountInput" inputmode="numeric" placeholder="Contoh: 150.000" oninput="formatInputNumber(this)">
+                    <label>Nominal Total Pembayaran / Setoran (Rp)</label>
+                    <input type="text" id="amountInput" inputmode="numeric" placeholder="Contoh: 50.000.000" oninput="formatInputNumber(this)" required>
                 </div>
 
                 <div class="form-group">
                     <label>Keterangan / Catatan Tambahan</label>
-                    <input type="text" id="descriptionInput" placeholder="Contoh: Pembelian stok mingguan" required>
+                    <input type="text" id="descriptionInput" placeholder="Contoh: Pembayaran tagihan beberapa supplier minggu ini" required>
                 </div>
 
                 <button type="submit" class="btn-primary">Simpan Transaksi</button>
@@ -230,7 +209,7 @@
                             <th>Aksi</th>
                             <th>Tanggal & Waktu</th>
                             <th>Kategori</th>
-                            <th>Detail & Rincian Supplier / Kas Bon</th>
+                            <th>Detail Penerima & Rincian</th>
                             <th>Metode</th>
                             <th>Nominal Arus Kas</th>
                             <th>Status Rekap Nota</th>
@@ -289,9 +268,42 @@
     </div>
 </div>
 
+<!-- MODAL REKAP DETAIL SUPPLIER (ORDER BARANG) -->
+<div class="modal" id="orderRekapModal">
+    <div class="modal-content" style="width: 650px;">
+        <h3>Rincian Pembayaran Supplier</h3>
+        <p style="font-size: 0.85rem; color: #666;" id="orderRekapModalInfoLabel"></p>
+        <input type="hidden" id="modalOrderRekapTxId">
+        
+        <div class="form-group" style="text-align: left;">
+            <label>Daftar Supplier, Tanggal Nota, Status & Nominal:</label>
+            <div style="display: flex; font-size: 0.75rem; color: #666; font-weight: bold; margin-bottom: 4px; gap: 8px;">
+                <span style="flex: 2;">Nama Supplier</span>
+                <span style="flex: 1.2;">Status</span>
+                <span style="flex: 1.3;">Tgl Nota</span>
+                <span style="flex: 1.5;">Nominal (Rp)</span>
+                <span style="width: 30px;"></span>
+            </div>
+            <div id="modalOrderSupplierRowsContainer"></div>
+            <button type="button" class="btn-add-row" onclick="addModalOrderSupplierRow()" style="background:#ef6c00;">+ Tambah Supplier</button>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #ddd; margin-bottom: 15px; text-align: left;">
+            <div style="font-size: 0.85rem;">Total Setoran / Bayar: <b id="modalOrderTotalDisplay">Rp 0</b></div>
+            <div style="font-size: 0.85rem;">Total Rincian Supplier: <b id="modalOrderSumDisplay" style="color: #2e7d32;">Rp 0</b></div>
+            <div style="font-size: 0.95rem; margin-top: 4px;">Selisih: <b id="modalOrderDiffDisplay" style="color: #1565c0;">Rp 0</b></div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-cancel" onclick="document.getElementById('orderRekapModal').style.display='none'">Batal</button>
+            <button class="btn-submit" onclick="submitOrderRekap()">Simpan Rincian Supplier</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL EDIT LOKASI -->
 <div class="modal" id="editLocModal">
-    <div class="modal-content">
+    <div class="modal-content" style="width: 450px;">
         <h3>Edit Nama Lokasi</h3>
         <input type="hidden" id="editLocOldName">
         <div class="form-group" style="margin-top: 15px;">
@@ -306,9 +318,9 @@
 
 <!-- MODAL PIN HAPUS -->
 <div class="modal" id="pinModal">
-    <div class="modal-content">
+    <div class="modal-content" style="width: 450px;">
         <h3>Verifikasi Keamanan</h3>
-        <p style="font-size: 0.85rem; color: #666;">Masukkan PIN Master (945336) untuk menghapus data:</p>
+        <p style="font-size: 0.85rem; color: #666;">Masukkan Master PIN (945336) untuk menghapus data:</p>
         <input type="password" id="modalPinVal" placeholder="••••••" maxlength="10" style="text-align: center; letter-spacing: 5px; font-size: 1.2rem; margin-bottom: 15px;">
         <input type="hidden" id="modalDeleteId">
         <div style="display: flex; gap: 10px;">
@@ -336,7 +348,6 @@
     let opTransactions = [];
     let buildingLocations = ['Kandang Dilem', 'Toko Beji', 'Rumah Owner'];
     
-    // PIN yang diizinkan masuk: PIN Master ('945336') atau PIN Brankas Uang Tukar ('123123')
     const allowedPins = ['945336', '123123']; 
     let masterPin = '945336';
 
@@ -395,57 +406,19 @@
     function toggleCategoryOptions() {
         let cat = document.getElementById('categorySelect').value;
         let matBox = document.getElementById('materialFormBox');
-        let orderBox = document.getElementById('orderFormBox');
         let amtGroup = document.getElementById('generalAmountGroup');
 
         if (cat === 'Material Pembangunan') {
             matBox.style.display = 'block';
-            orderBox.style.display = 'none';
             amtGroup.style.display = 'none';
             document.getElementById('amountInput').removeAttribute('required');
             document.getElementById('matGivenAmountInput').setAttribute('required', 'true');
             document.getElementById('matReceiverInput').setAttribute('required', 'true');
-        } else if (cat === 'Order Barang') {
-            matBox.style.display = 'none';
-            orderBox.style.display = 'block';
-            amtGroup.style.display = 'none';
-            document.getElementById('amountInput').removeAttribute('required');
         } else {
             matBox.style.display = 'none';
-            orderBox.style.display = 'none';
             amtGroup.style.display = 'block';
             document.getElementById('amountInput').setAttribute('required', 'true');
         }
-    }
-
-    function addOrderRow() {
-        let container = document.getElementById('orderRowsContainer');
-        let div = document.createElement('div');
-        div.className = 'order-item-row';
-        div.innerHTML = `
-            <input type="text" class="ord-supplier" placeholder="Nama Supplier" required>
-            <select class="ord-status" required>
-                <option value="Lunas">🟢 Lunas</option>
-                <option value="Bon">🔴 Bon</option>
-            </select>
-            <input type="text" class="ord-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this)" required>
-            <button type="button" class="btn-del-row" onclick="removeOrderRow(this)">✕</button>
-        `;
-        container.appendChild(div);
-        updateOrderDeleteButtons();
-    }
-
-    function removeOrderRow(btn) {
-        btn.parentElement.remove();
-        updateOrderDeleteButtons();
-    }
-
-    function updateOrderDeleteButtons() {
-        let rows = document.querySelectorAll('.order-item-row');
-        rows.forEach(r => {
-            let delBtn = r.querySelector('.btn-del-row');
-            delBtn.style.display = rows.length > 1 ? 'block' : 'none';
-        });
     }
 
     function renderLocationsTable() {
@@ -536,28 +509,13 @@
                 difference: 0
             };
         } else if (category === 'Order Barang') {
-            let suppliers = [];
-            let totalOrderCost = 0;
-
-            document.querySelectorAll('.order-item-row').forEach(row => {
-                let supName = row.querySelector('.ord-supplier').value.trim();
-                let status = row.querySelector('.ord-status').value;
-                let cost = parseCleanNumber(row.querySelector('.ord-cost').value);
-                if (supName && cost > 0) {
-                    suppliers.push({ supplier: supName, status, cost });
-                    if (status === 'Lunas') {
-                        totalOrderCost += cost;
-                    }
-                }
-            });
-
-            if (suppliers.length === 0) {
-                alert('Mohon isi minimal satu rincian supplier!');
-                return;
-            }
-
-            amount = totalOrderCost;
-            orderData = { suppliers, totalOrderCost };
+            amount = parseCleanNumber(document.getElementById('amountInput').value);
+            if (amount <= 0) { alert('Nominal total harus lebih dari 0'); return; }
+            orderData = {
+                recapStatus: 'belum',
+                suppliers: [],
+                totalSupplierCost: 0
+            };
         } else {
             amount = parseCleanNumber(document.getElementById('amountInput').value);
             if (amount <= 0) { alert('Nominal harus lebih dari 0'); return; }
@@ -587,21 +545,10 @@
         document.getElementById('descriptionInput').value = '';
         document.getElementById('matReceiverInput').value = '';
         document.getElementById('matGivenAmountInput').value = '';
-        
-        document.getElementById('orderRowsContainer').innerHTML = `
-            <div class="order-item-row">
-                <input type="text" class="ord-supplier" placeholder="Nama Supplier" required>
-                <select class="ord-status" required>
-                    <option value="Lunas">🟢 Lunas</option>
-                    <option value="Bon">🔴 Bon</option>
-                </select>
-                <input type="text" class="ord-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this)" required>
-                <button type="button" class="btn-del-row" onclick="removeOrderRow(this)" style="display:none;">✕</button>
-            </div>
-        `;
         alert('Transaksi berhasil disimpan!');
     }
 
+    // Modal Rekap Material
     function openMaterialRekapModal(txId) {
         let tx = opTransactions.find(t => t.id === txId);
         if (!tx || !tx.materialData) return;
@@ -639,7 +586,7 @@
         div.innerHTML = `
             <select class="loc-select" required>${optionsHtml}</select>
             <input type="text" class="loc-cost" inputmode="numeric" placeholder="Nominal Nota (Rp)" value="${costVal > 0 ? formatNumber(costVal) : ''}" oninput="formatInputNumber(this); calculateModalMaterialSummary();" required>
-            <button type="button" class="btn-del-loc-row" onclick="removeModalLocationRow(this)">✕</button>
+            <button type="button" class="btn-del-row" onclick="removeModalLocationRow(this)">✕</button>
         `;
         container.appendChild(div);
         updateModalLocationDeleteButtons();
@@ -654,7 +601,7 @@
     function updateModalLocationDeleteButtons() {
         let rows = document.querySelectorAll('#modalLocationRowsContainer .location-spend-row');
         rows.forEach(r => {
-            let delBtn = r.querySelector('.btn-del-loc-row');
+            let delBtn = r.querySelector('.btn-del-row');
             delBtn.style.display = rows.length > 1 ? 'block' : 'none';
         });
     }
@@ -667,7 +614,6 @@
         });
 
         let diff = given - totalSpend;
-        
         document.getElementById('modalSpendDisplay').innerText = formatRp(totalSpend);
         let diffDisplay = document.getElementById('modalDiffDisplay');
         if (diff > 0) {
@@ -717,6 +663,126 @@
         syncCloud();
         document.getElementById('materialRekapModal').style.display = 'none';
         alert('Rekap nota material berhasil disimpan!');
+    }
+
+    // Modal Rekap Supplier / Order Barang
+    function openOrderRekapModal(txId) {
+        let tx = opTransactions.find(t => t.id === txId);
+        if (!tx || !tx.orderData) return;
+
+        document.getElementById('modalOrderRekapTxId').value = tx.id;
+        document.getElementById('orderRekapModalInfoLabel').innerText = `Total Setoran / Bayar: ${formatRp(tx.amount)}`;
+        document.getElementById('modalOrderTotalDisplay').innerText = formatRp(tx.amount);
+
+        let container = document.getElementById('modalOrderSupplierRowsContainer');
+        container.innerHTML = '';
+
+        if (tx.orderData.suppliers && tx.orderData.suppliers.length > 0) {
+            tx.orderData.suppliers.forEach(s => {
+                addModalOrderSupplierRow(s.supplier, s.status, s.dateNota, s.cost);
+            });
+        } else {
+            addModalOrderSupplierRow();
+        }
+
+        calculateModalOrderSummary();
+        document.getElementById('orderRekapModal').style.display = 'flex';
+    }
+
+    function addModalOrderSupplierRow(supName = '', status = 'Lunas', dateNota = '', costVal = 0) {
+        let container = document.getElementById('modalOrderSupplierRowsContainer');
+        let div = document.createElement('div');
+        div.className = 'order-supplier-row';
+
+        let todayStr = new Date().toISOString().split('T')[0];
+        let dVal = dateNota || todayStr;
+
+        div.innerHTML = `
+            <input type="text" class="ord-sup-name" placeholder="Nama Supplier" value="${supName}" required>
+            <select class="ord-sup-status" required>
+                <option value="Lunas" ${status === 'Lunas' ? 'selected' : ''}>🟢 Lunas</option>
+                <option value="Bon" ${status === 'Bon' ? 'selected' : ''}>🔴 Bon</option>
+            </select>
+            <input type="date" class="ord-sup-date" value="${dVal}" required>
+            <input type="text" class="ord-sup-cost" inputmode="numeric" placeholder="Nominal (Rp)" value="${costVal > 0 ? formatNumber(costVal) : ''}" oninput="formatInputNumber(this); calculateModalOrderSummary();" required>
+            <button type="button" class="btn-del-row" onclick="removeModalOrderSupplierRow(this)">✕</button>
+        `;
+        container.appendChild(div);
+        updateModalOrderDeleteButtons();
+    }
+
+    function removeModalOrderSupplierRow(btn) {
+        btn.parentElement.remove();
+        updateModalOrderDeleteButtons();
+        calculateModalOrderSummary();
+    }
+
+    function updateModalOrderDeleteButtons() {
+        let rows = document.querySelectorAll('#modalOrderSupplierRowsContainer .order-supplier-row');
+        rows.forEach(r => {
+            let delBtn = r.querySelector('.btn-del-row');
+            delBtn.style.display = rows.length > 1 ? 'block' : 'none';
+        });
+    }
+
+    function calculateModalOrderSummary() {
+        let totalSetoran = parseCleanNumber(document.getElementById('modalOrderTotalDisplay').innerText);
+        let totalSupplierCost = 0;
+        document.querySelectorAll('#modalOrderSupplierRowsContainer .order-supplier-row').forEach(row => {
+            totalSupplierCost += parseCleanNumber(row.querySelector('.ord-sup-cost').value);
+        });
+
+        let diff = totalSetoran - totalSupplierCost;
+        document.getElementById('modalOrderSumDisplay').innerText = formatRp(totalSupplierCost);
+        let diffDisplay = document.getElementById('modalOrderDiffDisplay');
+        if (diff > 0) {
+            diffDisplay.innerHTML = `Kurang Alokasi: <span style="color:#c62828;">+${formatRp(diff)}</span>`;
+        } else if (diff < 0) {
+            diffDisplay.innerHTML = `Lebih Alokasi: <span style="color:#2e7d32;">${formatRp(diff)}</span>`;
+        } else {
+            diffDisplay.innerHTML = `<span style="color:#1565c0;">Sesuai / Pas (Rp 0)</span>`;
+        }
+    }
+
+    function submitOrderRekap() {
+        let txId = parseInt(document.getElementById('modalOrderRekapTxId').value);
+        let suppliers = [];
+        let totalSupplierCost = 0;
+
+        document.querySelectorAll('#modalOrderSupplierRowsContainer .order-supplier-row').forEach(row => {
+            let supplier = row.querySelector('.ord-sup-name').value.trim();
+            let status = row.querySelector('.ord-sup-status').value;
+            let dateNotaRaw = row.querySelector('.ord-sup-date').value;
+            let cost = parseCleanNumber(row.querySelector('.ord-sup-cost').value);
+
+            let p = dateNotaRaw ? dateNotaRaw.split('-') : [];
+            let dateNota = p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '-';
+
+            if (supplier && cost > 0) {
+                suppliers.push({ supplier, status, dateNota, cost });
+                totalSupplierCost += cost;
+            }
+        });
+
+        if (suppliers.length === 0) { alert('Minimal isi satu rincian supplier!'); return; }
+
+        opTransactions = opTransactions.map(tx => {
+            if (tx.id === txId) {
+                return {
+                    ...tx,
+                    orderData: {
+                        recapStatus: 'sudah',
+                        suppliers,
+                        totalSupplierCost
+                    }
+                };
+            }
+            return tx;
+        });
+
+        syncCloud();
+        document.getElementById('orderRekapModal').style.display = 'none';
+        alert('Rincian supplier berhasil disimpan!');
     }
 
     function renderTransactions() {
@@ -783,13 +849,23 @@
                 }
             } else if (i.category === 'Order Barang' && i.orderData) {
                 let od = i.orderData;
-                let supDetails = '';
-                od.suppliers.forEach(s => {
-                    let stColor = s.status === 'Lunas' ? '#2e7d32' : '#c62828';
-                    supDetails += `&nbsp;&nbsp;• ${s.supplier} (<span style="color:${stColor}; font-weight:bold;">${s.status}</span>): <b>${formatRp(s.cost)}</b><br>`;
-                });
-                detailDisplay = `🛒 <b>Rincian Order Supplier:</b><br>${supDetails}
-                                 📝 <b>Ket:</b> ${i.description}`;
+                if (od.recapStatus === 'sudah') {
+                    statusTd = `<span style="color: #2e7d32; font-weight: bold; cursor: pointer;" onclick="openOrderRekapModal(${i.id})">🟢 Selesai (Rincian Lengkap)</span>`;
+                    
+                    let supDetails = '';
+                    od.suppliers.forEach(s => {
+                        let stColor = s.status === 'Lunas' ? '#2e7d32' : '#c62828';
+                        supDetails += `&nbsp;&nbsp;• ${s.supplier} (${s.dateNota}) - <span style="color:${stColor}; font-weight:bold;">${s.status}</span>: <b>${formatRp(s.cost)}</b><br>`;
+                    });
+
+                    detailDisplay = `🛒 <b>Rincian Pembayaran Supplier:</b><br>${supDetails}
+                                     🧾 <b>Total Rincian:</b> ${formatRp(od.totalSupplierCost)}<br>
+                                     📝 <b>Ket:</b> ${i.description}`;
+                } else {
+                    statusTd = `<span style="color: #c62828; font-weight: bold; cursor: pointer;" onclick="openOrderRekapModal(${i.id})">🔴 Belum Dirinci (Klik untuk Isi Detail)</span>`;
+                    detailDisplay = `🛒 <b>Order Barang / Setoran:</b> ${formatRp(i.amount)} (Menunggu Rincian Supplier)<br>
+                                     📝 <b>Ket:</b> ${i.description}`;
+                }
             } else {
                 detailDisplay = `📌 <b>${i.category}</b><br>📝 ${i.description}`;
             }
