@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="2.3.0">
+    <meta name="app-version" content="2.5.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -38,13 +38,15 @@
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
         
         .highlight-box { background: #e3f2fd; border: 2px dashed #1565c0; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
-        .material-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: block; }
+        .material-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
+        .order-box { background: #fff3e0; border: 2px dashed #ef6c00; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
         
-        .location-spend-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
-        .location-spend-row select { flex: 2; }
-        .location-spend-row input { flex: 2; }
-        .btn-add-loc-row { background: #00796b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; }
-        .btn-del-loc-row { background: #c62828; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
+        .location-spend-row, .order-item-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .order-item-row input.ord-supplier { flex: 2; }
+        .order-item-row select.ord-status { flex: 1.2; }
+        .order-item-row input.ord-cost { flex: 1.5; }
+        .btn-add-row { background: #ef6c00; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; }
+        .btn-del-row { background: #c62828; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
 
         .btn-primary { background: #2196F3; color: white; border: none; padding: 12px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem; }
         .btn-success { background: #2e7d32; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
@@ -140,23 +142,41 @@
                     </div>
                 </div>
 
-                <!-- FORM KHUSUS PEMBERIAN DANA MATERIAL -->
+                <!-- FORM KHUSUS MATERIAL PEMBANGUNAN -->
                 <div class="material-box" id="materialFormBox">
                     <h4 style="margin-top: 0; color: #2e7d32; border-bottom: 1px dashed #2e7d32; padding-bottom: 5px;">🏗️ Catat Penyerahan Dana Material (Kas Bon)</h4>
-                    
                     <div class="form-group">
                         <label>📅 Tanggal Penyerahan Dana:</label>
                         <input type="date" id="matDateInput">
                     </div>
-
                     <div class="form-group">
                         <label>👤 Nama Penerima (Yang Diberi Uang):</label>
                         <input type="text" id="matReceiverInput" placeholder="Contoh: Mas Aprin">
                     </div>
-
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>💰 Nominal Uang yang Diberikan Admin (Rp):</label>
-                        <input type="text" id="matGivenAmountInput" inputmode="numeric" placeholder="Contoh: 10.000.000" oninput="formatInputNumber(this)" required>
+                        <input type="text" id="matGivenAmountInput" inputmode="numeric" placeholder="Contoh: 10.000.000" oninput="formatInputNumber(this)">
+                    </div>
+                </div>
+
+                <!-- FORM KHUSUS ORDER BARANG (MULTI-SUPPLIER: SUPPLIER, STATUS, NOMINAL) -->
+                <div class="order-box" id="orderFormBox">
+                    <h4 style="margin-top: 0; color: #ef6c00; border-bottom: 1px dashed #ef6c00; padding-bottom: 5px;">🛒 Rincian Order Supplier (Bon / Lunas)</h4>
+                    
+                    <div class="form-group">
+                        <label>Daftar Supplier & Status Pembayaran:</label>
+                        <div id="orderRowsContainer">
+                            <div class="order-item-row">
+                                <input type="text" class="ord-supplier" placeholder="Nama Supplier (Cth: Toko A)" required>
+                                <select class="ord-status" required>
+                                    <option value="Lunas">🟢 Lunas</option>
+                                    <option value="Bon">🔴 Bon</option>
+                                </select>
+                                <input type="text" class="ord-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this)" required>
+                                <button type="button" class="btn-del-row" onclick="removeOrderRow(this)" style="display:none;">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-add-row" onclick="addOrderRow()">+ Tambah Supplier Lain</button>
                     </div>
                 </div>
 
@@ -168,14 +188,14 @@
                     </select>
                 </div>
 
-                <div class="form-group" id="generalAmountGroup" style="display: none;">
+                <div class="form-group" id="generalAmountGroup">
                     <label>Nominal (Rp)</label>
                     <input type="text" id="amountInput" inputmode="numeric" placeholder="Contoh: 150.000" oninput="formatInputNumber(this)">
                 </div>
 
                 <div class="form-group">
                     <label>Keterangan / Catatan Tambahan</label>
-                    <input type="text" id="descriptionInput" placeholder="Contoh: Keperluan belanja material bangunan mingguan" required>
+                    <input type="text" id="descriptionInput" placeholder="Contoh: Pembelian stok mingguan" required>
                 </div>
 
                 <button type="submit" class="btn-primary">Simpan Transaksi</button>
@@ -217,7 +237,7 @@
                             <th>Aksi</th>
                             <th>Tanggal & Waktu</th>
                             <th>Kategori</th>
-                            <th>Detail Penerima & Rincian</th>
+                            <th>Detail & Rincian Supplier / Kas Bon</th>
                             <th>Metode</th>
                             <th>Nominal Arus Kas</th>
                             <th>Status Rekap Nota</th>
@@ -260,7 +280,7 @@
         <div class="form-group" style="text-align: left;">
             <label>Rincian Lokasi Belanja & Nominal Nota:</label>
             <div id="modalLocationRowsContainer"></div>
-            <button type="button" class="btn-add-loc-row" onclick="addModalLocationRow()">+ Tambah Lokasi Belanja</button>
+            <button type="button" class="btn-add-row" onclick="addModalLocationRow()" style="background:#2e7d32;">+ Tambah Lokasi Belanja</button>
         </div>
 
         <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #ddd; margin-bottom: 15px; text-align: left;">
@@ -381,21 +401,57 @@
     function toggleCategoryOptions() {
         let cat = document.getElementById('categorySelect').value;
         let matBox = document.getElementById('materialFormBox');
+        let orderBox = document.getElementById('orderFormBox');
         let amtGroup = document.getElementById('generalAmountGroup');
 
         if (cat === 'Material Pembangunan') {
             matBox.style.display = 'block';
+            orderBox.style.display = 'none';
             amtGroup.style.display = 'none';
             document.getElementById('amountInput').removeAttribute('required');
             document.getElementById('matGivenAmountInput').setAttribute('required', 'true');
             document.getElementById('matReceiverInput').setAttribute('required', 'true');
+        } else if (cat === 'Order Barang') {
+            matBox.style.display = 'none';
+            orderBox.style.display = 'block';
+            amtGroup.style.display = 'none';
+            document.getElementById('amountInput').removeAttribute('required');
         } else {
             matBox.style.display = 'none';
+            orderBox.style.display = 'none';
             amtGroup.style.display = 'block';
             document.getElementById('amountInput').setAttribute('required', 'true');
-            document.getElementById('matGivenAmountInput').removeAttribute('required');
-            document.getElementById('matReceiverInput').removeAttribute('required');
         }
+    }
+
+    function addOrderRow() {
+        let container = document.getElementById('orderRowsContainer');
+        let div = document.createElement('div');
+        div.className = 'order-item-row';
+        div.innerHTML = `
+            <input type="text" class="ord-supplier" placeholder="Nama Supplier" required>
+            <select class="ord-status" required>
+                <option value="Lunas">🟢 Lunas</option>
+                <option value="Bon">🔴 Bon</option>
+            </select>
+            <input type="text" class="ord-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this)" required>
+            <button type="button" class="btn-del-row" onclick="removeOrderRow(this)">✕</button>
+        `;
+        container.appendChild(div);
+        updateOrderDeleteButtons();
+    }
+
+    function removeOrderRow(btn) {
+        btn.parentElement.remove();
+        updateOrderDeleteButtons();
+    }
+
+    function updateOrderDeleteButtons() {
+        let rows = document.querySelectorAll('.order-item-row');
+        rows.forEach(r => {
+            let delBtn = r.querySelector('.btn-del-row');
+            delBtn.style.display = rows.length > 1 ? 'block' : 'none';
+        });
     }
 
     function renderLocationsTable() {
@@ -460,6 +516,7 @@
 
         let amount = 0;
         let materialData = null;
+        let orderData = null;
 
         if (category === 'Material Pembangunan') {
             let rawDate = document.getElementById('matDateInput').value;
@@ -484,6 +541,29 @@
                 totalSpend: 0,
                 difference: 0
             };
+        } else if (category === 'Order Barang') {
+            let suppliers = [];
+            let totalOrderCost = 0;
+
+            document.querySelectorAll('.order-item-row').forEach(row => {
+                let supName = row.querySelector('.ord-supplier').value.trim();
+                let status = row.querySelector('.ord-status').value;
+                let cost = parseCleanNumber(row.querySelector('.ord-cost').value);
+                if (supName && cost > 0) {
+                    suppliers.push({ supplier: supName, status, cost });
+                    if (status === 'Lunas') {
+                        totalOrderCost += cost;
+                    }
+                }
+            });
+
+            if (suppliers.length === 0) {
+                alert('Mohon isi minimal satu rincian supplier!');
+                return;
+            }
+
+            amount = totalOrderCost;
+            orderData = { suppliers, totalOrderCost };
         } else {
             amount = parseCleanNumber(document.getElementById('amountInput').value);
             if (amount <= 0) { alert('Nominal harus lebih dari 0'); return; }
@@ -500,6 +580,7 @@
             method,
             amount,
             materialData,
+            orderData,
             description: desc,
             date: now.toLocaleDateString('id-ID'),
             time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
@@ -512,7 +593,19 @@
         document.getElementById('descriptionInput').value = '';
         document.getElementById('matReceiverInput').value = '';
         document.getElementById('matGivenAmountInput').value = '';
-        alert('Pencatatan kas bon material berhasil disimpan!');
+        
+        document.getElementById('orderRowsContainer').innerHTML = `
+            <div class="order-item-row">
+                <input type="text" class="ord-supplier" placeholder="Nama Supplier" required>
+                <select class="ord-status" required>
+                    <option value="Lunas">🟢 Lunas</option>
+                    <option value="Bon">🔴 Bon</option>
+                </select>
+                <input type="text" class="ord-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this)" required>
+                <button type="button" class="btn-del-row" onclick="removeOrderRow(this)" style="display:none;">✕</button>
+            </div>
+        `;
+        alert('Transaksi berhasil disimpan!');
     }
 
     function openMaterialRekapModal(txId) {
@@ -667,7 +760,7 @@
                 `<span style="color:#2e7d32; font-weight:bold;">🟢 Masuk (+)</span>` : 
                 `<span style="color:#c62828; font-weight:bold;">🔴 Keluar (-)</span>`;
             
-            let statusTd = '';
+            let statusTd = `<span>-</span>`;
             let detailDisplay = '';
 
             if (i.category === 'Material Pembangunan' && i.materialData) {
@@ -694,15 +787,22 @@
                                      💰 <b>Dana Diberikan:</b> ${formatRp(md.givenAmount)} (Menunggu Nota Masuk)<br>
                                      📝 <b>Ket:</b> ${i.description}`;
                 }
+            } else if (i.category === 'Order Barang' && i.orderData) {
+                let od = i.orderData;
+                let supDetails = '';
+                od.suppliers.forEach(s => {
+                    let stColor = s.status === 'Lunas' ? '#2e7d32' : '#c62828';
+                    supDetails += `&nbsp;&nbsp;• ${s.supplier} (<span style="color:${stColor}; font-weight:bold;">${s.status}</span>): <b>${formatRp(s.cost)}</b><br>`;
+                });
+                detailDisplay = `🛒 <b>Rincian Order Supplier:</b><br>${supDetails}
+                                 📝 <b>Ket:</b> ${i.description}`;
             } else {
-                statusTd = `<span>-</span>`;
                 detailDisplay = `📌 <b>${i.category}</b><br>📝 ${i.description}`;
             }
 
             let nominalClass = i.flowType === 'masuk' ? 'nominal-masuk' : 'nominal-keluar';
             let sign = i.flowType === 'masuk' ? '+' : '-';
 
-            // URUTAN KOLOM BARU: Aksi - Tanggal & Waktu - Kategori - Detail - Metode - Nominal - Status Rekap Nota
             tbody.innerHTML += `<tr>
                 <td><button class="btn-trash" onclick="requestDelete(${i.id})">🗑️</button></td>
                 <td>${i.date} ${i.time || ''}</td>
@@ -711,7 +811,7 @@
                 <td><b>${i.method}</b></td>
                 <td class="${nominalClass}">${sign}${formatRp(i.amount)}</td>
                 <td>${statusTd}</td>
-            </tr>`;
+            </tr>`);
         });
     }
 
