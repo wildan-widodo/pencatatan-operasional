@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="2.5.0">
+    <meta name="app-version" content="2.7.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         * { box-sizing: border-box; font-family: Arial, sans-serif; }
         body { background: #f4f6f8; margin: 0; padding: 15px; }
         .container { max-width: 1200px; margin: auto; display: none; }
-        .login-container { max-width: 400px; margin: 80px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
+        .login-card { max-width: 380px; margin: 80px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
         
         .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h2, h3 { margin-top: 0; color: #333; }
@@ -71,21 +70,15 @@
 </head>
 <body>
 
-<!-- HALAMAN LOGIN FIREBASE -->
-<div class="login-container" id="loginCard">
-    <h2>Login Admin Operasional</h2>
-    <p style="font-size: 0.85rem; color: #666; margin-bottom: 20px;">Masukkan akun terdaftar Anda</p>
-    <form onsubmit="handleLogin(event)">
-        <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="loginEmail" placeholder="admin@aww.com" required>
-        </div>
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="loginPassword" placeholder="••••••••" required>
-        </div>
-        <button type="submit" class="btn-primary" style="margin-top: 10px;">Masuk ke Aplikasi</button>
-    </form>
+<!-- HALAMAN LOGIN PIN -->
+<div class="login-card" id="loginCard">
+    <h2>Login Operasional AWW</h2>
+    <p style="font-size: 0.85rem; color: #666; margin-bottom: 20px;">Masukkan PIN Master atau PIN Brankas</p>
+    <div class="form-group">
+        <label>PIN Akses</label>
+        <input type="password" id="loginPinInput" placeholder="••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.3rem;" onkeydown="if(event.key==='Enter'){ handlePinLogin(); }">
+    </div>
+    <button type="button" class="btn-primary" onclick="handlePinLogin()">Masuk</button>
     <div id="loginError" style="color: #c62828; font-size: 0.85rem; margin-top: 15px;"></div>
 </div>
 
@@ -93,7 +86,7 @@
 <div class="container" id="appContainer">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
         <h2 style="margin: 0;">Pencatatan Pengeluaran & Operasional AWW</h2>
-        <button class="btn-cancel" onclick="handleLogout()" style="width: auto; padding: 6px 12px; font-size: 0.85rem;">🚪 Keluar</button>
+        <button class="btn-cancel" onclick="handlePinLogout()" style="width: auto; padding: 6px 12px; font-size: 0.85rem; background: #c62828;">🚪 Keluar</button>
     </div>
 
     <!-- NAVIGASI SLIDE -->
@@ -159,7 +152,7 @@
                     </div>
                 </div>
 
-                <!-- FORM KHUSUS ORDER BARANG (MULTI-SUPPLIER: SUPPLIER, STATUS, NOMINAL) -->
+                <!-- FORM KHUSUS ORDER BARANG -->
                 <div class="order-box" id="orderFormBox">
                     <h4 style="margin-top: 0; color: #ef6c00; border-bottom: 1px dashed #ef6c00; padding-bottom: 5px;">🛒 Rincian Order Supplier (Bon / Lunas)</h4>
                     
@@ -244,7 +237,7 @@
                         </tr>
                     </thead>
                     <tbody id="transactionTableBody">
-                        <tr><td colspan="7" style="text-align: center; color: #777;">Belum ada riwayat transaksi.</td></tr>
+                        <tr><td colspan="7" style="text-align: center; color: #777;">Memuat data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -316,7 +309,7 @@
     <div class="modal-content">
         <h3>Verifikasi Keamanan</h3>
         <p style="font-size: 0.85rem; color: #666;">Masukkan Master PIN (9999) untuk menghapus data:</p>
-        <input type="password" id="modalPinVal" placeholder="••••" maxlength="4" style="text-align: center; letter-spacing: 5px; font-size: 1.2rem; margin-bottom: 15px;">
+        <input type="password" id="modalPinVal" placeholder="••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.2rem; margin-bottom: 15px;">
         <input type="hidden" id="modalDeleteId">
         <div style="display: flex; gap: 10px;">
             <button class="btn-cancel" onclick="document.getElementById('pinModal').style.display='none'">Batal</button>
@@ -338,33 +331,34 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
     const db = firebase.database();
 
     let opTransactions = [];
     let buildingLocations = ['Kandang Dilem', 'Toko Beji', 'Rumah Owner'];
+    
+    // PIN yang diizinkan masuk: PIN Master ('9999') atau PIN Brankas Uang Tukar ('8888' / silakan sesuaikan jika berbeda)
+    const allowedPins = ['9999', '8888']; 
     let masterPin = '9999';
 
-    auth.onAuthStateChanged(user => {
-        if (user) {
+    function handlePinLogin() {
+        let pin = document.getElementById('loginPinInput').value.trim();
+        if (allowedPins.includes(pin)) {
             document.getElementById('loginCard').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
             document.getElementById('matDateInput').value = new Date().toISOString().split('T')[0];
             loadData();
         } else {
-            document.getElementById('loginCard').style.display = 'block';
-            document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('loginError').innerText = 'PIN Akses Salah!';
+            document.getElementById('loginPinInput').value = '';
         }
-    });
-
-    function handleLogin(e) {
-        e.preventDefault();
-        const email = document.getElementById('loginEmail').value;
-        const pass = document.getElementById('loginPassword').value;
-        auth.signInWithEmailAndPassword(email, pass)
-            .catch(err => { document.getElementById('loginError').innerText = err.message; });
     }
-    function handleLogout() { auth.signOut(); }
+
+    function handlePinLogout() {
+        document.getElementById('loginCard').style.display = 'block';
+        document.getElementById('appContainer').style.display = 'none';
+        document.getElementById('loginPinInput').value = '';
+        document.getElementById('loginError').innerText = '';
+    }
 
     function loadData() {
         db.ref('operasional_pengeluaran').on('value', snapshot => {
@@ -811,7 +805,7 @@
                 <td><b>${i.method}</b></td>
                 <td class="${nominalClass}">${sign}${formatRp(i.amount)}</td>
                 <td>${statusTd}</td>
-            </tr>`);
+            </tr>`;
         });
     }
 
