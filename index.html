@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="2.2.0">
+    <meta name="app-version" content="2.3.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -38,7 +38,7 @@
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
         
         .highlight-box { background: #e3f2fd; border: 2px dashed #1565c0; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
-        .material-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
+        .material-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: block; }
         
         .location-spend-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
         .location-spend-row select { flex: 2; }
@@ -51,7 +51,6 @@
         .btn-cancel { background: #9e9e9e; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; }
         .btn-submit { background: #4caf50; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; }
         .btn-trash { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
-        .btn-edit { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; margin-right: 4px; }
         .btn-edit-loc { background: #e0f2f1; color: #00796b; border: 1px solid #b2dfdb; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-top: 5px; display: inline-block; }
         
         .filter-bar { background: #f1f3f5; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -142,7 +141,7 @@
                 </div>
 
                 <!-- FORM KHUSUS PEMBERIAN DANA MATERIAL -->
-                <div class="material-box" id="materialFormBox" style="display: block;">
+                <div class="material-box" id="materialFormBox">
                     <h4 style="margin-top: 0; color: #2e7d32; border-bottom: 1px dashed #2e7d32; padding-bottom: 5px;">🏗️ Catat Penyerahan Dana Material (Kas Bon)</h4>
                     
                     <div class="form-group">
@@ -217,11 +216,11 @@
                         <tr>
                             <th>Aksi</th>
                             <th>Tanggal & Waktu</th>
-                            <th>Status Rekap Nota</th>
                             <th>Kategori</th>
-                            <th>Detail Penerima & Rincian Nota Lokasi</th>
+                            <th>Detail Penerima & Rincian</th>
                             <th>Metode</th>
                             <th>Nominal Arus Kas</th>
+                            <th>Status Rekap Nota</th>
                         </tr>
                     </thead>
                     <tbody id="transactionTableBody">
@@ -251,7 +250,7 @@
     </div>
 </div>
 
-<!-- MODAL REKAP NOTA & LOKASI MATERIAL (MIRIP SISTEM TUKAR) -->
+<!-- MODAL REKAP NOTA & LOKASI MATERIAL -->
 <div class="modal" id="materialRekapModal">
     <div class="modal-content">
         <h3>Rekap Nota Belanja Material</h3>
@@ -475,12 +474,12 @@
             let p = rawDate ? rawDate.split('-') : [];
             let formattedMatDate = p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : new Date().toLocaleDateString('id-ID');
 
-            amount = given; // Awal keluar kas sebesar uang yang diserahkan
+            amount = given;
             materialData = {
                 dateGiven: formattedMatDate,
                 receiver,
                 givenAmount: given,
-                recapStatus: 'belum', // Belum direkap nota
+                recapStatus: 'belum',
                 locSpends: [],
                 totalSpend: 0,
                 difference: 0
@@ -516,7 +515,6 @@
         alert('Pencatatan kas bon material berhasil disimpan!');
     }
 
-    // Buka Modal Rekap Nota Material (Mirip sistem terima uang utuh)
     function openMaterialRekapModal(txId) {
         let tx = opTransactions.find(t => t.id === txId);
         if (!tx || !tx.materialData) return;
@@ -581,7 +579,7 @@
             totalSpend += parseCleanNumber(row.querySelector('.loc-cost').value);
         });
 
-        let diff = given - totalSpend; // Positif = Kembalian sisa, Negatif = Talangan/Kurang
+        let diff = given - totalSpend;
         
         document.getElementById('modalSpendDisplay').innerText = formatRp(totalSpend);
         let diffDisplay = document.getElementById('modalDiffDisplay');
@@ -616,7 +614,7 @@
                 let diff = given - totalSpend;
                 return {
                     ...tx,
-                    amount: totalSpend, // Perbarui arus kas keluar sesuai total nota asli
+                    amount: totalSpend,
                     materialData: {
                         ...tx.materialData,
                         recapStatus: 'sudah',
@@ -631,7 +629,7 @@
 
         syncCloud();
         document.getElementById('materialRekapModal').style.display = 'none';
-        alert('Rekap nota material berhasil disimpan dan selisih terhitung otomatis!');
+        alert('Rekap nota material berhasil disimpan!');
     }
 
     function renderTransactions() {
@@ -704,16 +702,15 @@
             let nominalClass = i.flowType === 'masuk' ? 'nominal-masuk' : 'nominal-keluar';
             let sign = i.flowType === 'masuk' ? '+' : '-';
 
+            // URUTAN KOLOM BARU: Aksi - Tanggal & Waktu - Kategori - Detail - Metode - Nominal - Status Rekap Nota
             tbody.innerHTML += `<tr>
-                <td>
-                    <button class="btn-trash" onclick="requestDelete(${i.id})">🗑️</button>
-                </td>
+                <td><button class="btn-trash" onclick="requestDelete(${i.id})">🗑️</button></td>
                 <td>${i.date} ${i.time || ''}</td>
-                <td>${statusTd}</td>
-                <td>${i.category}</td>
+                <td>${badge} ${i.category}</td>
                 <td style="white-space:normal; line-height:1.5; min-width:260px;">${detailDisplay}</td>
                 <td><b>${i.method}</b></td>
                 <td class="${nominalClass}">${sign}${formatRp(i.amount)}</td>
+                <td>${statusTd}</td>
             </tr>`;
         });
     }
