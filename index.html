@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="2.1.0">
+    <meta name="app-version" content="2.2.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -65,7 +65,7 @@
         .nominal-keluar { color: #c62828; font-weight: bold; }
 
         .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 380px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 450px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: center; max-height: 90vh; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -132,7 +132,7 @@
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>📁 KATEGORI UTAMA:</label>
                         <select id="categorySelect" onchange="toggleCategoryOptions()" required>
-                            <option value="Material Pembangunan">🏗️ Material Pembangunan</option>
+                            <option value="Material Pembangunan">🏗️ Material Pembangunan (Pemberian Dana Kas Bon)</option>
                             <option value="Rumah & Dapur">🏠 Pengeluaran Rumah & Dapur</option>
                             <option value="Operasional Gudang">📦 Operasional Gudang</option>
                             <option value="Order Barang">🛒 Order Barang / Stok</option>
@@ -141,41 +141,23 @@
                     </div>
                 </div>
 
-                <!-- FORM KHUSUS KATEGORI MATERIAL PEMBANGUNAN (MULTI-LOKASI & PEMBERIAN DANA) -->
-                <div class="material-box" id="materialFormBox">
-                    <h4 style="margin-top: 0; color: #2e7d32; border-bottom: 1px dashed #2e7d32; padding-bottom: 5px;">🏗️ Rincian Kas Bon & Belanja Multi-Lokasi</h4>
+                <!-- FORM KHUSUS PEMBERIAN DANA MATERIAL -->
+                <div class="material-box" id="materialFormBox" style="display: block;">
+                    <h4 style="margin-top: 0; color: #2e7d32; border-bottom: 1px dashed #2e7d32; padding-bottom: 5px;">🏗️ Catat Penyerahan Dana Material (Kas Bon)</h4>
                     
                     <div class="form-group">
-                        <label>📅 Tanggal Pemberian Dana:</label>
+                        <label>📅 Tanggal Penyerahan Dana:</label>
                         <input type="date" id="matDateInput">
                     </div>
 
                     <div class="form-group">
-                        <label>👤 Nama Penerima Dana (Yang Diberi Uang):</label>
+                        <label>👤 Nama Penerima (Yang Diberi Uang):</label>
                         <input type="text" id="matReceiverInput" placeholder="Contoh: Mas Aprin">
                     </div>
 
-                    <div class="form-group">
-                        <label>💰 Total Nominal Uang yang Diberikan Admin (Rp):</label>
-                        <input type="text" id="matGivenAmountInput" inputmode="numeric" placeholder="Contoh: 10.000.000" oninput="formatInputNumber(this); calculateMaterialSummary();">
-                    </div>
-
-                    <div class="form-group">
-                        <label>📍 Rincian Pengeluaran Berdasarkan Lokasi Pembangunan:</label>
-                        <div id="locationSpendRowsContainer">
-                            <!-- Baris Lokasi Pertama -->
-                            <div class="location-spend-row">
-                                <select class="loc-select" required></select>
-                                <input type="text" class="loc-cost" inputmode="numeric" placeholder="Nominal Nota (Rp)" oninput="formatInputNumber(this); calculateMaterialSummary();" required>
-                                <button type="button" class="btn-del-loc-row" onclick="removeLocationSpendRow(this)" style="display:none;">✕</button>
-                            </div>
-                        </div>
-                        <button type="button" class="btn-add-loc-row" onclick="addLocationSpendRow()">+ Tambah Lokasi Pembangunan</button>
-                    </div>
-
-                    <div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #c8e6c9; margin-top: 10px;">
-                        <div style="font-size: 0.85rem; color: #555;">Total Seluruh Nota Belanja: <b id="matTotalSpendDisplay" style="color: #2e7d32;">Rp 0</b></div>
-                        <div style="font-size: 0.9rem; margin-top: 5px;">Selisih Pengembalian: <b id="matDiffDisplay" style="color: #1565c0;">Rp 0</b></div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>💰 Nominal Uang yang Diberikan Admin (Rp):</label>
+                        <input type="text" id="matGivenAmountInput" inputmode="numeric" placeholder="Contoh: 10.000.000" oninput="formatInputNumber(this)" required>
                     </div>
                 </div>
 
@@ -187,14 +169,14 @@
                     </select>
                 </div>
 
-                <div class="form-group" id="generalAmountGroup">
+                <div class="form-group" id="generalAmountGroup" style="display: none;">
                     <label>Nominal (Rp)</label>
                     <input type="text" id="amountInput" inputmode="numeric" placeholder="Contoh: 150.000" oninput="formatInputNumber(this)">
                 </div>
 
                 <div class="form-group">
                     <label>Keterangan / Catatan Tambahan</label>
-                    <input type="text" id="descriptionInput" placeholder="Contoh: Pembelian semen / Nota lengkap" required>
+                    <input type="text" id="descriptionInput" placeholder="Contoh: Keperluan belanja material bangunan mingguan" required>
                 </div>
 
                 <button type="submit" class="btn-primary">Simpan Transaksi</button>
@@ -235,9 +217,9 @@
                         <tr>
                             <th>Aksi</th>
                             <th>Tanggal & Waktu</th>
-                            <th>Arus</th>
+                            <th>Status Rekap Nota</th>
                             <th>Kategori</th>
-                            <th>Detail / Kas Bon Material</th>
+                            <th>Detail Penerima & Rincian Nota Lokasi</th>
                             <th>Metode</th>
                             <th>Nominal Arus Kas</th>
                         </tr>
@@ -269,17 +251,28 @@
     </div>
 </div>
 
-<!-- MODAL EDIT TRANSAKSI -->
-<div class="modal" id="editTxModal">
-    <div class="modal-content" style="width: 400px; text-align: left;">
-        <h3 style="text-align: center;">Edit Transaksi Operasional</h3>
-        <input type="hidden" id="modalEditTxId">
-        <div class="form-group"><label>Keterangan</label><input type="text" id="editTxDescInput"></div>
-        <div class="form-group"><label>Tanggal (DD/MM/YYYY)</label><input type="text" id="editTxDateInput" placeholder="DD/MM/YYYY"></div>
-        <div class="form-group"><label>Waktu (HH:MM)</label><input type="text" id="editTxTimeInput" placeholder="HH:MM"></div>
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button class="btn-cancel" onclick="document.getElementById('editTxModal').style.display='none'">Batal</button>
-            <button class="btn-submit" onclick="submitEditTransaction()">Simpan</button>
+<!-- MODAL REKAP NOTA & LOKASI MATERIAL (MIRIP SISTEM TUKAR) -->
+<div class="modal" id="materialRekapModal">
+    <div class="modal-content">
+        <h3>Rekap Nota Belanja Material</h3>
+        <p style="font-size: 0.85rem; color: #666;" id="rekapModalInfoLabel"></p>
+        <input type="hidden" id="modalRekapTxId">
+        
+        <div class="form-group" style="text-align: left;">
+            <label>Rincian Lokasi Belanja & Nominal Nota:</label>
+            <div id="modalLocationRowsContainer"></div>
+            <button type="button" class="btn-add-loc-row" onclick="addModalLocationRow()">+ Tambah Lokasi Belanja</button>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #ddd; margin-bottom: 15px; text-align: left;">
+            <div style="font-size: 0.85rem;">Dana Diberikan: <b id="modalGivenDisplay">Rp 0</b></div>
+            <div style="font-size: 0.85rem;">Total Nota Belanja: <b id="modalSpendDisplay" style="color: #2e7d32;">Rp 0</b></div>
+            <div style="font-size: 0.95rem; margin-top: 4px;">Selisih / Sisa Kembalian: <b id="modalDiffDisplay" style="color: #1565c0;">Rp 0</b></div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-cancel" onclick="document.getElementById('materialRekapModal').style.display='none'">Batal</button>
+            <button class="btn-submit" onclick="submitMaterialRekap()">Simpan Rekap Nota</button>
         </div>
     </div>
 </div>
@@ -363,7 +356,6 @@
         db.ref('operasional_lokasi').on('value', snapshot => {
             let data = snapshot.val();
             if (data) buildingLocations = data;
-            populateLocationSelects();
             renderLocationsTable();
         });
     }
@@ -396,70 +388,14 @@
             matBox.style.display = 'block';
             amtGroup.style.display = 'none';
             document.getElementById('amountInput').removeAttribute('required');
+            document.getElementById('matGivenAmountInput').setAttribute('required', 'true');
+            document.getElementById('matReceiverInput').setAttribute('required', 'true');
         } else {
             matBox.style.display = 'none';
             amtGroup.style.display = 'block';
             document.getElementById('amountInput').setAttribute('required', 'true');
-        }
-    }
-
-    function populateLocationSelects() {
-        let selects = document.querySelectorAll('.loc-select');
-        selects.forEach(sel => {
-            let cur = sel.value;
-            sel.innerHTML = '';
-            buildingLocations.forEach(loc => {
-                sel.innerHTML += `<option value="${loc}">${loc}</option>`;
-            });
-            if (buildingLocations.includes(cur)) sel.value = cur;
-        });
-    }
-
-    function addLocationSpendRow() {
-        let container = document.getElementById('locationSpendRowsContainer');
-        let div = document.createElement('div');
-        div.className = 'location-spend-row';
-        div.innerHTML = `
-            <select class="loc-select" required></select>
-            <input type="text" class="loc-cost" inputmode="numeric" placeholder="Nominal Nota (Rp)" oninput="formatInputNumber(this); calculateMaterialSummary();" required>
-            <button type="button" class="btn-del-loc-row" onclick="removeLocationSpendRow(this)">✕</button>
-        `;
-        container.appendChild(div);
-        populateLocationSelects();
-        updateLocationDeleteButtons();
-    }
-
-    function removeLocationSpendRow(btn) {
-        btn.parentElement.remove();
-        updateLocationDeleteButtons();
-        calculateMaterialSummary();
-    }
-
-    function updateLocationDeleteButtons() {
-        let rows = document.querySelectorAll('.location-spend-row');
-        rows.forEach((r, idx) => {
-            let delBtn = r.querySelector('.btn-del-loc-row');
-            delBtn.style.display = rows.length > 1 ? 'block' : 'none';
-        });
-    }
-
-    function calculateMaterialSummary() {
-        let given = parseCleanNumber(document.getElementById('matGivenAmountInput').value);
-        let totalSpend = 0;
-        document.querySelectorAll('.location-spend-row').forEach(row => {
-            totalSpend += parseCleanNumber(row.querySelector('.loc-cost').value);
-        });
-
-        let diff = given - totalSpend; // Positif = Sisa kembalian, Negatif = Talangan/Kurang
-        
-        document.getElementById('matTotalSpendDisplay').innerText = formatRp(totalSpend);
-        let diffDisplay = document.getElementById('matDiffDisplay');
-        if (diff > 0) {
-            diffDisplay.innerHTML = `Sisa Kembalian: <span style="color:#2e7d32;">+${formatRp(diff)}</span>`;
-        } else if (diff < 0) {
-            diffDisplay.innerHTML = `Kurang / Talangan: <span style="color:#c62828;">${formatRp(diff)}</span>`;
-        } else {
-            diffDisplay.innerHTML = `<span style="color:#1565c0;">Pas (Rp 0)</span>`;
+            document.getElementById('matGivenAmountInput').removeAttribute('required');
+            document.getElementById('matReceiverInput').removeAttribute('required');
         }
     }
 
@@ -525,44 +461,30 @@
 
         let amount = 0;
         let materialData = null;
-        let location = '-';
 
         if (category === 'Material Pembangunan') {
             let rawDate = document.getElementById('matDateInput').value;
             let receiver = document.getElementById('matReceiverInput').value.trim();
             let given = parseCleanNumber(document.getElementById('matGivenAmountInput').value);
 
-            let locSpends = [];
-            let totalSpend = 0;
-            document.querySelectorAll('.location-spend-row').forEach(row => {
-                let locName = row.querySelector('.loc-select').value;
-                let cost = parseCleanNumber(row.querySelector('.loc-cost').value);
-                if (cost > 0) {
-                    locSpends.push({ location: locName, cost });
-                    totalSpend += cost;
-                }
-            });
-
-            if (!receiver || given <= 0 || locSpends.length === 0) {
-                alert('Mohon lengkapi nama penerima, nominal pemberian dana, dan minimal satu rincian belanja lokasi!');
+            if (!receiver || given <= 0) {
+                alert('Mohon lengkapi nama penerima dan nominal uang yang diberikan!');
                 return;
             }
-
-            let diff = given - totalSpend;
-            amount = totalSpend; // Arus kas keluar dicatat dari total pengeluaran nota asli
 
             let p = rawDate ? rawDate.split('-') : [];
             let formattedMatDate = p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : new Date().toLocaleDateString('id-ID');
 
+            amount = given; // Awal keluar kas sebesar uang yang diserahkan
             materialData = {
                 dateGiven: formattedMatDate,
                 receiver,
                 givenAmount: given,
-                locSpends,
-                totalSpend,
-                difference: diff
+                recapStatus: 'belum', // Belum direkap nota
+                locSpends: [],
+                totalSpend: 0,
+                difference: 0
             };
-            location = 'Multi-Lokasi';
         } else {
             amount = parseCleanNumber(document.getElementById('amountInput').value);
             if (amount <= 0) { alert('Nominal harus lebih dari 0'); return; }
@@ -576,7 +498,6 @@
             id: Date.now(),
             flowType,
             category,
-            location,
             method,
             amount,
             materialData,
@@ -592,9 +513,125 @@
         document.getElementById('descriptionInput').value = '';
         document.getElementById('matReceiverInput').value = '';
         document.getElementById('matGivenAmountInput').value = '';
-        document.getElementById('matTotalSpendDisplay').innerText = 'Rp 0';
-        document.getElementById('matDiffDisplay').innerText = 'Rp 0';
-        alert('Transaksi operasional berhasil disimpan!');
+        alert('Pencatatan kas bon material berhasil disimpan!');
+    }
+
+    // Buka Modal Rekap Nota Material (Mirip sistem terima uang utuh)
+    function openMaterialRekapModal(txId) {
+        let tx = opTransactions.find(t => t.id === txId);
+        if (!tx || !tx.materialData) return;
+
+        document.getElementById('modalRekapTxId').value = tx.id;
+        document.getElementById('rekapModalInfoLabel').innerText = `Penerima: ${tx.materialData.receiver} (${formatRp(tx.materialData.givenAmount)})`;
+        document.getElementById('modalGivenDisplay').innerText = formatRp(tx.materialData.givenAmount);
+
+        let container = document.getElementById('modalLocationRowsContainer');
+        container.innerHTML = '';
+
+        if (tx.materialData.locSpends && tx.materialData.locSpends.length > 0) {
+            tx.materialData.locSpends.forEach(ls => {
+                addModalLocationRow(ls.location, ls.cost);
+            });
+        } else {
+            addModalLocationRow();
+        }
+
+        calculateModalMaterialSummary();
+        document.getElementById('materialRekapModal').style.display = 'flex';
+    }
+
+    function addModalLocationRow(selectedLoc = '', costVal = 0) {
+        let container = document.getElementById('modalLocationRowsContainer');
+        let div = document.createElement('div');
+        div.className = 'location-spend-row';
+        
+        let optionsHtml = '';
+        buildingLocations.forEach(loc => {
+            let sel = (loc === selectedLoc) ? 'selected' : '';
+            optionsHtml += `<option value="${loc}" ${sel}>${loc}</option>`;
+        });
+
+        div.innerHTML = `
+            <select class="loc-select" required>${optionsHtml}</select>
+            <input type="text" class="loc-cost" inputmode="numeric" placeholder="Nominal Nota (Rp)" value="${costVal > 0 ? formatNumber(costVal) : ''}" oninput="formatInputNumber(this); calculateModalMaterialSummary();" required>
+            <button type="button" class="btn-del-loc-row" onclick="removeModalLocationRow(this)">✕</button>
+        `;
+        container.appendChild(div);
+        updateModalLocationDeleteButtons();
+    }
+
+    function removeModalLocationRow(btn) {
+        btn.parentElement.remove();
+        updateModalLocationDeleteButtons();
+        calculateModalMaterialSummary();
+    }
+
+    function updateModalLocationDeleteButtons() {
+        let rows = document.querySelectorAll('#modalLocationRowsContainer .location-spend-row');
+        rows.forEach(r => {
+            let delBtn = r.querySelector('.btn-del-loc-row');
+            delBtn.style.display = rows.length > 1 ? 'block' : 'none';
+        });
+    }
+
+    function calculateModalMaterialSummary() {
+        let given = parseCleanNumber(document.getElementById('modalGivenDisplay').innerText);
+        let totalSpend = 0;
+        document.querySelectorAll('#modalLocationRowsContainer .location-spend-row').forEach(row => {
+            totalSpend += parseCleanNumber(row.querySelector('.loc-cost').value);
+        });
+
+        let diff = given - totalSpend; // Positif = Kembalian sisa, Negatif = Talangan/Kurang
+        
+        document.getElementById('modalSpendDisplay').innerText = formatRp(totalSpend);
+        let diffDisplay = document.getElementById('modalDiffDisplay');
+        if (diff > 0) {
+            diffDisplay.innerHTML = `Sisa Kembalian: <span style="color:#2e7d32;">+${formatRp(diff)}</span>`;
+        } else if (diff < 0) {
+            diffDisplay.innerHTML = `Kurang / Talangan: <span style="color:#c62828;">${formatRp(diff)}</span>`;
+        } else {
+            diffDisplay.innerHTML = `<span style="color:#1565c0;">Pas (Rp 0)</span>`;
+        }
+    }
+
+    function submitMaterialRekap() {
+        let txId = parseInt(document.getElementById('modalRekapTxId').value);
+        let locSpends = [];
+        let totalSpend = 0;
+
+        document.querySelectorAll('#modalLocationRowsContainer .location-spend-row').forEach(row => {
+            let location = row.querySelector('.loc-select').value;
+            let cost = parseCleanNumber(row.querySelector('.loc-cost').value);
+            if (cost > 0) {
+                locSpends.push({ location, cost });
+                totalSpend += cost;
+            }
+        });
+
+        if (locSpends.length === 0) { alert('Minimal isi satu rincian lokasi belanja!'); return; }
+
+        opTransactions = opTransactions.map(tx => {
+            if (tx.id === txId) {
+                let given = tx.materialData.givenAmount;
+                let diff = given - totalSpend;
+                return {
+                    ...tx,
+                    amount: totalSpend, // Perbarui arus kas keluar sesuai total nota asli
+                    materialData: {
+                        ...tx.materialData,
+                        recapStatus: 'sudah',
+                        locSpends,
+                        totalSpend,
+                        difference: diff
+                    }
+                };
+            }
+            return tx;
+        });
+
+        syncCloud();
+        document.getElementById('materialRekapModal').style.display = 'none';
+        alert('Rekap nota material berhasil disimpan dan selisih terhitung otomatis!');
     }
 
     function renderTransactions() {
@@ -632,24 +669,35 @@
                 `<span style="color:#2e7d32; font-weight:bold;">🟢 Masuk (+)</span>` : 
                 `<span style="color:#c62828; font-weight:bold;">🔴 Keluar (-)</span>`;
             
+            let statusTd = '';
             let detailDisplay = '';
+
             if (i.category === 'Material Pembangunan' && i.materialData) {
                 let md = i.materialData;
-                let diffText = md.difference > 0 ? `Sisa Kembalian: +${formatRp(md.difference)}` : (md.difference < 0 ? `Kurang / Talangan: ${formatRp(md.difference)}` : `Pas`);
-                let diffColor = md.difference > 0 ? '#2e7d32' : (md.difference < 0 ? '#c62828' : '#1565c0');
-                
-                let locDetails = '';
-                md.locSpends.forEach(ls => {
-                    locDetails += `&nbsp;&nbsp;• ${ls.location}: <b>${formatRp(ls.cost)}</b><br>`;
-                });
+                if (md.recapStatus === 'sudah') {
+                    statusTd = `<span style="color: #2e7d32; font-weight: bold; cursor: pointer;" onclick="openMaterialRekapModal(${i.id})">🟢 Selesai (Direkap)</span>`;
+                    
+                    let diffText = md.difference > 0 ? `Sisa Kembalian: +${formatRp(md.difference)}` : (md.difference < 0 ? `Kurang / Talangan: ${formatRp(md.difference)}` : `Pas`);
+                    let diffColor = md.difference > 0 ? '#2e7d32' : (md.difference < 0 ? '#c62828' : '#1565c0');
+                    
+                    let locDetails = '';
+                    md.locSpends.forEach(ls => {
+                        locDetails += `&nbsp;&nbsp;• ${ls.location}: <b>${formatRp(ls.cost)}</b><br>`;
+                    });
 
-                detailDisplay = `📅 <b>Diberikan:</b> ${md.dateGiven} | 👤 <b>Penerima:</b> ${md.receiver}<br>
-                                 💰 <b>Dana Diberikan:</b> ${formatRp(md.givenAmount)}<br>
-                                 📍 <b>Rincian Lokasi Belanja:</b><br>${locDetails}
-                                 🧾 <b>Total Belanja Nota:</b> ${formatRp(md.totalSpend)}<br>
-                                 🔄 <span style="color:${diffColor}; font-weight:bold;">${diffText}</span><br>
-                                 📝 <b>Ket:</b> ${i.description}`;
+                    detailDisplay = `👤 <b>Penerima:</b> ${md.receiver} (Diberikan: ${formatRp(md.givenAmount)})<br>
+                                     📍 <b>Rincian Lokasi Belanja:</b><br>${locDetails}
+                                     🧾 <b>Total Nota:</b> ${formatRp(md.totalSpend)}<br>
+                                     🔄 <span style="color:${diffColor}; font-weight:bold;">${diffText}</span><br>
+                                     📝 <b>Ket:</b> ${i.description}`;
+                } else {
+                    statusTd = `<span style="color: #c62828; font-weight: bold; cursor: pointer;" onclick="openMaterialRekapModal(${i.id})">🔴 Belum Direkap (Klik untuk Isi Nota)</span>`;
+                    detailDisplay = `👤 <b>Penerima:</b> ${md.receiver}<br>
+                                     💰 <b>Dana Diberikan:</b> ${formatRp(md.givenAmount)} (Menunggu Nota Masuk)<br>
+                                     📝 <b>Ket:</b> ${i.description}`;
+                }
             } else {
+                statusTd = `<span>-</span>`;
                 detailDisplay = `📌 <b>${i.category}</b><br>📝 ${i.description}`;
             }
 
@@ -658,45 +706,16 @@
 
             tbody.innerHTML += `<tr>
                 <td>
-                    <button class="btn-edit" onclick="openEditTx(${i.id})">✏️</button>
                     <button class="btn-trash" onclick="requestDelete(${i.id})">🗑️</button>
                 </td>
                 <td>${i.date} ${i.time || ''}</td>
-                <td>${badge}</td>
+                <td>${statusTd}</td>
                 <td>${i.category}</td>
                 <td style="white-space:normal; line-height:1.5; min-width:260px;">${detailDisplay}</td>
                 <td><b>${i.method}</b></td>
                 <td class="${nominalClass}">${sign}${formatRp(i.amount)}</td>
             </tr>`;
         });
-    }
-
-    function openEditTx(id) {
-        let tx = opTransactions.find(i => i.id === id);
-        if (!tx) return;
-        document.getElementById('modalEditTxId').value = id;
-        document.getElementById('editTxDescInput').value = tx.description;
-        document.getElementById('editTxDateInput').value = tx.date;
-        document.getElementById('editTxTimeInput').value = tx.time || '';
-        document.getElementById('editTxModal').style.display = 'flex';
-    }
-
-    function submitEditTransaction() {
-        let id = parseInt(document.getElementById('modalEditTxId').value);
-        let desc = document.getElementById('editTxDescInput').value.trim();
-        let date = document.getElementById('editTxDateInput').value.trim();
-        let time = document.getElementById('editTxTimeInput').value.trim();
-
-        if (!desc || !date) { alert('Keterangan dan tanggal wajib diisi!'); return; }
-
-        let parts = date.split('/');
-        let mStr = parts.length >= 2 ? parts[1] : '01';
-        let yStr = parts.length >= 3 ? parts[2] : '2026';
-
-        opTransactions = opTransactions.map(i => i.id === id ? { ...i, description: desc, date, time, month: mStr, year: yStr } : i);
-        syncCloud();
-        document.getElementById('editTxModal').style.display = 'none';
-        alert('Transaksi berhasil diperbarui!');
     }
 
     function requestDelete(id) {
