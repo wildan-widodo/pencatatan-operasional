@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="2.14.0">
+    <meta name="app-version" content="2.15.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -29,6 +29,7 @@
         .summary-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-top: 4px solid #1565c0; }
         .summary-card.in { border-top-color: #2e7d32; }
         .summary-card.out { border-top-color: #c62828; }
+        .summary-card.saldo { border-top-color: #ff9800; }
         .summary-card label { font-size: 0.8rem; color: #666; display: block; font-weight: bold; }
         .summary-card .val { font-size: 1.3rem; font-weight: bold; margin-top: 5px; color: #333; }
 
@@ -99,16 +100,16 @@
     <div class="slide-section active" id="slide1">
         <div class="summary-grid">
             <div class="summary-card in">
-                <label>TOTAL PEMASUKAN / REFUND</label>
+                <label>TOTAL PEMASUKAN</label>
                 <div class="val" id="totalInVal">Rp 0</div>
             </div>
             <div class="summary-card out">
                 <label>TOTAL PENGELUARAN</label>
                 <div class="val" id="totalOutVal">Rp 0</div>
             </div>
-            <div class="summary-card">
-                <label>SELISIH / NET ARUS KAS</label>
-                <div class="val" id="netVal" style="color: #1565c0;">Rp 0</div>
+            <div class="summary-card saldo">
+                <label>SALDO AKHIR KAS</label>
+                <div class="val" id="netVal" style="color: #ff9800;">Rp 0</div>
             </div>
         </div>
 
