@@ -82,31 +82,20 @@
                     </select>
                 </div>
 
-                <!-- FORM KHUSUS DETAIL MATERIAL -->
+                <!-- FORM KHUSUS DETAIL MATERIAL (Hanya Nama Penerima & Nominal) -->
                 <div id="materialDetailBox" class="sub-form-box">
                     <h4 style="margin-top: 0; color: #2e7d32;">🧱 Detail Kas Bon / Penyerahan Dana Material</h4>
                     
-                    <div class="form-group">
+                    <div class="form-group" style="margin-bottom: 0;">
                         <label>Nama Penerima Uang / Petugas:</label>
                         <input type="text" id="materialReceiver" placeholder="Contoh: Mas Aprin">
                     </div>
-
-                    <div class="form-group">
-                        <label>Rincian Alokasi Belanja ke Bangunan / Toko:</label>
-                        <div id="shoppingRowsContainer">
-                            <div class="sub-row">
-                                <input type="text" class="shop-name" placeholder="Nama Bangunan / Toko (Contoh: Proyek Beji)">
-                                <input type="text" class="shop-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this)">
-                                <button type="button" class="btn-del-row" onclick="removeShopRow(this)" style="display:none;">✕</button>
-                            </div>
-                        </div>
-                        <button type="button" class="btn-add-row" onclick="addShopRow()">+ Tambah Alokasi Bangunan Lain</button>
-                    </div>
                 </div>
 
-                <div class="form-group">
+                <!-- LOKASI BANGUNAN (Hanya muncul jika opsi Material dipilih) -->
+                <div class="form-group" id="locationGroup" style="display: none;">
                     <label>Lokasi Bangunan / Proyek Utama</label>
-                    <select id="expenseLocation" required>
+                    <select id="expenseLocation">
                         <!-- Diisi dinamis -->
                     </select>
                 </div>
@@ -115,18 +104,18 @@
                     <label>Metode Transaksi</label>
                     <select id="expenseMethod" required>
                         <option value="Tunai">Tunai</option>
-                        <option value="Non Tunai">Non Tunai</option>
+                        <option value="Transfer">Transfer</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Nominal Total Dana Diberikan (Rp)</label>
+                    <label>Nominal Total (Rp)</label>
                     <input type="text" id="expenseNominal" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)" required>
                 </div>
 
                 <div class="form-group">
                     <label>Keterangan / Keperluan</label>
-                    <input type="text" id="expenseDesc" placeholder="Contoh: Kas bon belanja material bangunan" required>
+                    <input type="text" id="expenseDesc" placeholder="Contoh: Pembayaran operasional" required>
                 </div>
 
                 <button type="submit" class="btn-primary">Simpan Pengeluaran</button>
@@ -161,7 +150,7 @@
                             <th>Aksi</th>
                             <th>Tanggal</th>
                             <th>Kategori</th>
-                            <th>Rekap Material & Alokasi</th>
+                            <th>Detail Kas Bon / Alokasi</th>
                             <th>Lokasi Utama</th>
                             <th>Metode</th>
                             <th>Nominal</th>
@@ -216,9 +205,9 @@
         </div>
 
         <div class="form-group">
-            <label>Periksa / Ubah Rincian Alokasi Belanja Bangunan:</label>
+            <label>Rincian Alokasi Belanja ke Bangunan / Toko:</label>
             <div id="modalShoppingRows"></div>
-            <button type="button" class="btn-add-row" onclick="addModalShopRow()" style="margin-top: 5px;">+ Tambah Alokasi Lain</button>
+            <button type="button" class="btn-add-row" onclick="addModalShopRow()" style="margin-top: 5px;">+ Tambah Alokasi Bangunan Lain</button>
         </div>
 
         <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #c8e6c9;">
@@ -261,6 +250,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
         loadDataFromFirebase();
+        toggleCategoryDetail();
     });
 
     function switchTab(tabId) {
@@ -277,33 +267,17 @@
 
     function toggleCategoryDetail() {
         let cat = document.getElementById('expenseCategory').value;
-        document.getElementById('materialDetailBox').style.display = cat === 'Material' ? 'block' : 'none';
-    }
-
-    function addShopRow() {
-        let container = document.getElementById('shoppingRowsContainer');
-        let div = document.createElement('div');
-        div.className = 'sub-row';
-        div.innerHTML = `
-            <input type="text" class="shop-name" placeholder="Nama Bangunan / Toko">
-            <input type="text" class="shop-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this)">
-            <button type="button" class="btn-del-row" onclick="removeShopRow(this)">✕</button>
-        `;
-        container.appendChild(div);
-        updateShopDeleteButtons();
-    }
-
-    function removeShopRow(btn) {
-        btn.parentElement.remove();
-        updateShopDeleteButtons();
-    }
-
-    function updateShopDeleteButtons() {
-        let rows = document.querySelectorAll('.sub-row');
-        rows.forEach(r => {
-            let delBtn = r.querySelector('.btn-del-row');
-            delBtn.style.display = rows.length > 1 ? 'block' : 'none';
-        });
+        let isMaterial = (cat === 'Material');
+        
+        document.getElementById('materialDetailBox').style.display = isMaterial ? 'block' : 'none';
+        document.getElementById('locationGroup').style.display = isMaterial ? 'block' : 'none';
+        
+        let locSelect = document.getElementById('expenseLocation');
+        if (isMaterial) {
+            locSelect.setAttribute('required', 'true');
+        } else {
+            locSelect.removeAttribute('required');
+        }
     }
 
     function loadDataFromFirebase() {
@@ -328,7 +302,7 @@
         e.preventDefault();
         let date = document.getElementById('expenseDate').value;
         let category = document.getElementById('expenseCategory').value;
-        let location = document.getElementById('expenseLocation').value;
+        let location = (category === 'Material') ? document.getElementById('expenseLocation').value : '-';
         let method = document.getElementById('expenseMethod').value;
         let nominal = parseCleanNumber(document.getElementById('expenseNominal').value);
         let desc = document.getElementById('expenseDesc').value.trim();
@@ -341,17 +315,7 @@
         let materialData = null;
         if (category === 'Material') {
             let receiver = document.getElementById('materialReceiver').value.trim();
-            let shops = [];
-            
-            document.querySelectorAll('.sub-row').forEach(row => {
-                let name = row.querySelector('.shop-name').value.trim();
-                let cost = parseCleanNumber(row.querySelector('.shop-cost').value);
-                if (name && cost > 0) {
-                    shops.push({ name, cost });
-                }
-            });
-
-            materialData = { receiver, shops, statusRekap: 'Belum Direkap' };
+            materialData = { receiver, shops: [], statusRekap: 'Belum Direkap' };
         }
 
         let newRecord = {
@@ -372,6 +336,7 @@
             document.getElementById('expenseDesc').value = '';
             document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('expenseCategory').value = 'Gudang';
+            document.getElementById('materialReceiver').value = '';
             toggleCategoryDetail();
         });
     }
@@ -385,7 +350,7 @@
         }
     }
 
-    // --- FUNGSI MODAL REKAP NOTA INTERAKTIF ---
+    // --- FUNGSI MODAL REKAP NOTA MATERIAL ---
     function openRekapModal(id) {
         let rec = allExpenses.find(i => i.id === id);
         if (!rec || !rec.materialData) return;
@@ -518,6 +483,8 @@
                     m.shops.forEach(s => {
                         detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`;
                     });
+                } else {
+                    detailHtml += `&nbsp;&nbsp;<i>(Belum ada rincian rekap)</i><br>`;
                 }
                 detailHtml += `</div>`;
             }
