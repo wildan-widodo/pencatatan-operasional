@@ -30,6 +30,9 @@
         .summary-item h4 { margin: 0 0 5px 0; color: #333; font-size: 0.85rem; }
         .summary-item p { margin: 0; font-size: 1.2rem; font-weight: bold; color: #2e7d32; }
         
+        .filter-bar { display: flex; gap: 15px; margin-bottom: 15px; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; flex-wrap: wrap; }
+        .filter-item { flex: 1; min-width: 200px; margin-bottom: 0; }
+
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; font-size: 0.85rem; white-space: nowrap; }
@@ -135,17 +138,40 @@
 
         <div class="card">
             <h3>Riwayat Pengeluaran</h3>
+            
+            <!-- FILTER PILAH KATEGORI & METODE -->
+            <div class="filter-bar">
+                <div class="form-group filter-item">
+                    <label>🔍 Pilah Kategori:</label>
+                    <select id="filterCategory" onchange="renderExpenses()">
+                        <option value="ALL">Semua Kategori</option>
+                        <option value="Gudang">Gudang</option>
+                        <option value="Rumah">Rumah</option>
+                        <option value="Material">Material</option>
+                        <option value="Order Toko">Order Toko</option>
+                    </select>
+                </div>
+                <div class="form-group filter-item">
+                    <label>🔍 Pilah Metode Transaksi:</label>
+                    <select id="filterMethod" onchange="renderExpenses()">
+                        <option value="ALL">Semua Metode</option>
+                        <option value="Tunai">Tunai</option>
+                        <option value="Transfer">Transfer</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
                             <th>Aksi</th>
-                            <th>Tanggal</th>
+                            <th>Tanggal & Waktu</th>
                             <th>Kategori</th>
-                            <th>Detail Material & Alokasi Lokasi</th>
                             <th>Metode</th>
                             <th>Nominal</th>
                             <th>Keterangan</th>
+                            <th>Detail Material & Alokasi Lokasi</th>
                         </tr>
                     </thead>
                     <tbody id="expenseTableBody">
@@ -281,7 +307,7 @@
 
     function saveExpense(e) {
         e.preventDefault();
-        let date = document.getElementById('expenseDate').value;
+        let rawDate = document.getElementById('expenseDate').value;
         let category = document.getElementById('expenseCategory').value;
         let method = document.getElementById('expenseMethod').value;
         let nominal = parseCleanNumber(document.getElementById('expenseNominal').value);
@@ -292,6 +318,16 @@
             return;
         }
 
+        let now = new Date();
+        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        
+        let formattedDate = rawDate;
+        if (rawDate) {
+            let p = rawDate.split('-');
+            formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
+        }
+        let dateWithTime = `${formattedDate} ${timeNow}`;
+
         let materialData = null;
         if (category === 'Material') {
             let receiver = document.getElementById('materialReceiver').value.trim();
@@ -300,7 +336,8 @@
 
         let newRecord = {
             id: Date.now(),
-            date,
+            date: dateWithTime,
+            rawDate: rawDate,
             category,
             method,
             nominal,
@@ -346,7 +383,6 @@
                 let div = document.createElement('div');
                 div.className = 'sub-row';
                 
-                // Buat pilihan dropdown lokasi bangunan di modal rekap
                 let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
                 locations.forEach(loc => {
                     let selected = (s.name === loc) ? 'selected' : '';
@@ -451,14 +487,23 @@
         let tbody = document.getElementById('expenseTableBody');
         tbody.innerHTML = '';
 
-        if (allExpenses.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #777;">Belum ada catatan pengeluaran.</td></tr>`;
+        let filterCategory = document.getElementById('filterCategory').value;
+        let filterMethod = document.getElementById('filterMethod').value;
+
+        let filteredExpenses = allExpenses.filter(i => {
+            let matchCat = (filterCategory === 'ALL' || i.category === filterCategory);
+            let matchMeth = (filterMethod === 'ALL' || i.method === filterMethod);
+            return matchCat && matchMeth;
+        });
+
+        if (filteredExpenses.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #777;">Tidak ada data pengeluaran yang sesuai filter.</td></tr>`;
             return;
         }
 
-        allExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+        filteredExpenses.sort((a, b) => b.id - a.id);
 
-        allExpenses.forEach(i => {
+        filteredExpenses.forEach(i => {
             let detailHtml = '-';
             let actionBtn = `<button class="btn-danger" onclick="deleteExpense(${i.id})">Hapus</button>`;
 
@@ -482,12 +527,12 @@
 
             tbody.innerHTML += `<tr>
                 <td style="text-align: center;">${actionBtn}</td>
-                <td>${i.date}</td>
+                <td>${i.date || '-'}</td>
                 <td><b>${i.category}</b></td>
-                <td>${detailHtml}</td>
                 <td>${i.method || 'Tunai'}</td>
                 <td style="color: #c62828; font-weight: bold;">${formatRp(i.nominal)}</td>
                 <td>${i.desc}</td>
+                <td>${detailHtml}</td>
             </tr>`;
         });
     }
