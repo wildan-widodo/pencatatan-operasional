@@ -18,6 +18,7 @@
         
         .btn-primary { background: #2e7d32; color: white; border: none; padding: 12px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem; }
         .btn-danger { background: #c62828; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-rekap { background: #00796b; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
         .btn-add-row { background: #00796b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; }
         .btn-del-row { background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
 
@@ -41,6 +42,9 @@
         
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        
+        .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 500px; text-align: left; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -48,7 +52,7 @@
 <div class="container">
     <div class="card" style="background: #1565c0; color: white;">
         <h2 style="margin: 0; color: white;">🏗️ Pencatatan Pengeluaran & Operasional AWW</h2>
-        <p style="font-size: 0.85rem; margin: 5px 0 0 0;">Kelola kas pengeluaran, rekap material, dan lokasi bangunan.</p>
+        <p style="font-size: 0.85rem; margin: 5px 0 0 0;">Kelola kas pengeluaran, rekap nota material interaktif, dan lokasi bangunan.</p>
     </div>
 
     <!-- TAB NAVIGASI -->
@@ -78,9 +82,9 @@
                     </select>
                 </div>
 
-                <!-- FORM KHUSUS DETAIL MATERIAL (TETAP ADA) -->
+                <!-- FORM KHUSUS DETAIL MATERIAL -->
                 <div id="materialDetailBox" class="sub-form-box">
-                    <h4 style="margin-top: 0; color: #2e7d32;">🧱 Detail Pengeluaran Material (Kas Bon)</h4>
+                    <h4 style="margin-top: 0; color: #2e7d32;">🧱 Detail Kas Bon / Penyerahan Dana Material</h4>
                     
                     <div class="form-group">
                         <label>Nama Penerima Uang / Petugas:</label>
@@ -88,23 +92,15 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Rincian Lokasi / Toko Belanja:</label>
+                        <label>Rincian Alokasi Belanja ke Bangunan / Toko:</label>
                         <div id="shoppingRowsContainer">
                             <div class="sub-row">
-                                <input type="text" class="shop-name" placeholder="Nama Toko / Kandang (Contoh: Toko Beji)">
+                                <input type="text" class="shop-name" placeholder="Nama Bangunan / Toko (Contoh: Proyek Beji)">
                                 <input type="text" class="shop-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this)">
                                 <button type="button" class="btn-del-row" onclick="removeShopRow(this)" style="display:none;">✕</button>
                             </div>
                         </div>
-                        <button type="button" class="btn-add-row" onclick="addShopRow()">+ Tambah Lokasi Belanja Lain</button>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label>Status Rekap Nota:</label>
-                        <select id="materialStatus">
-                            <option value="Selesai (Direkap)">🟢 Selesai (Direkap)</option>
-                            <option value="Belum Direkap">🔴 Belum Direkap</option>
-                        </select>
+                        <button type="button" class="btn-add-row" onclick="addShopRow()">+ Tambah Alokasi Bangunan Lain</button>
                     </div>
                 </div>
 
@@ -124,13 +120,13 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Nominal Total (Rp)</label>
+                    <label>Nominal Total Dana Diberikan (Rp)</label>
                     <input type="text" id="expenseNominal" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)" required>
                 </div>
 
                 <div class="form-group">
                     <label>Keterangan / Keperluan</label>
-                    <input type="text" id="expenseDesc" placeholder="Contoh: Pembayaran operasional" required>
+                    <input type="text" id="expenseDesc" placeholder="Contoh: Kas bon belanja material bangunan" required>
                 </div>
 
                 <button type="submit" class="btn-primary">Simpan Pengeluaran</button>
@@ -165,7 +161,7 @@
                             <th>Aksi</th>
                             <th>Tanggal</th>
                             <th>Kategori</th>
-                            <th>Detail Material</th>
+                            <th>Rekap Material & Alokasi</th>
                             <th>Lokasi Utama</th>
                             <th>Metode</th>
                             <th>Nominal</th>
@@ -204,6 +200,41 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL INTERAKTIF REKAP NOTA MATERIAL -->
+<div class="modal" id="rekapModal">
+    <div class="modal-content">
+        <h3 style="color: #00796b;">🧾 Rekapitulasi Nota & Pencocokan Dana</h3>
+        <input type="hidden" id="rekapRecordId">
+        
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9rem;">
+            <div>👤 <b>Penerima:</b> <span id="modalReceiverText">-</span></div>
+            <div>💰 <b>Total Dana Diberikan:</b> <span id="modalTotalDanaText" style="color: #2e7d32; font-weight: bold;">Rp 0</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Periksa / Ubah Rincian Alokasi Belanja Bangunan:</label>
+            <div id="modalShoppingRows"></div>
+            <button type="button" class="btn-add-row" onclick="addModalShopRow()" style="margin-top: 5px;">+ Tambah Alokasi Lain</button>
+        </div>
+
+        <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #c8e6c9;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 5px;">
+                <span>Total Rincian Nota:</span>
+                <b id="modalTotalNotaText">Rp 0</b>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 1rem; border-top: 1px dashed #81c784; padding-top: 5px;">
+                <span>Status Hasil Akhir:</span>
+                <b id="modalSelisihText">PAS</b>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="saveRekapNota()" style="background:#00796b;">Simpan & Perbarui Rekap</button>
+            <button class="btn-danger" onclick="document.getElementById('rekapModal').style.display='none'" style="width: 120px;">Batal</button>
         </div>
     </div>
 </div>
@@ -254,7 +285,7 @@
         let div = document.createElement('div');
         div.className = 'sub-row';
         div.innerHTML = `
-            <input type="text" class="shop-name" placeholder="Nama Toko / Kandang">
+            <input type="text" class="shop-name" placeholder="Nama Bangunan / Toko">
             <input type="text" class="shop-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this)">
             <button type="button" class="btn-del-row" onclick="removeShopRow(this)">✕</button>
         `;
@@ -310,7 +341,6 @@
         let materialData = null;
         if (category === 'Material') {
             let receiver = document.getElementById('materialReceiver').value.trim();
-            let status = document.getElementById('materialStatus').value;
             let shops = [];
             
             document.querySelectorAll('.sub-row').forEach(row => {
@@ -321,7 +351,7 @@
                 }
             });
 
-            materialData = { receiver, status, shops };
+            materialData = { receiver, shops, statusRekap: 'Belum Direkap' };
         }
 
         let newRecord = {
@@ -355,6 +385,112 @@
         }
     }
 
+    // --- FUNGSI MODAL REKAP NOTA INTERAKTIF ---
+    function openRekapModal(id) {
+        let rec = allExpenses.find(i => i.id === id);
+        if (!rec || !rec.materialData) return;
+
+        document.getElementById('rekapRecordId').value = rec.id;
+        document.getElementById('modalReceiverText').innerText = rec.materialData.receiver || '-';
+        document.getElementById('modalTotalDanaText').innerText = formatRp(rec.nominal);
+
+        let container = document.getElementById('modalShoppingRows');
+        container.innerHTML = '';
+
+        if (rec.materialData.shops && rec.materialData.shops.length > 0) {
+            rec.materialData.shops.forEach(s => {
+                let div = document.createElement('div');
+                div.className = 'sub-row';
+                div.innerHTML = `
+                    <input type="text" class="modal-shop-name" value="${s.name}" placeholder="Nama Bangunan / Toko">
+                    <input type="text" class="modal-shop-cost" inputmode="numeric" value="${formatNumber(s.cost)}" placeholder="Nominal (Rp)" oninput="formatInputNumber(this); calculateModalTotal();">
+                    <button type="button" class="btn-del-row" onclick="this.parentElement.remove(); calculateModalTotal();">✕</button>
+                `;
+                container.appendChild(div);
+            });
+        } else {
+            addModalShopRow();
+        }
+
+        calculateModalTotal();
+        document.getElementById('rekapModal').style.display = 'flex';
+    }
+
+    function addModalShopRow() {
+        let container = document.getElementById('modalShoppingRows');
+        let div = document.createElement('div');
+        div.className = 'sub-row';
+        div.innerHTML = `
+            <input type="text" class="modal-shop-name" placeholder="Nama Bangunan / Toko">
+            <input type="text" class="modal-shop-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this); calculateModalTotal();">
+            <button type="button" class="btn-del-row" onclick="this.parentElement.remove(); calculateModalTotal();">✕</button>
+        `;
+        container.appendChild(div);
+        calculateModalTotal();
+    }
+
+    function calculateModalTotal() {
+        let recId = parseFloat(document.getElementById('rekapRecordId').value);
+        let rec = allExpenses.find(i => i.id === recId);
+        if (!rec) return;
+
+        let totalDana = rec.nominal;
+        let totalNota = 0;
+
+        document.querySelectorAll('.modal-shop-cost').forEach(el => {
+            totalNota += parseCleanNumber(el.value);
+        });
+
+        document.getElementById('modalTotalNotaText').innerText = formatRp(totalNota);
+
+        let selisih = totalDana - totalNota;
+        let selisihEl = document.getElementById('modalSelisihText');
+
+        if (selisih === 0) {
+            selisihEl.innerHTML = `<span style="color: #2e7d32;">PAS (Tidak ada selisih)</span>`;
+        } else if (selisih > 0) {
+            selisihEl.innerHTML = `<span style="color: #1565c0;">Sisa Uang (Lebih): ${formatRp(selisih)}</span>`;
+        } else {
+            selisihEl.innerHTML = `<span style="color: #c62828;">Kurang Uang (Minus): ${formatRp(Math.abs(selisih))}</span>`;
+        }
+    }
+
+    function saveRekapNota() {
+        let recId = parseFloat(document.getElementById('rekapRecordId').value);
+        let shops = [];
+
+        document.querySelectorAll('.sub-row').forEach(row => {
+            let name = row.querySelector('.modal-shop-name').value.trim();
+            let cost = parseCleanNumber(row.querySelector('.modal-shop-cost').value);
+            if (name && cost > 0) {
+                shops.push({ name, cost });
+            }
+        });
+
+        allExpenses = allExpenses.map(item => {
+            if (item.id === recId) {
+                let totalNota = shops.reduce((sum, s) => sum + s.cost, 0);
+                let selisih = item.nominal - totalNota;
+                let statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+
+                return {
+                    ...item,
+                    materialData: {
+                        ...item.materialData,
+                        shops,
+                        statusRekap
+                    }
+                };
+            }
+            return item;
+        });
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert('Rekapitulasi nota berhasil diperbarui!');
+            document.getElementById('rekapModal').style.display = 'none';
+        });
+    }
+
     function renderExpenses() {
         let tbody = document.getElementById('expenseTableBody');
         tbody.innerHTML = '';
@@ -368,12 +504,16 @@
 
         allExpenses.forEach(i => {
             let detailHtml = '-';
+            let actionBtn = `<button class="btn-danger" onclick="deleteExpense(${i.id})">Hapus</button>`;
+
             if (i.category === 'Material' && i.materialData) {
                 let m = i.materialData;
+                actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` + actionBtn;
+                
                 detailHtml = `<div class="vertical-details">
                     👤 <b>Penerima:</b> ${m.receiver || '-'}<br>
-                    📌 <b>Status:</b> ${m.status || '-'}<br>
-                    🛒 <b>Rincian Belanja:</b><br>`;
+                    📌 <b>Status:</b> <span style="color: #2e7d32; font-weight: bold;">${m.statusRekap || 'Belum Direkap'}</span><br>
+                    🛒 <b>Alokasi Belanja:</b><br>`;
                 if (m.shops && m.shops.length > 0) {
                     m.shops.forEach(s => {
                         detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`;
@@ -383,7 +523,7 @@
             }
 
             tbody.innerHTML += `<tr>
-                <td style="text-align: center;"><button class="btn-danger" onclick="deleteExpense(${i.id})">Hapus</button></td>
+                <td style="text-align: center;">${actionBtn}</td>
                 <td>${i.date}</td>
                 <td><b>${i.category}</b></td>
                 <td>${detailHtml}</td>
