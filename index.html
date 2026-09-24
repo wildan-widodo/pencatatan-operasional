@@ -40,7 +40,7 @@
         th { background: #f8f9fa; }
         .vertical-details { font-size: 0.8rem; line-height: 1.4; white-space: normal; min-width: 200px; }
         
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .nav-tab { padding: 10px 20px; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
         .nav-tab.active { background: #1565c0; color: white; }
         
@@ -78,10 +78,10 @@
     </div>
 
     <!-- TAB NAVIGASI -->
-    <div class="nav-tabs">
+    <div class="nav-tabs" id="navTabsContainer">
         <button class="nav-tab active" onclick="switchTab('inputTab')">📝 Catat Pengeluaran</button>
         <button class="nav-tab" onclick="switchTab('historyTab')">📋 Riwayat & Rekap</button>
-        <button class="nav-tab" onclick="switchTab('auditTab')">📜 Audit Trail Log</button>
+        <button class="nav-tab" id="auditTabBtn" onclick="switchTab('auditTab')" style="display: none;">📜 Audit Trail Log</button>
         <button class="nav-tab" onclick="switchTab('settingTab')">⚙️ Pengaturan & Lokasi</button>
     </div>
 
@@ -202,11 +202,11 @@
         </div>
     </div>
 
-    <!-- TAB 3: AUDIT TRAIL LOG -->
+    <!-- TAB 3: AUDIT TRAIL LOG (KHUSUS OWNER) -->
     <div id="auditTab" class="tab-content">
         <div class="card">
             <h3>📜 Audit Trail Log (Riwayat Edit & Hapus)</h3>
-            <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Catatan transparansi seluruh aktivitas perubahan dan penghapusan data transaksi.</p>
+            <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Catatan transparansi seluruh aktivitas perubahan dan penghapusan data transaksi (Khusus Owner).</p>
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -387,6 +387,14 @@
             document.getElementById('appContainer').style.display = 'block';
             document.getElementById('userStatusBanner').innerText = `👤 Mengakses sebagai: ${currentUser}`;
             
+            // Kontrol Hak Akses Tab Audit Trail
+            let auditBtn = document.getElementById('auditTabBtn');
+            if (currentUser === 'Owner') {
+                auditBtn.style.display = 'inline-block';
+            } else {
+                auditBtn.style.display = 'none';
+            }
+            
             document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
             loadDataFromFirebase();
             toggleCategoryDetail();
@@ -405,6 +413,12 @@
     }
 
     function switchTab(tabId) {
+        // Jika mencoba membuka auditTab tapi bukan owner, blokir
+        if (tabId === 'auditTab' && currentUser !== 'Owner') {
+            alert('Akses ditolak! Menu Audit Trail khusus untuk Owner.');
+            return;
+        }
+
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
