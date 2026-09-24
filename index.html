@@ -9,7 +9,7 @@
     <style>
         * { box-sizing: border-box; font-family: Arial, sans-serif; }
         body { background: #f4f6f8; margin: 0; padding: 15px; }
-        .container { max-width: 1300px; margin: auto; }
+        .container { max-width: 1300px; margin: auto; display: none; }
         .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h2, h3 { margin-top: 0; color: #333; }
         .form-group { margin-bottom: 15px; text-align: left; }
@@ -47,16 +47,34 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
+        .login-card { max-width: 380px; margin: 80px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
+        
         .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 20px; border-radius: 8px; width: 500px; text-align: left; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="card" style="background: #1565c0; color: white;">
-        <h2 style="margin: 0; color: white;">🏗️ Pencatatan Pengeluaran & Operasional AWW</h2>
-        <p style="font-size: 0.85rem; margin: 5px 0 0 0;">Kelola kas pengeluaran, audit trail, rekap nota material, dan lokasi bangunan.</p>
+<!-- HALAMAN LOGIN PIN -->
+<div class="login-card" id="loginCard">
+    <h2>Login Akses AWW</h2>
+    <p style="font-size: 0.85rem; color: #666; margin-bottom: 20px;">Masukkan PIN Akses Anda</p>
+    <div class="form-group">
+        <label>PIN Akses</label>
+        <input type="password" id="loginPinInput" placeholder="••••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.3rem;" onkeydown="if(event.key==='Enter'){ handleLogin(); }">
+    </div>
+    <button type="button" class="btn-primary" onclick="handleLogin()">Masuk</button>
+    <div id="loginError" style="color: #c62828; font-size: 0.85rem; margin-top: 15px;"></div>
+</div>
+
+<!-- APLIKASI UTAMA -->
+<div class="container" id="appContainer">
+    <div class="card" style="background: #1565c0; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <h2 style="margin: 0; color: white;">🏗️ Pencatatan Pengeluaran & Operasional AWW</h2>
+            <p id="userStatusBanner" style="font-size: 0.85rem; margin: 5px 0 0 0; opacity: 0.9;">👤 Mengakses sebagai: -</p>
+        </div>
+        <button onclick="handleLogout()" style="background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">🚪 Keluar Akun</button>
     </div>
 
     <!-- TAB NAVIGASI -->
@@ -194,13 +212,14 @@
                     <thead>
                         <tr>
                             <th>Waktu Aktivitas</th>
+                            <th>Pengguna</th>
                             <th>Aksi</th>
                             <th>Detail Perubahan / Data Terhapus</th>
                             <th>Alasan Wajib</th>
                         </tr>
                     </thead>
                     <tbody id="auditTableBody">
-                        <tr><td colspan="4" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>
+                        <tr><td colspan="5" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -353,12 +372,37 @@
     let auditLogs = [];
     let locations = [];
     let storeClosingsData = [];
+    let currentUser = "";
 
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
-        loadDataFromFirebase();
-        toggleCategoryDetail();
-    });
+    const pinUserMap = {
+        '123123': 'Mbak Ika',
+        '945336': 'Owner'
+    };
+
+    function handleLogin() {
+        let pin = document.getElementById('loginPinInput').value.trim();
+        if (pinUserMap.hasOwnProperty(pin)) {
+            currentUser = pinUserMap[pin];
+            document.getElementById('loginCard').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('userStatusBanner').innerText = `👤 Mengakses sebagai: ${currentUser}`;
+            
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            loadDataFromFirebase();
+            toggleCategoryDetail();
+        } else {
+            document.getElementById('loginError').innerText = 'PIN Akses Salah!';
+            document.getElementById('loginPinInput').value = '';
+        }
+    }
+
+    function handleLogout() {
+        currentUser = "";
+        document.getElementById('loginCard').style.display = 'block';
+        document.getElementById('appContainer').style.display = 'none';
+        document.getElementById('loginPinInput').value = '';
+        document.getElementById('loginError').innerText = '';
+    }
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -437,7 +481,8 @@
             method,
             nominal,
             desc,
-            materialData
+            materialData,
+            createdBy: currentUser
         };
 
         allExpenses.push(newRecord);
@@ -452,7 +497,6 @@
         });
     }
 
-    // --- FUNGSI EDIT DENGAN ALASAN ---
     function openEditModal(id) {
         let rec = allExpenses.find(i => i.id === id);
         if (!rec) return;
@@ -488,7 +532,7 @@
         if (!oldRec) return;
 
         let now = new Date();
-        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}`;
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
 
         allExpenses = allExpenses.map(item => {
             if (item.id === id) {
@@ -506,6 +550,7 @@
         let auditEntry = {
             id: Date.now(),
             time: timeLog,
+            user: currentUser,
             action: 'EDIT',
             details: `Kategori: ${oldRec.category} ➔ ${newCat} | Nominal: ${formatRp(oldRec.nominal)} ➔ ${formatRp(newNom)} | Ket: ${oldRec.desc} ➔ ${newDesc}`,
             reason: reason
@@ -521,7 +566,6 @@
         });
     }
 
-    // --- FUNGSI HAPUS DENGAN ALASAN ---
     function openDeleteModal(id) {
         document.getElementById('deleteRecordId').value = id;
         document.getElementById('deleteReason').value = '';
@@ -548,6 +592,7 @@
         let auditEntry = {
             id: Date.now(),
             time: timeLog,
+            user: currentUser,
             action: 'HAPUS',
             details: `Hapus [${targetRec.category}] - ${targetRec.desc} (${formatRp(targetRec.nominal)})`,
             reason: reason
@@ -563,7 +608,6 @@
         });
     }
 
-    // --- FUNGSI MODAL REKAP NOTA MATERIAL ---
     function openRekapModal(id) {
         let rec = allExpenses.find(i => i.id === id);
         if (!rec || !rec.materialData) return;
@@ -740,7 +784,7 @@
         tbody.innerHTML = '';
 
         if (auditLogs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>`;
             return;
         }
 
@@ -750,6 +794,7 @@
             let badgeColor = (log.action === 'HAPUS') ? '#c62828' : '#1565c0';
             tbody.innerHTML += `<tr>
                 <td>${log.time}</td>
+                <td><b>${log.user || 'Sistem'}</b></td>
                 <td><span style="background: ${badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">${log.action}</span></td>
                 <td>${log.details}</td>
                 <td><b>${log.reason}</b></td>
