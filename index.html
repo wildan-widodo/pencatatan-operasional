@@ -9,7 +9,7 @@
     <style>
         * { box-sizing: border-box; font-family: Arial, sans-serif; }
         body { background: #f4f6f8; margin: 0; padding: 15px; }
-        .container { max-width: 1200px; margin: auto; }
+        .container { max-width: 1300px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h2, h3 { margin-top: 0; color: #333; }
         .form-group { margin-bottom: 15px; text-align: left; }
@@ -17,7 +17,8 @@
         input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
         
         .btn-primary { background: #2e7d32; color: white; border: none; padding: 12px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem; }
-        .btn-danger { background: #c62828; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-danger { background: #c62828; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+        .btn-edit { background: #1565c0; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
         .btn-rekap { background: #00796b; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
         .btn-add-row { background: #00796b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; }
         .btn-del-row { background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
@@ -55,13 +56,14 @@
 <div class="container">
     <div class="card" style="background: #1565c0; color: white;">
         <h2 style="margin: 0; color: white;">🏗️ Pencatatan Pengeluaran & Operasional AWW</h2>
-        <p style="font-size: 0.85rem; margin: 5px 0 0 0;">Kelola kas pengeluaran, rekap nota material interaktif, dan lokasi bangunan.</p>
+        <p style="font-size: 0.85rem; margin: 5px 0 0 0;">Kelola kas pengeluaran, audit trail, rekap nota material, dan lokasi bangunan.</p>
     </div>
 
     <!-- TAB NAVIGASI -->
     <div class="nav-tabs">
         <button class="nav-tab active" onclick="switchTab('inputTab')">📝 Catat Pengeluaran</button>
         <button class="nav-tab" onclick="switchTab('historyTab')">📋 Riwayat & Rekap</button>
+        <button class="nav-tab" onclick="switchTab('auditTab')">📜 Audit Trail Log</button>
         <button class="nav-tab" onclick="switchTab('settingTab')">⚙️ Pengaturan & Lokasi</button>
     </div>
 
@@ -182,7 +184,30 @@
         </div>
     </div>
 
-    <!-- TAB 3: PENGATURAN & LOKASI -->
+    <!-- TAB 3: AUDIT TRAIL LOG -->
+    <div id="auditTab" class="tab-content">
+        <div class="card">
+            <h3>📜 Audit Trail Log (Riwayat Edit & Hapus)</h3>
+            <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Catatan transparansi seluruh aktivitas perubahan dan penghapusan data transaksi.</p>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Waktu Aktivitas</th>
+                            <th>Aksi</th>
+                            <th>Detail Perubahan / Data Terhapus</th>
+                            <th>Alasan Wajib</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTableBody">
+                        <tr><td colspan="4" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: PENGATURAN & LOKASI -->
     <div id="settingTab" class="tab-content">
         <div class="card">
             <h3>⚙️ Kelola Lokasi Bangunan / Proyek</h3>
@@ -206,6 +231,70 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EDIT PENGELUARAN -->
+<div class="modal" id="editModal">
+    <div class="modal-content">
+        <h3 style="color: #1565c0;">✏️ Edit Data Pengeluaran</h3>
+        <input type="hidden" id="editRecordId">
+        
+        <div class="form-group">
+            <label>Kategori Pengeluaran</label>
+            <select id="editCategory">
+                <option value="Gudang">Gudang</option>
+                <option value="Rumah">Rumah</option>
+                <option value="Material">Material</option>
+                <option value="Order Toko">Order Toko</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Metode Transaksi</label>
+            <select id="editMethod">
+                <option value="Tunai">Tunai</option>
+                <option value="Transfer">Transfer</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Nominal Total (Rp)</label>
+            <input type="text" id="editNominal" inputmode="numeric" oninput="formatInputNumber(this)">
+        </div>
+
+        <div class="form-group">
+            <label>Keterangan / Keperluan</label>
+            <input type="text" id="editDesc">
+        </div>
+
+        <div class="form-group" style="background: #fff3e0; padding: 10px; border-radius: 4px; border: 1px solid #ffe0b2;">
+            <label style="color: #e65100;">⚠️ Alasan Edit Data (Wajib Diisi):</label>
+            <input type="text" id="editReason" placeholder="Contoh: Salah input nominal transaksi" style="background: #fff;">
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="submitEditExpense()" style="background:#1565c0;">Simpan Perubahan</button>
+            <button class="btn-danger" onclick="document.getElementById('editModal').style.display='none'" style="width: 120px;">Batal</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ALASAN HAPUS -->
+<div class="modal" id="deleteModal">
+    <div class="modal-content">
+        <h3 style="color: #c62828;">🗑️ Konfirmasi Penghapusan</h3>
+        <input type="hidden" id="deleteRecordId">
+        
+        <div class="form-group" style="background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2;">
+            <label style="color: #c62828;">⚠️ Alasan Penghapusan Data (Wajib Diisi):</label>
+            <input type="text" id="deleteReason" placeholder="Contoh: Transaksi duplikat / batal" style="background: #fff;">
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-danger" onclick="submitDeleteExpense()">Hapus Permanen</button>
+            <button class="btn-primary" onclick="document.getElementById('deleteModal').style.display='none'" style="background: #9e9e9e; width: 120px;">Batal</button>
         </div>
     </div>
 </div>
@@ -261,6 +350,7 @@
     const db = firebase.database();
 
     let allExpenses = [];
+    let auditLogs = [];
     let locations = [];
     let storeClosingsData = [];
 
@@ -292,6 +382,11 @@
             allExpenses = snapshot.val() || [];
             renderExpenses();
             calculateSummary();
+        });
+
+        db.ref('operational_audit_logs').on('value', snapshot => {
+            auditLogs = snapshot.val() || [];
+            renderAuditLogs();
         });
 
         db.ref('operational_locations').on('value', snapshot => {
@@ -357,13 +452,115 @@
         });
     }
 
-    function deleteExpense(id) {
-        if (confirm('Yakin ingin menghapus catatan pengeluaran ini?')) {
-            allExpenses = allExpenses.filter(item => item.id !== id);
-            db.ref('operational_expenses').set(allExpenses).then(() => {
-                alert('Pengeluaran berhasil dihapus!');
-            });
+    // --- FUNGSI EDIT DENGAN ALASAN ---
+    function openEditModal(id) {
+        let rec = allExpenses.find(i => i.id === id);
+        if (!rec) return;
+
+        document.getElementById('editRecordId').value = rec.id;
+        document.getElementById('editCategory').value = rec.category;
+        document.getElementById('editMethod').value = rec.method;
+        document.getElementById('editNominal').value = formatNumber(rec.nominal);
+        document.getElementById('editDesc').value = rec.desc;
+        document.getElementById('editReason').value = '';
+
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function submitEditExpense() {
+        let id = parseFloat(document.getElementById('editRecordId').value);
+        let newCat = document.getElementById('editCategory').value;
+        let newMeth = document.getElementById('editMethod').value;
+        let newNom = parseCleanNumber(document.getElementById('editNominal').value);
+        let newDesc = document.getElementById('editDesc').value.trim();
+        let reason = document.getElementById('editReason').value.trim();
+
+        if (!reason) {
+            alert('Alasan edit data wajib diisi!');
+            return;
         }
+        if (newNom <= 0) {
+            alert('Nominal harus valid!');
+            return;
+        }
+
+        let oldRec = allExpenses.find(i => i.id === id);
+        if (!oldRec) return;
+
+        let now = new Date();
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}`;
+
+        allExpenses = allExpenses.map(item => {
+            if (item.id === id) {
+                return {
+                    ...item,
+                    category: newCat,
+                    method: newMeth,
+                    nominal: newNom,
+                    desc: newDesc
+                };
+            }
+            return item;
+        });
+
+        let auditEntry = {
+            id: Date.now(),
+            time: timeLog,
+            action: 'EDIT',
+            details: `Kategori: ${oldRec.category} ➔ ${newCat} | Nominal: ${formatRp(oldRec.nominal)} ➔ ${formatRp(newNom)} | Ket: ${oldRec.desc} ➔ ${newDesc}`,
+            reason: reason
+        };
+
+        auditLogs.push(auditEntry);
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            db.ref('operational_audit_logs').set(auditLogs).then(() => {
+                alert('Data pengeluaran berhasil diperbarui!');
+                document.getElementById('editModal').style.display = 'none';
+            });
+        });
+    }
+
+    // --- FUNGSI HAPUS DENGAN ALASAN ---
+    function openDeleteModal(id) {
+        document.getElementById('deleteRecordId').value = id;
+        document.getElementById('deleteReason').value = '';
+        document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function submitDeleteExpense() {
+        let id = parseFloat(document.getElementById('deleteRecordId').value);
+        let reason = document.getElementById('deleteReason').value.trim();
+
+        if (!reason) {
+            alert('Alasan penghapusan wajib diisi!');
+            return;
+        }
+
+        let targetRec = allExpenses.find(i => i.id === id);
+        if (!targetRec) return;
+
+        let now = new Date();
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
+
+        allExpenses = allExpenses.filter(item => item.id !== id);
+
+        let auditEntry = {
+            id: Date.now(),
+            time: timeLog,
+            action: 'HAPUS',
+            details: `Hapus [${targetRec.category}] - ${targetRec.desc} (${formatRp(targetRec.nominal)})`,
+            reason: reason
+        };
+
+        auditLogs.push(auditEntry);
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            db.ref('operational_audit_logs').set(auditLogs).then(() => {
+                alert('Data berhasil dihapus dan tercatat di audit trail!');
+                document.getElementById('deleteModal').style.display = 'none';
+            });
+        });
     }
 
     // --- FUNGSI MODAL REKAP NOTA MATERIAL ---
@@ -505,7 +702,8 @@
 
         filteredExpenses.forEach(i => {
             let detailHtml = '-';
-            let actionBtn = `<button class="btn-danger" onclick="deleteExpense(${i.id})">Hapus</button>`;
+            let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
+                            `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
 
             if (i.category === 'Material' && i.materialData) {
                 let m = i.materialData;
@@ -526,13 +724,35 @@
             }
 
             tbody.innerHTML += `<tr>
-                <td style="text-align: center;">${actionBtn}</td>
+                <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
                 <td>${i.date || '-'}</td>
                 <td><b>${i.category}</b></td>
                 <td>${i.method || 'Tunai'}</td>
                 <td style="color: #c62828; font-weight: bold;">${formatRp(i.nominal)}</td>
                 <td>${i.desc}</td>
                 <td>${detailHtml}</td>
+            </tr>`;
+        });
+    }
+
+    function renderAuditLogs() {
+        let tbody = document.getElementById('auditTableBody');
+        tbody.innerHTML = '';
+
+        if (auditLogs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>`;
+            return;
+        }
+
+        auditLogs.sort((a, b) => b.id - a.id);
+
+        auditLogs.forEach(log => {
+            let badgeColor = (log.action === 'HAPUS') ? '#c62828' : '#1565c0';
+            tbody.innerHTML += `<tr>
+                <td>${log.time}</td>
+                <td><span style="background: ${badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">${log.action}</span></td>
+                <td>${log.details}</td>
+                <td><b>${log.reason}</b></td>
             </tr>`;
         });
     }
