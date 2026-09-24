@@ -77,27 +77,19 @@
                     <select id="expenseCategory" onchange="toggleCategoryDetail()" required>
                         <option value="Gudang">Gudang</option>
                         <option value="Rumah">Rumah</option>
-                        <option value="Material">Material (Kas Bon)</option>
+                        <option value="Material">Material</option>
                         <option value="Order Toko">Order Toko</option>
                     </select>
                 </div>
 
-                <!-- FORM KHUSUS DETAIL MATERIAL (Hanya Nama Penerima & Nominal) -->
+                <!-- FORM KHUSUS DETAIL MATERIAL -->
                 <div id="materialDetailBox" class="sub-form-box">
-                    <h4 style="margin-top: 0; color: #2e7d32;">🧱 Detail Kas Bon / Penyerahan Dana Material</h4>
+                    <h4 style="margin-top: 0; color: #2e7d32;">🧱 Detail Penyerahan Dana Material</h4>
                     
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Nama Penerima Uang / Petugas:</label>
                         <input type="text" id="materialReceiver" placeholder="Contoh: Mas Aprin">
                     </div>
-                </div>
-
-                <!-- LOKASI BANGUNAN (Hanya muncul jika opsi Material dipilih) -->
-                <div class="form-group" id="locationGroup" style="display: none;">
-                    <label>Lokasi Bangunan / Proyek Utama</label>
-                    <select id="expenseLocation">
-                        <!-- Diisi dinamis -->
-                    </select>
                 </div>
 
                 <div class="form-group">
@@ -150,15 +142,14 @@
                             <th>Aksi</th>
                             <th>Tanggal</th>
                             <th>Kategori</th>
-                            <th>Detail Kas Bon / Alokasi</th>
-                            <th>Lokasi Utama</th>
+                            <th>Detail Material & Alokasi Lokasi</th>
                             <th>Metode</th>
                             <th>Nominal</th>
                             <th>Keterangan</th>
                         </tr>
                     </thead>
                     <tbody id="expenseTableBody">
-                        <tr><td colspan="8" style="text-align: center; color: #777;">Memuat data...</td></tr>
+                        <tr><td colspan="7" style="text-align: center; color: #777;">Memuat data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -169,7 +160,7 @@
     <div id="settingTab" class="tab-content">
         <div class="card">
             <h3>⚙️ Kelola Lokasi Bangunan / Proyek</h3>
-            <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Tambahkan atau hapus lokasi bangunan yang tersedia pada pilihan form pengeluaran.</p>
+            <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Tambahkan atau hapus lokasi bangunan yang tersedia untuk rincian rekap nota material.</p>
             
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <input type="text" id="newLocationInput" placeholder="Nama Lokasi Baru (Contoh: Proyek Cabang Baru)">
@@ -205,9 +196,9 @@
         </div>
 
         <div class="form-group">
-            <label>Rincian Alokasi Belanja ke Bangunan / Toko:</label>
+            <label>Rincian Alokasi Belanja ke Lokasi Bangunan:</label>
             <div id="modalShoppingRows"></div>
-            <button type="button" class="btn-add-row" onclick="addModalShopRow()" style="margin-top: 5px;">+ Tambah Alokasi Bangunan Lain</button>
+            <button type="button" class="btn-add-row" onclick="addModalShopRow()" style="margin-top: 5px;">+ Tambah Alokasi Lokasi Lain</button>
         </div>
 
         <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #c8e6c9;">
@@ -267,17 +258,7 @@
 
     function toggleCategoryDetail() {
         let cat = document.getElementById('expenseCategory').value;
-        let isMaterial = (cat === 'Material');
-        
-        document.getElementById('materialDetailBox').style.display = isMaterial ? 'block' : 'none';
-        document.getElementById('locationGroup').style.display = isMaterial ? 'block' : 'none';
-        
-        let locSelect = document.getElementById('expenseLocation');
-        if (isMaterial) {
-            locSelect.setAttribute('required', 'true');
-        } else {
-            locSelect.removeAttribute('required');
-        }
+        document.getElementById('materialDetailBox').style.display = (cat === 'Material') ? 'block' : 'none';
     }
 
     function loadDataFromFirebase() {
@@ -302,7 +283,6 @@
         e.preventDefault();
         let date = document.getElementById('expenseDate').value;
         let category = document.getElementById('expenseCategory').value;
-        let location = (category === 'Material') ? document.getElementById('expenseLocation').value : '-';
         let method = document.getElementById('expenseMethod').value;
         let nominal = parseCleanNumber(document.getElementById('expenseNominal').value);
         let desc = document.getElementById('expenseDesc').value.trim();
@@ -322,7 +302,6 @@
             id: Date.now(),
             date,
             category,
-            location,
             method,
             nominal,
             desc,
@@ -366,9 +345,17 @@
             rec.materialData.shops.forEach(s => {
                 let div = document.createElement('div');
                 div.className = 'sub-row';
+                
+                // Buat pilihan dropdown lokasi bangunan di modal rekap
+                let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
+                locations.forEach(loc => {
+                    let selected = (s.name === loc) ? 'selected' : '';
+                    optionsHtml += `<option value="${loc}" ${selected}>${loc}</option>`;
+                });
+
                 div.innerHTML = `
-                    <input type="text" class="modal-shop-name" value="${s.name}" placeholder="Nama Bangunan / Toko">
-                    <input type="text" class="modal-shop-cost" inputmode="numeric" value="${formatNumber(s.cost)}" placeholder="Nominal (Rp)" oninput="formatInputNumber(this); calculateModalTotal();">
+                    <select class="modal-shop-name" style="flex: 2;">${optionsHtml}</select>
+                    <input type="text" class="modal-shop-cost" inputmode="numeric" value="${formatNumber(s.cost)}" placeholder="Nominal (Rp)" style="flex: 1.5;" oninput="formatInputNumber(this); calculateModalTotal();">
                     <button type="button" class="btn-del-row" onclick="this.parentElement.remove(); calculateModalTotal();">✕</button>
                 `;
                 container.appendChild(div);
@@ -385,9 +372,15 @@
         let container = document.getElementById('modalShoppingRows');
         let div = document.createElement('div');
         div.className = 'sub-row';
+        
+        let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
+        locations.forEach(loc => {
+            optionsHtml += `<option value="${loc}">${loc}</option>`;
+        });
+
         div.innerHTML = `
-            <input type="text" class="modal-shop-name" placeholder="Nama Bangunan / Toko">
-            <input type="text" class="modal-shop-cost" inputmode="numeric" placeholder="Nominal (Rp)" oninput="formatInputNumber(this); calculateModalTotal();">
+            <select class="modal-shop-name" style="flex: 2;">${optionsHtml}</select>
+            <input type="text" class="modal-shop-cost" inputmode="numeric" placeholder="Nominal (Rp)" style="flex: 1.5;" oninput="formatInputNumber(this); calculateModalTotal();">
             <button type="button" class="btn-del-row" onclick="this.parentElement.remove(); calculateModalTotal();">✕</button>
         `;
         container.appendChild(div);
@@ -395,20 +388,18 @@
     }
 
     function calculateModalTotal() {
-        let recId = parseFloat(document.getElementById('rekapRecordId').value);
-        let rec = allExpenses.find(i => i.id === recId);
-        if (!rec) return;
-
-        let totalDana = rec.nominal;
         let totalNota = 0;
-
         document.querySelectorAll('.modal-shop-cost').forEach(el => {
             totalNota += parseCleanNumber(el.value);
         });
 
         document.getElementById('modalTotalNotaText').innerText = formatRp(totalNota);
 
-        let selisih = totalDana - totalNota;
+        let recId = parseFloat(document.getElementById('rekapRecordId').value);
+        let rec = allExpenses.find(i => i.id === recId);
+        if (!rec) return;
+
+        let selisih = rec.nominal - totalNota;
         let selisihEl = document.getElementById('modalSelisihText');
 
         if (selisih === 0) {
@@ -461,7 +452,7 @@
         tbody.innerHTML = '';
 
         if (allExpenses.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #777;">Belum ada catatan pengeluaran.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #777;">Belum ada catatan pengeluaran.</td></tr>`;
             return;
         }
 
@@ -478,13 +469,13 @@
                 detailHtml = `<div class="vertical-details">
                     👤 <b>Penerima:</b> ${m.receiver || '-'}<br>
                     📌 <b>Status:</b> <span style="color: #2e7d32; font-weight: bold;">${m.statusRekap || 'Belum Direkap'}</span><br>
-                    🛒 <b>Alokasi Belanja:</b><br>`;
+                    🏗️ <b>Alokasi Lokasi Bangunan:</b><br>`;
                 if (m.shops && m.shops.length > 0) {
                     m.shops.forEach(s => {
                         detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`;
                     });
                 } else {
-                    detailHtml += `&nbsp;&nbsp;<i>(Belum ada rincian rekap)</i><br>`;
+                    detailHtml += `&nbsp;&nbsp;<i>(Belum ada rincian lokasi)</i><br>`;
                 }
                 detailHtml += `</div>`;
             }
@@ -494,7 +485,6 @@
                 <td>${i.date}</td>
                 <td><b>${i.category}</b></td>
                 <td>${detailHtml}</td>
-                <td>${i.location || '-'}</td>
                 <td>${i.method || 'Tunai'}</td>
                 <td style="color: #c62828; font-weight: bold;">${formatRp(i.nominal)}</td>
                 <td>${i.desc}</td>
@@ -503,10 +493,7 @@
     }
 
     function renderLocations() {
-        let select = document.getElementById('expenseLocation');
         let tbody = document.getElementById('locationTableBody');
-        
-        select.innerHTML = '';
         tbody.innerHTML = '';
 
         if (locations.length === 0) {
@@ -514,7 +501,6 @@
         }
 
         locations.forEach((loc, idx) => {
-            select.innerHTML += `<option value="${loc}">${loc}</option>`;
             tbody.innerHTML += `<tr>
                 <td><b>${loc}</b></td>
                 <td style="text-align: center;">
