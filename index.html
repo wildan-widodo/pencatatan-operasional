@@ -20,6 +20,7 @@
         .btn-danger { background: #c62828; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
         .btn-edit { background: #1565c0; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
         .btn-rekap { background: #00796b; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
+        .btn-sisa { background: #e65100; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
         .btn-add-row { background: #00796b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; }
         .btn-del-row { background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
 
@@ -147,7 +148,7 @@
                 <p id="summaryStoreIncome" style="color: #1565c0;">Rp 0</p>
             </div>
             <div class="summary-item">
-                <h4>TOTAL PENGELUARAN</h4>
+                <h4>TOTAL PENGELUARAN (BERSIH)</h4>
                 <p id="summaryExpense" style="color: #c62828;">Rp 0</p>
             </div>
             <div class="summary-item">
@@ -171,13 +172,15 @@
                         <option value="Order Toko">Order Toko</option>
                     </select>
                 </div>
-                <div class="form-group filter-item">
-                    <label>🔍 Pilah Metode Transaksi:</label>
-                    <select id="filterMethod" onchange="renderExpenses()">
-                        <option value="ALL">Semua Metode</option>
-                        <option value="Tunai">Tunai</option>
-                        <option value="Transfer">Transfer</option>
-                    </select>
+                <div class="filter-bar filter-item" style="border:none; background:transparent; padding:0;">
+                    <div class="form-group" style="width:100%;">
+                        <label>🔍 Pilah Metode Transaksi:</label>
+                        <select id="filterMethod" onchange="renderExpenses()">
+                            <option value="ALL">Semua Metode</option>
+                            <option value="Tunai">Tunai</option>
+                            <option value="Transfer">Transfer</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -189,13 +192,15 @@
                             <th>Tanggal & Waktu</th>
                             <th>Kategori</th>
                             <th>Metode</th>
-                            <th>Nominal</th>
+                            <th>Nominal Bruto</th>
+                            <th>Sisa Setoran (Pribadi Owner)</th>
+                            <th>Nominal Bersih (Pengeluaran)</th>
                             <th>Keterangan</th>
                             <th>Detail Material & Alokasi Lokasi</th>
                         </tr>
                     </thead>
                     <tbody id="expenseTableBody">
-                        <tr><td colspan="7" style="text-align: center; color: #777;">Memuat data...</td></tr>
+                        <tr><td colspan="9" style="text-align: center; color: #777;">Memuat data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -300,6 +305,30 @@
     </div>
 </div>
 
+<!-- MODAL INPUT SISA SETORAN ORDER TOKO -->
+<div class="modal" id="sisaModal">
+    <div class="modal-content">
+        <h3 style="color: #e65100;">💰 Input Sisa Setoran Bank (Masuk Rekening Pribadi Owner)</h3>
+        <input type="hidden" id="sisaRecordId">
+        
+        <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9rem; border: 1px solid #ffe0b2;">
+            <div>📦 <b>Keterangan Order:</b> <span id="modalSisaDescText">-</span></div>
+            <div>💵 <b>Nominal Bruto (Setoran):</b> <span id="modalSisaBrutoText" style="font-weight: bold;">Rp 0</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Masukkan Sisa / Selisih (Masuk Rek. Pribadi Owner):</label>
+            <input type="text" id="sisaAmountInput" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)">
+            <small style="color: #666; display: block; margin-top: 5px;">Nilai ini akan mengurangkan nominal bruto sehingga pengeluaran bersih yang tercatat tidak termasuk sisa ini.</small>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="submitSisaSetoran()" style="background:#e65100;">Simpan Sisa Setoran</button>
+            <button class="btn-danger" onclick="document.getElementById('sisaModal').style.display='none'" style="width: 120px;">Batal</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL ALASAN HAPUS -->
 <div class="modal" id="deleteModal">
     <div class="modal-content">
@@ -387,7 +416,6 @@
             document.getElementById('appContainer').style.display = 'block';
             document.getElementById('userStatusBanner').innerText = `👤 Mengakses sebagai: ${currentUser}`;
             
-            // Kontrol Hak Akses Tab Audit Trail
             let auditBtn = document.getElementById('auditTabBtn');
             if (currentUser === 'Owner') {
                 auditBtn.style.display = 'inline-block';
@@ -413,7 +441,6 @@
     }
 
     function switchTab(tabId) {
-        // Jika mencoba membuka auditTab tapi bukan owner, blokir
         if (tabId === 'auditTab' && currentUser !== 'Owner') {
             alert('Akses ditolak! Menu Audit Trail khusus untuk Owner.');
             return;
@@ -494,6 +521,7 @@
             category,
             method,
             nominal,
+            sisaSetoran: 0, // Inisialisasi sisa setoran owner
             desc,
             materialData,
             createdBy: currentUser
@@ -577,6 +605,43 @@
                 alert('Data pengeluaran berhasil diperbarui!');
                 document.getElementById('editModal').style.display = 'none';
             });
+        });
+    }
+
+    function openSisaModal(id) {
+        let rec = allExpenses.find(i => i.id === id);
+        if (!rec) return;
+
+        document.getElementById('sisaRecordId').value = rec.id;
+        document.getElementById('modalSisaDescText').innerText = rec.desc;
+        document.getElementById('modalSisaBrutoText').innerText = formatRp(rec.nominal);
+        document.getElementById('sisaAmountInput').value = rec.sisaSetoran ? formatNumber(rec.sisaSetoran) : '';
+
+        document.getElementById('sisaModal').style.display = 'flex';
+    }
+
+    function submitSisaSetoran() {
+        let id = parseFloat(document.getElementById('sisaRecordId').value);
+        let sisaVal = parseCleanNumber(document.getElementById('sisaAmountInput').value);
+
+        let rec = allExpenses.find(i => i.id === id);
+        if (!rec) return;
+
+        if (sisaVal >= rec.nominal) {
+            alert('Sisa setoran tidak boleh melebihi atau sama dengan total nominal bruto!');
+            return;
+        }
+
+        allExpenses = allExpenses.map(item => {
+            if (item.id === id) {
+                return { ...item, sisaSetoran: sisaVal };
+            }
+            return item;
+        });
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert('Sisa setoran berhasil disimpan dan dikurangkan dari pengeluaran!');
+            document.getElementById('sisaModal').style.display = 'none';
         });
     }
 
@@ -752,7 +817,7 @@
         });
 
         if (filteredExpenses.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #777;">Tidak ada data pengeluaran yang sesuai filter.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #777;">Tidak ada data pengeluaran yang sesuai filter.</td></tr>`;
             return;
         }
 
@@ -762,6 +827,11 @@
             let detailHtml = '-';
             let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
                             `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
+
+            // Jika kategori Order Toko, tambahkan tombol khusus "Sisa"
+            if (i.category === 'Order Toko') {
+                actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
+            }
 
             if (i.category === 'Material' && i.materialData) {
                 let m = i.materialData;
@@ -781,12 +851,17 @@
                 detailHtml += `</div>`;
             }
 
+            let sisaSetoran = i.sisaSetoran || 0;
+            let netNominal = i.nominal - sisaSetoran;
+
             tbody.innerHTML += `<tr>
                 <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
                 <td>${i.date || '-'}</td>
                 <td><b>${i.category}</b></td>
                 <td>${i.method || 'Tunai'}</td>
-                <td style="color: #c62828; font-weight: bold;">${formatRp(i.nominal)}</td>
+                <td style="color: #555;">${formatRp(i.nominal)}</td>
+                <td style="color: #e65100; font-weight: bold;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</td>
+                <td style="color: #c62828; font-weight: bold;">${formatRp(netNominal)}</td>
                 <td>${i.desc}</td>
                 <td>${detailHtml}</td>
             </tr>`;
@@ -849,7 +924,7 @@
 
         locations.push(val);
         db.ref('operational_locations').set(locations).then(() => {
-            alert('Lokasi berhasil ditambahkan!');
+            alert('Lokasi berhasil ditambah!');
             input.value = '';
         });
     }
@@ -874,7 +949,10 @@
 
         let totalExpense = 0;
         allExpenses.forEach(item => {
-            totalExpense += (item.nominal || 0);
+            let nominal = item.nominal || 0;
+            let sisa = item.sisaSetoran || 0;
+            // Total pengeluaran bersih dikurangi sisa setoran owner
+            totalExpense += (nominal - sisa);
         });
 
         let netBalance = totalStoreIncome - totalExpense;
