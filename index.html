@@ -27,6 +27,17 @@
         .sub-form-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
         .sub-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
         .sub-row input { flex: 2; }
+
+        /* Styling Form Massal Material */
+        .bulk-material-box { background: #e0f2f1; border: 2px dashed #00796b; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
+        .bulk-material-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #b2dfdb; }
+        .bulk-material-row input.bm-date { flex: 1.2; }
+        .bulk-material-row input.bm-receiver { flex: 1.5; }
+        .bulk-material-row input.bm-nominal { flex: 1.2; }
+        .bulk-material-row input.bm-desc { flex: 2; }
+        .mode-toggle-bar { display: flex; gap: 10px; margin-bottom: 15px; background: #f1f3f5; padding: 6px; border-radius: 4px; }
+        .mode-btn { flex: 1; padding: 8px; border: none; background: transparent; font-weight: bold; cursor: pointer; border-radius: 4px; color: #555; }
+        .mode-btn.active { background: #00796b; color: white; }
         
         .summary-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap; gap: 15px; }
         .summary-item h4 { margin: 0 0 5px 0; color: #333; font-size: 0.85rem; }
@@ -90,51 +101,96 @@
     <div id="inputTab" class="tab-content active">
         <div class="card">
             <h3>Form Catat Pengeluaran Baru</h3>
+            
+            <div class="form-group">
+                <label>Kategori Pengeluaran</label>
+                <select id="expenseCategory" onchange="toggleCategoryDetail()">
+                    <option value="Gudang">Gudang</option>
+                    <option value="Rumah">Rumah</option>
+                    <option value="Material">Material</option>
+                    <option value="Order Toko">Order Toko</option>
+                </select>
+            </div>
+
+            <!-- TOMBOL PILIH MODE KHUSUS MATERIAL (SATUAN / MASSAL) -->
+            <div id="materialModeToggleBox" style="display: none;">
+                <div class="mode-toggle-bar">
+                    <button type="button" class="mode-btn active" id="btnSingleMode" onclick="setMaterialMode('single')">Catat Satuan</button>
+                    <button type="button" class="mode-btn" id="btnBulkMode" onclick="setMaterialMode('bulk')">📦 Input Massal Material</button>
+                </div>
+            </div>
+
             <form onsubmit="saveExpense(event)">
-                <div class="form-group">
-                    <label>Tanggal</label>
-                    <input type="date" id="expenseDate" required>
-                </div>
+                <!-- FORM SATUAN (DEFAULT) -->
+                <div id="singleFormSection">
+                    <div class="form-group">
+                        <label>Tanggal</label>
+                        <input type="date" id="expenseDate">
+                    </div>
 
-                <div class="form-group">
-                    <label>Kategori Pengeluaran</label>
-                    <select id="expenseCategory" onchange="toggleCategoryDetail()" required>
-                        <option value="Gudang">Gudang</option>
-                        <option value="Rumah">Rumah</option>
-                        <option value="Material">Material</option>
-                        <option value="Order Toko">Order Toko</option>
-                    </select>
-                </div>
+                    <!-- FORM KHUSUS DETAIL MATERIAL -->
+                    <div id="materialDetailBox" class="sub-form-box">
+                        <h4 style="margin-top: 0; color: #2e7d32;">🧱 Detail Penyerahan Dana Material</h4>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Nama Penerima Uang / Petugas:</label>
+                            <input type="text" id="materialReceiver" placeholder="Contoh: Mas Aprin">
+                        </div>
+                    </div>
 
-                <!-- FORM KHUSUS DETAIL MATERIAL -->
-                <div id="materialDetailBox" class="sub-form-box">
-                    <h4 style="margin-top: 0; color: #2e7d32;">🧱 Detail Penyerahan Dana Material</h4>
-                    
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label>Nama Penerima Uang / Petugas:</label>
-                        <input type="text" id="materialReceiver" placeholder="Contoh: Mas Aprin">
+                    <div class="form-group">
+                        <label>Metode Transaksi</label>
+                        <select id="expenseMethod">
+                            <option value="Tunai">Tunai</option>
+                            <option value="Transfer">Transfer</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nominal Total (Rp)</label>
+                        <input type="text" id="expenseNominal" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Keterangan / Keperluan</label>
+                        <input type="text" id="expenseDesc" placeholder="Contoh: Pembayaran operasional">
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Metode Transaksi</label>
-                    <select id="expenseMethod" required>
-                        <option value="Tunai">Tunai</option>
-                        <option value="Transfer">Transfer</option>
-                    </select>
+                <!-- FORM INPUT MASSAL KHUSUS MATERIAL -->
+                <div id="bulkMaterialSection" class="bulk-material-box">
+                    <h4 style="margin-top: 0; color: #00796b;">📦 Input Pemasukan/Penyerahan Dana Material Secara Massal</h4>
+                    <p style="font-size: 0.8rem; color: #555; margin-bottom: 10px;">Masukkan beberapa riwayat penyerahan dana material sekaligus. Setiap baris akan tersimpan sebagai riwayat terpisah dan dapat direkap nota materialnya seperti biasa.</p>
+                    
+                    <div style="display: flex; font-size: 0.75rem; color: #444; font-weight: bold; margin-bottom: 4px; gap: 8px;">
+                        <span style="flex: 1.2;">Tanggal</span>
+                        <span style="flex: 1.5;">Nama Penerima</span>
+                        <span style="flex: 1.2;">Nominal (Rp)</span>
+                        <span style="flex: 2;">Keterangan / Keperluan</span>
+                        <span style="width: 35px;"></span>
+                    </div>
+
+                    <div id="bulkMaterialRowsContainer">
+                        <div class="bulk-material-row">
+                            <input type="date" class="bm-date" required>
+                            <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
+                            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
+                            <input type="text" class="bm-desc" placeholder="Keterangan" required>
+                            <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-add-row" onclick="addBulkMaterialRow()" style="background:#00796b; margin-top: 8px;">+ Tambah Baris Material Lain</button>
+                    
+                    <div class="form-group" style="margin-top: 15px; max-width: 250px;">
+                        <label>Metode Transaksi Massal:</label>
+                        <select id="bulkMaterialMethod">
+                            <option value="Tunai">Tunai</option>
+                            <option value="Transfer">Transfer</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Nominal Total (Rp)</label>
-                    <input type="text" id="expenseNominal" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Keterangan / Keperluan</label>
-                    <input type="text" id="expenseDesc" placeholder="Contoh: Pembayaran operasional" required>
-                </div>
-
-                <button type="submit" class="btn-primary">Simpan Pengeluaran</button>
+                <button type="submit" class="btn-primary" id="submitExpenseBtn">Simpan Pengeluaran</button>
             </form>
         </div>
     </div>
@@ -402,6 +458,7 @@
     let locations = [];
     let storeClosingsData = [];
     let currentUser = "";
+    let currentMaterialMode = "single"; // 'single' atau 'bulk'
 
     const pinUserMap = {
         '123123': 'Mbak Ika',
@@ -424,6 +481,11 @@
             }
             
             document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            
+            // Set tanggal default pada baris pertama form massal material
+            let firstBmDate = document.querySelector('.bm-date');
+            if(firstBmDate) firstBmDate.value = new Date().toISOString().split('T')[0];
+
             loadDataFromFirebase();
             toggleCategoryDetail();
         } else {
@@ -459,7 +521,68 @@
 
     function toggleCategoryDetail() {
         let cat = document.getElementById('expenseCategory').value;
-        document.getElementById('materialDetailBox').style.display = (cat === 'Material') ? 'block' : 'none';
+        let modeToggleBox = document.getElementById('materialModeToggleBox');
+        
+        if (cat === 'Material') {
+            modeToggleBox.style.display = 'block';
+            setMaterialMode(currentMaterialMode);
+        } else {
+            modeToggleBox.style.display = 'none';
+            document.getElementById('materialDetailBox').style.display = (cat === 'Material') ? 'block' : 'none';
+            document.getElementById('singleFormSection').style.display = 'block';
+            document.getElementById('bulkMaterialSection').style.display = 'none';
+        }
+    }
+
+    function setMaterialMode(mode) {
+        currentMaterialMode = mode;
+        let btnSingle = document.getElementById('btnSingleMode');
+        let btnBulk = document.getElementById('btnBulkMode');
+        let singleSec = document.getElementById('singleFormSection');
+        let bulkSec = document.getElementById('bulkMaterialSection');
+        let detailBox = document.getElementById('materialDetailBox');
+
+        if (mode === 'single') {
+            btnSingle.classList.add('active');
+            btnBulk.classList.remove('active');
+            singleSec.style.display = 'block';
+            bulkSec.style.display = 'none';
+            detailBox.style.display = 'block';
+        } else {
+            btnBulk.classList.add('active');
+            btnSingle.classList.remove('active');
+            singleSec.style.display = 'none';
+            bulkSec.style.display = 'block';
+            detailBox.style.display = 'none';
+        }
+    }
+
+    function addBulkMaterialRow() {
+        let container = document.getElementById('bulkMaterialRowsContainer');
+        let div = document.createElement('div');
+        div.className = 'bulk-material-row';
+        div.innerHTML = `
+            <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}" required>
+            <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
+            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
+            <input type="text" class="bm-desc" placeholder="Keterangan" required>
+            <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)">✕</button>
+        `;
+        container.appendChild(div);
+        updateBulkMaterialDeleteButtons();
+    }
+
+    function removeBulkMaterialRow(btn) {
+        btn.parentElement.remove();
+        updateBulkMaterialDeleteButtons();
+    }
+
+    function updateBulkMaterialDeleteButtons() {
+        let rows = document.querySelectorAll('.bulk-material-row');
+        rows.forEach(r => {
+            let delBtn = r.querySelector('.btn-del-row');
+            delBtn.style.display = rows.length > 1 ? 'block' : 'none';
+        });
     }
 
     function loadDataFromFirebase() {
@@ -487,8 +610,77 @@
 
     function saveExpense(e) {
         e.preventDefault();
+        let cat = document.getElementById('expenseCategory').value;
+        let now = new Date();
+        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+        // JIKA MODE MASSAL MATERIAL AKTIF
+        if (cat === 'Material' && currentMaterialMode === 'bulk') {
+            let rows = document.querySelectorAll('.bulk-material-row');
+            let newRecords = [];
+            let method = document.getElementById('bulkMaterialMethod').value;
+            let isValid = true;
+
+            rows.forEach(row => {
+                let rawDate = row.querySelector('.bm-date').value;
+                let receiver = row.querySelector('.bm-receiver').value.trim();
+                let nominal = parseCleanNumber(row.querySelector('.bm-nominal').value);
+                let desc = row.querySelector('.bm-desc').value.trim();
+
+                if (!rawDate || !receiver || nominal <= 0 || !desc) {
+                    isValid = false;
+                    return;
+                }
+
+                let formattedDate = rawDate;
+                let p = rawDate.split('-');
+                formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
+                let dateWithTime = `${formattedDate} ${timeNow}`;
+
+                let materialData = {
+                    receiver,
+                    shops: [],
+                    statusRekap: 'Belum Direkap'
+                };
+
+                newRecords.push({
+                    id: Date.now() + Math.random(),
+                    date: dateWithTime,
+                    rawDate: rawDate,
+                    category: 'Material',
+                    method,
+                    nominal,
+                    sisaSetoran: 0,
+                    desc,
+                    materialData,
+                    createdBy: currentUser
+                });
+            });
+
+            if (!isValid || newRecords.length === 0) {
+                alert('Mohon lengkapi seluruh kolom pada setiap baris input massal material dengan benar!');
+                return;
+            }
+
+            newRecords.forEach(rec => allExpenses.push(rec));
+            db.ref('operational_expenses').set(allExpenses).then(() => {
+                alert(`Berhasil! ${newRecords.length} catatan penyerahan dana material berhasil disimpan secara massal.`);
+                // Reset form massal
+                document.getElementById('bulkMaterialRowsContainer').innerHTML = `
+                    <div class="bulk-material-row">
+                        <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}" required>
+                        <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
+                        <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
+                        <input type="text" class="bm-desc" placeholder="Keterangan" required>
+                        <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
+                    </div>
+                `;
+            });
+            return;
+        }
+
+        // PENGELUARAN STANDAR / SATUAN
         let rawDate = document.getElementById('expenseDate').value;
-        let category = document.getElementById('expenseCategory').value;
         let method = document.getElementById('expenseMethod').value;
         let nominal = parseCleanNumber(document.getElementById('expenseNominal').value);
         let desc = document.getElementById('expenseDesc').value.trim();
@@ -498,9 +690,6 @@
             return;
         }
 
-        let now = new Date();
-        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-        
         let formattedDate = rawDate;
         if (rawDate) {
             let p = rawDate.split('-');
@@ -509,7 +698,7 @@
         let dateWithTime = `${formattedDate} ${timeNow}`;
 
         let materialData = null;
-        if (category === 'Material') {
+        if (cat === 'Material') {
             let receiver = document.getElementById('materialReceiver').value.trim();
             materialData = { receiver, shops: [], statusRekap: 'Belum Direkap' };
         }
@@ -518,10 +707,10 @@
             id: Date.now(),
             date: dateWithTime,
             rawDate: rawDate,
-            category,
+            category: cat,
             method,
             nominal,
-            sisaSetoran: 0, // Inisialisasi sisa setoran owner
+            sisaSetoran: 0,
             desc,
             materialData,
             createdBy: currentUser
@@ -828,7 +1017,6 @@
             let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
                             `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
 
-            // Jika kategori Order Toko, tambahkan tombol khusus "Sisa"
             if (i.category === 'Order Toko') {
                 actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
             }
@@ -951,7 +1139,6 @@
         allExpenses.forEach(item => {
             let nominal = item.nominal || 0;
             let sisa = item.sisaSetoran || 0;
-            // Total pengeluaran bersih dikurangi sisa setoran owner
             totalExpense += (nominal - sisa);
         });
 
