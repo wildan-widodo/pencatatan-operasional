@@ -115,7 +115,7 @@
             <div id="materialModeToggleBox" style="display: none;">
                 <div class="mode-toggle-bar">
                     <button type="button" class="mode-btn active" id="btnSingleMode" onclick="setMaterialMode('single')">Catat Satuan</button>
-                    <button type="button" class="mode-btn" id="btnBulkMode" onclick="setMaterialMode('bulk')">📦 Input Massal Material</button>
+                    <button type="button" class="mode-btn" id="btnBulkMode" onclick="setMaterialMode('bulk')">📦 Input Akumulasi Massal Material</button>
                 </div>
             </div>
 
@@ -157,14 +157,14 @@
 
                 <!-- FORM INPUT MASSAL KHUSUS MATERIAL -->
                 <div id="bulkMaterialSection" class="bulk-material-box">
-                    <h4 style="margin-top: 0; color: #00796b;">📦 Input Penyerahan Dana Material Secara Massal</h4>
-                    <p style="font-size: 0.8rem; color: #555; margin-bottom: 10px;">Masukkan beberapa riwayat penyerahan dana material sekaligus. Anda dapat mengatur alokasi rekap bebas secara serentak di akhir.</p>
+                    <h4 style="margin-top: 0; color: #00796b;">📦 Akumulasi Pemberian Dana ke Petugas (Beberapa Hari)</h4>
+                    <p style="font-size: 0.8rem; color: #555; margin-bottom: 10px;">Catat beberapa kali pemberian dana dari admin ke petugas secara bertahap. Sistem akan mengakumulasi total dan membukanya ke panel rekap rincian nota.</p>
                     
                     <div style="display: flex; font-size: 0.75rem; color: #444; font-weight: bold; margin-bottom: 4px; gap: 8px;">
-                        <span style="flex: 1.2;">Tanggal</span>
+                        <span style="flex: 1.2;">Tanggal Pemberian</span>
                         <span style="flex: 1.4;">Nama Penerima</span>
                         <span style="flex: 1.1;">Nominal (Rp)</span>
-                        <span style="flex: 1.8;">Keterangan</span>
+                        <span style="flex: 1.8;">Keterangan / Catatan</span>
                         <span style="width: 35px;"></span>
                     </div>
 
@@ -178,18 +178,18 @@
                         </div>
                     </div>
 
-                    <button type="button" class="btn-add-row" onclick="addBulkMaterialRow()" style="background:#00796b; margin-top: 8px;">+ Tambah Baris Material Lain</button>
+                    <button type="button" class="btn-add-row" onclick="addBulkMaterialRow()" style="background:#00796b; margin-top: 8px;">+ Tambah Riwayat Pemberian Lain</button>
                     
                     <div style="display: flex; gap: 15px; margin-top: 15px;">
                         <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                            <label>Metode Transaksi Massal:</label>
+                            <label>Metode Transaksi Akumulasi:</label>
                             <select id="bulkMaterialMethod">
                                 <option value="Tunai">Tunai</option>
                                 <option value="Transfer">Transfer</option>
                             </select>
                         </div>
                         <div class="form-group" style="flex: 1; margin-bottom: 0; display: flex; align-items: flex-end;">
-                            <button type="button" class="btn-primary" onclick="openBulkRekapSetupModal()" style="background: #00796b;">🧾 Atur Alokasi Nota Massal & Simpan</button>
+                            <button type="button" class="btn-primary" onclick="openBulkRekapSetupModal()" style="background: #00796b;">🧾 Lanjut Rincian Nota & Cek Selisih</button>
                         </div>
                     </div>
                 </div>
@@ -442,15 +442,20 @@
     </div>
 </div>
 
-<!-- MODAL REKAP MASSAL BEBAS ALOKASI LOKASI -->
+<!-- MODAL CEK SELISIH AKUMULASI PEMBERIAN DANA -->
 <div class="modal" id="bulkRekapSetupModal">
     <div class="modal-content" style="width: 600px;">
-        <h3 style="color: #00796b;">🧾 Atur Alokasi Nota Massal Material (Bebas Nominal)</h3>
-        <p style="font-size: 0.85rem; color: #555; margin-bottom: 10px;">Total akumulasi dana massal yang dimasukkan: <b id="bulkTotalDanaSummary" style="color:#2e7d32;">Rp 0</b></p>
-        <p style="font-size: 0.85rem; color: #555; margin-bottom: 15px;">Tambahkan baris lokasi bangunan dan masukkan nominal alokasi secara bebas sesuai nota belanja yang ada:</p>
+        <h3 style="color: #00796b;">🧾 Cek Selisih Akumulasi Dana & Alokasi Nota</h3>
+        
+        <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #90caf9;">
+            <div style="font-size: 0.85rem; color: #0d47a1;">Total Akumulasi Pemberian Dana (Beberapa Hari):</div>
+            <div id="bulkTotalDanaSummary" style="font-size: 1.3rem; font-weight: bold; color: #1565c0; margin-top: 2px;">Rp 0</div>
+        </div>
+
+        <p style="font-size: 0.85rem; color: #555; margin-bottom: 10px;">Masukkan rincian alokasi lokasi bangunan berdasarkan nota yang diserahkan petugas:</p>
         
         <div id="bulkFreeShoppingRows" style="max-height: 40vh; overflow-y: auto; padding-right: 5px; margin-bottom: 10px;"></div>
-        <button type="button" class="btn-add-row" onclick="addBulkFreeShopRow()" style="margin-bottom: 15px;">+ Tambah Baris Alokasi Lokasi</button>
+        <button type="button" class="btn-add-row" onclick="addBulkFreeShopRow()" style="margin-bottom: 15px;">+ Tambah Baris Alokasi Lokasi Nota</button>
 
         <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #c8e6c9;">
             <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 5px;">
@@ -464,7 +469,7 @@
         </div>
 
         <div style="display: flex; gap: 10px;">
-            <button class="btn-primary" onclick="confirmAndSaveBulkFreeRekap()" style="background:#00796b;">Simpan Semua Data & Rekap</button>
+            <button class="btn-primary" onclick="confirmAndSaveBulkFreeRekap()" style="background:#00796b;">Simpan Akumulasi & Hasil Rekap</button>
             <button class="btn-danger" onclick="document.getElementById('bulkRekapSetupModal').style.display='none'" style="width: 120px;">Batal</button>
         </div>
     </div>
@@ -490,7 +495,9 @@
     let locations = [];
     let storeClosingsData = [];
     let currentUser = "";
-    let currentMaterialMode = "single"; // 'single' atau 'bulk'
+    let currentMaterialMode = "single";
+
+    let tempBulkAccumulatedData = null; // Menyimpan data sementara untuk akumulasi massal
 
     const pinUserMap = {
         '123123': 'Mbak Ika',
@@ -602,7 +609,7 @@
             <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
             <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
             <input type="text" class="bm-desc" placeholder="Keterangan" required>
-            <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)">✕</button>
+            <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
         `;
         container.appendChild(div);
         updateBulkMaterialDeleteButtons();
@@ -648,6 +655,8 @@
         let rows = document.querySelectorAll('.bulk-material-row');
         let isValid = true;
         let totalBulkSum = 0;
+        let receiversSet = new Set();
+        let datesList = [];
 
         rows.forEach(row => {
             let rawDate = row.querySelector('.bm-date').value;
@@ -660,18 +669,29 @@
                 return;
             }
             totalBulkSum += nominal;
+            receiversSet.add(receiver);
+            datesList.push(rawDate);
         });
 
         if (!isValid) {
-            alert('Mohon lengkapi seluruh kolom pada setiap baris input massal material dengan benar!');
+            alert('Mohon lengkapi seluruh kolom pada setiap baris pemberian dana dengan benar!');
             return;
         }
+
+        // Simpan data akumulasi sementara untuk digabungkan saat simpan
+        tempBulkAccumulatedData = {
+            totalSum: totalBulkSum,
+            receivers: Array.from(receiversSet).join(', '),
+            method: document.getElementById('bulkMaterialMethod').value,
+            startDate: datesList.length > 0 ? datesList[0] : '-',
+            endDate: datesList.length > 0 ? datesList[datesList.length - 1] : '-'
+        };
 
         document.getElementById('bulkTotalDanaSummary').innerText = formatRp(totalBulkSum);
         
         let container = document.getElementById('bulkFreeShoppingRows');
         container.innerHTML = '';
-        addBulkFreeShopRow(); // Tambah baris awal alokasi
+        addBulkFreeShopRow();
 
         calculateBulkFreeTotal();
         document.getElementById('bulkRekapSetupModal').style.display = 'flex';
@@ -704,7 +724,8 @@
 
         document.getElementById('bulkTotalNotaSummary').innerText = formatRp(totalNota);
 
-        let totalDana = parseCleanNumber(document.getElementById('bulkTotalDanaSummary').innerText);
+        if (!tempBulkAccumulatedData) return;
+        let totalDana = tempBulkAccumulatedData.totalSum;
         let selisih = totalDana - totalNota;
         let selisihEl = document.getElementById('bulkSelisihSummaryText');
 
@@ -718,67 +739,53 @@
     }
 
     function confirmAndSaveBulkFreeRekap() {
-        let rows = document.querySelectorAll('.bulk-material-row');
-        let method = document.getElementById('bulkMaterialMethod').value;
+        if (!tempBulkAccumulatedData) return;
+
         let now = new Date();
         let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        let formattedDate = now.toLocaleDateString('id-ID');
+        let dateWithTime = `${formattedDate} ${timeNow}`;
 
-        // Kumpulkan daftar alokasi bebas yang diinput admin
-        let allocatedShops = [];
+        // Kumpulkan rincian alokasi nota dari modal
+        let shops = [];
         document.querySelectorAll('.sub-row').forEach(row => {
             let name = row.querySelector('.bf-shop-name').value.trim();
             let cost = parseCleanNumber(row.querySelector('.bf-shop-cost').value);
             if (name && cost > 0) {
-                allocatedShops.push({ name, cost });
+                shops.push({ name, cost });
             }
         });
 
-        let newRecords = [];
-        rows.forEach(row => {
-            let rawDate = row.querySelector('.bm-date').value;
-            let receiver = row.querySelector('.bm-receiver').value.trim();
-            let nominal = parseCleanNumber(row.querySelector('.bm-nominal').value);
-            let desc = row.querySelector('.bm-desc').value.trim();
+        let totalNota = shops.reduce((sum, s) => sum + s.cost, 0);
+        let selisih = tempBulkAccumulatedData.totalSum - totalNota;
+        
+        let statusRekap = 'Belum Direkap';
+        if (shops.length > 0) {
+            statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+        }
 
-            let formattedDate = rawDate;
-            let p = rawDate.split('-');
-            formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
-            let dateWithTime = `${formattedDate} ${timeNow}`;
+        let materialData = {
+            receiver: tempBulkAccumulatedData.receivers,
+            shops,
+            statusRekap
+        };
 
-            // Distribusikan atau gabungkan alokasi rekap ke item massal
-            // Jika ada alokasi bebas, kita lampirkan seluruh/sebagian rincian atau buat status rekap akumulatif
-            let shops = [...allocatedShops]; 
-            let totalAllocated = shops.reduce((sum, s) => sum + s.cost, 0);
-            let selisih = nominal - totalAllocated;
-            
-            let statusRekap = 'Belum Direkap';
-            if (shops.length > 0) {
-                statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
-            }
+        let newRecord = {
+            id: Date.now(),
+            date: dateWithTime,
+            rawDate: now.toISOString().split('T')[0],
+            category: 'Material',
+            method: tempBulkAccumulatedData.method,
+            nominal: tempBulkAccumulatedData.totalSum,
+            sisaSetoran: 0,
+            desc: `Akumulasi Pemberian Dana Material (${tempBulkAccumulatedData.receivers})`,
+            materialData,
+            createdBy: currentUser
+        };
 
-            let materialData = {
-                receiver,
-                shops,
-                statusRekap
-            };
-
-            newRecords.push({
-                id: Date.now() + Math.random(),
-                date: dateWithTime,
-                rawDate: rawDate,
-                category: 'Material',
-                method,
-                nominal,
-                sisaSetoran: 0,
-                desc,
-                materialData,
-                createdBy: currentUser
-            });
-        });
-
-        newRecords.forEach(rec => allExpenses.push(rec));
+        allExpenses.push(newRecord);
         db.ref('operational_expenses').set(allExpenses).then(() => {
-            alert(`Berhasil! ${newRecords.length} data material massal dan rekapitulasi selisihnya berhasil tersimpan.`);
+            alert('Akumulasi pemberian dana material dan rekap selisih nota berhasil disimpan!');
             document.getElementById('bulkRekapSetupModal').style.display = 'none';
             
             // Reset form massal
@@ -1148,7 +1155,7 @@
                 detailHtml = `<div class="vertical-details">
                     👤 <b>Penerima:</b> ${m.receiver || '-'}<br>
                     📌 <b>Status:</b> <span style="color: #2e7d32; font-weight: bold;">${m.statusRekap || 'Belum Direkap'}</span><br>
-                    🏗️ <b>Alokasi Lokasi Bangunan:</b><br>`;
+                    🏗️️ <b>Alokasi Lokasi Bangunan:</b><br>`;
                 if (m.shops && m.shops.length > 0) {
                     m.shops.forEach(s => {
                         detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`;
