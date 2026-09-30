@@ -62,7 +62,7 @@
         .login-card { max-width: 380px; margin: 80px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
         
         .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 500px; text-align: left; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 550px; text-align: left; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -158,14 +158,14 @@
 
                 <!-- FORM INPUT MASSAL KHUSUS MATERIAL -->
                 <div id="bulkMaterialSection" class="bulk-material-box">
-                    <h4 style="margin-top: 0; color: #00796b;">📦 Input Pemasukan/Penyerahan Dana Material Secara Massal</h4>
-                    <p style="font-size: 0.8rem; color: #555; margin-bottom: 10px;">Masukkan beberapa riwayat penyerahan dana material sekaligus. Setiap baris akan tersimpan sebagai riwayat terpisah dan dapat direkap nota materialnya seperti biasa.</p>
+                    <h4 style="margin-top: 0; color: #00796b;">📦 Input Penyerahan Dana Material Secara Massal</h4>
+                    <p style="font-size: 0.8rem; color: #555; margin-bottom: 10px;">Masukkan beberapa riwayat penyerahan dana material sekaligus. Anda juga bisa langsung merekap nota massal secara serentak di akhir pengisian.</p>
                     
                     <div style="display: flex; font-size: 0.75rem; color: #444; font-weight: bold; margin-bottom: 4px; gap: 8px;">
                         <span style="flex: 1.2;">Tanggal</span>
-                        <span style="flex: 1.5;">Nama Penerima</span>
-                        <span style="flex: 1.2;">Nominal (Rp)</span>
-                        <span style="flex: 2;">Keterangan / Keperluan</span>
+                        <span style="flex: 1.4;">Nama Penerima</span>
+                        <span style="flex: 1.1;">Nominal (Rp)</span>
+                        <span style="flex: 1.8;">Keterangan</span>
                         <span style="width: 35px;"></span>
                     </div>
 
@@ -181,12 +181,17 @@
 
                     <button type="button" class="btn-add-row" onclick="addBulkMaterialRow()" style="background:#00796b; margin-top: 8px;">+ Tambah Baris Material Lain</button>
                     
-                    <div class="form-group" style="margin-top: 15px; max-width: 250px;">
-                        <label>Metode Transaksi Massal:</label>
-                        <select id="bulkMaterialMethod">
-                            <option value="Tunai">Tunai</option>
-                            <option value="Transfer">Transfer</option>
-                        </select>
+                    <div style="display: flex; gap: 15px; margin-top: 15px;">
+                        <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                            <label>Metode Transaksi Massal:</label>
+                            <select id="bulkMaterialMethod">
+                                <option value="Tunai">Tunai</option>
+                                <option value="Transfer">Transfer</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1; margin-bottom: 0; display: flex; align-items: flex-end;">
+                            <button type="button" class="btn-primary" onclick="openBulkRekapSetupModal()" style="background: #00796b;">🧾 Lanjut Rekap Massal Nota & Simpan</button>
+                        </div>
                     </div>
                 </div>
 
@@ -438,6 +443,21 @@
     </div>
 </div>
 
+<!-- MODAL REKAP MASSAL KHUSUS INPUT MASSAL -->
+<div class="modal" id="bulkRekapSetupModal">
+    <div class="modal-content" style="width: 600px;">
+        <h3 style="color: #00796b;">🧾 Atur Alokasi Rekap Nota Massal Material</h3>
+        <p style="font-size: 0.85rem; color: #555; margin-bottom: 15px;">Tentukan alokasi lokasi bangunan untuk masing-masing item material yang diinput massal di bawah ini:</p>
+        
+        <div id="bulkRekapItemsContainer" style="max-height: 60vh; overflow-y: auto; padding-right: 5px;"></div>
+
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn-primary" onclick="confirmAndSaveBulkWithRekap()" style="background:#00796b;">Simpan Semua Data & Rekap</button>
+            <button class="btn-danger" onclick="document.getElementById('bulkRekapSetupModal').style.display='none'" style="width: 120px;">Batal</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyCVJcVrRg4w9xY__bvf_4Lfk0ENQ5X5F8E",
@@ -482,7 +502,6 @@
             
             document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
             
-            // Set tanggal default pada baris pertama form massal material
             let firstBmDate = document.querySelector('.bm-date');
             if(firstBmDate) firstBmDate.value = new Date().toISOString().split('T')[0];
 
@@ -522,6 +541,7 @@
     function toggleCategoryDetail() {
         let cat = document.getElementById('expenseCategory').value;
         let modeToggleBox = document.getElementById('materialModeToggleBox');
+        let submitBtn = document.getElementById('submitExpenseBtn');
         
         if (cat === 'Material') {
             modeToggleBox.style.display = 'block';
@@ -531,6 +551,7 @@
             document.getElementById('materialDetailBox').style.display = (cat === 'Material') ? 'block' : 'none';
             document.getElementById('singleFormSection').style.display = 'block';
             document.getElementById('bulkMaterialSection').style.display = 'none';
+            submitBtn.style.display = 'block';
         }
     }
 
@@ -541,6 +562,7 @@
         let singleSec = document.getElementById('singleFormSection');
         let bulkSec = document.getElementById('bulkMaterialSection');
         let detailBox = document.getElementById('materialDetailBox');
+        let submitBtn = document.getElementById('submitExpenseBtn');
 
         if (mode === 'single') {
             btnSingle.classList.add('active');
@@ -548,12 +570,14 @@
             singleSec.style.display = 'block';
             bulkSec.style.display = 'none';
             detailBox.style.display = 'block';
+            submitBtn.style.display = 'block';
         } else {
             btnBulk.classList.add('active');
             btnSingle.classList.remove('active');
             singleSec.style.display = 'none';
             bulkSec.style.display = 'block';
             detailBox.style.display = 'none';
+            submitBtn.style.display = 'none'; // Sembunyikan tombol simpan utama, gunakan tombol rekap massal khusus
         }
     }
 
@@ -608,78 +632,133 @@
         });
     }
 
+    function openBulkRekapSetupModal() {
+        let rows = document.querySelectorAll('.bulk-material-row');
+        let container = document.getElementById('bulkRekapItemsContainer');
+        container.innerHTML = '';
+        
+        let isValid = true;
+        let tempData = [];
+
+        rows.forEach((row, idx) => {
+            let rawDate = row.querySelector('.bm-date').value;
+            let receiver = row.querySelector('.bm-receiver').value.trim();
+            let nominal = parseCleanNumber(row.querySelector('.bm-nominal').value);
+            let desc = row.querySelector('.bm-desc').value.trim();
+
+            if (!rawDate || !receiver || nominal <= 0 || !desc) {
+                isValid = false;
+                return;
+            }
+
+            tempData.push({ rawDate, receiver, nominal, desc, index: idx });
+        });
+
+        if (!isValid || tempData.length === 0) {
+            alert('Mohon lengkapi seluruh kolom pada setiap baris input massal material dengan benar sebelum lanjut rekap!');
+            return;
+        }
+
+        tempData.forEach((item, idx) => {
+            let locOptions = `<option value="">Pilih Lokasi Bangunan</option>`;
+            locations.forEach(loc => {
+                locOptions += `<option value="${loc}">${loc}</option>`;
+            });
+
+            let div = document.createElement('div');
+            div.className = 'bulk-rekap-item-box';
+            div.style.cssText = "background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 6px; margin-bottom: 10px;";
+            div.innerHTML = `
+                <div style="font-weight: bold; color: #00796b; margin-bottom: 5px;">Baris #${idx+1} - ${item.receiver} (${formatRp(item.nominal)})</div>
+                <div style="font-size: 0.8rem; color: #666; margin-bottom: 8px;">Ket: ${item.desc} | Tgl: ${item.rawDate}</div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <select class="br-location" style="flex: 2;">${locOptions}</select>
+                    <input type="text" class="br-cost" inputmode="numeric" value="${formatNumber(item.nominal)}" placeholder="Nominal Alokasi" style="flex: 1.5;" oninput="formatInputNumber(this)">
+                </div>
+            `;
+            container.appendChild(div);
+        });
+
+        document.getElementById('bulkRekapSetupModal').style.display = 'flex';
+    }
+
+    function confirmAndSaveBulkWithRekap() {
+        let rows = document.querySelectorAll('.bulk-material-row');
+        let rekapItems = document.querySelectorAll('.bulk-rekap-item-box');
+        let newRecords = [];
+        let method = document.getElementById('bulkMaterialMethod').value;
+        let now = new Date();
+        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+        rows.forEach((row, idx) => {
+            let rawDate = row.querySelector('.bm-date').value;
+            let receiver = row.querySelector('.bm-receiver').value.trim();
+            let nominal = parseCleanNumber(row.querySelector('.bm-nominal').value);
+            let desc = row.querySelector('.bm-desc').value.trim();
+
+            let rekapBox = rekapItems[idx];
+            let shopName = rekapBox.querySelector('.br-location').value.trim();
+            let shopCost = parseCleanNumber(rekapBox.querySelector('.br-cost').value);
+
+            let formattedDate = rawDate;
+            let p = rawDate.split('-');
+            formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
+            let dateWithTime = `${formattedDate} ${timeNow}`;
+
+            let shops = [];
+            if (shopName && shopCost > 0) {
+                shops.push({ name: shopName, cost: shopCost });
+            }
+
+            let selisih = nominal - shopCost;
+            let statusRekap = 'Belum Direkap';
+            if (shops.length > 0) {
+                statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+            }
+
+            let materialData = {
+                receiver,
+                shops,
+                statusRekap
+            };
+
+            newRecords.push({
+                id: Date.now() + Math.random(),
+                date: dateWithTime,
+                rawDate: rawDate,
+                category: 'Material',
+                method,
+                nominal,
+                sisaSetoran: 0,
+                desc,
+                materialData,
+                createdBy: currentUser
+            });
+        });
+
+        newRecords.forEach(rec => allExpenses.push(rec));
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert(`Berhasil! ${newRecords.length} data material dan rekapitulasinya berhasil tersimpan serentak.`);
+            document.getElementById('bulkRekapSetupModal').style.display = 'none';
+            // Reset form massal
+            document.getElementById('bulkMaterialRowsContainer').innerHTML = `
+                <div class="bulk-material-row">
+                    <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}" required>
+                    <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
+                    <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
+                    <input type="text" class="bm-desc" placeholder="Keterangan" required>
+                    <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
+                </div>
+            `;
+        });
+    }
+
     function saveExpense(e) {
         e.preventDefault();
         let cat = document.getElementById('expenseCategory').value;
         let now = new Date();
         let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-        // JIKA MODE MASSAL MATERIAL AKTIF
-        if (cat === 'Material' && currentMaterialMode === 'bulk') {
-            let rows = document.querySelectorAll('.bulk-material-row');
-            let newRecords = [];
-            let method = document.getElementById('bulkMaterialMethod').value;
-            let isValid = true;
-
-            rows.forEach(row => {
-                let rawDate = row.querySelector('.bm-date').value;
-                let receiver = row.querySelector('.bm-receiver').value.trim();
-                let nominal = parseCleanNumber(row.querySelector('.bm-nominal').value);
-                let desc = row.querySelector('.bm-desc').value.trim();
-
-                if (!rawDate || !receiver || nominal <= 0 || !desc) {
-                    isValid = false;
-                    return;
-                }
-
-                let formattedDate = rawDate;
-                let p = rawDate.split('-');
-                formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
-                let dateWithTime = `${formattedDate} ${timeNow}`;
-
-                let materialData = {
-                    receiver,
-                    shops: [],
-                    statusRekap: 'Belum Direkap'
-                };
-
-                newRecords.push({
-                    id: Date.now() + Math.random(),
-                    date: dateWithTime,
-                    rawDate: rawDate,
-                    category: 'Material',
-                    method,
-                    nominal,
-                    sisaSetoran: 0,
-                    desc,
-                    materialData,
-                    createdBy: currentUser
-                });
-            });
-
-            if (!isValid || newRecords.length === 0) {
-                alert('Mohon lengkapi seluruh kolom pada setiap baris input massal material dengan benar!');
-                return;
-            }
-
-            newRecords.forEach(rec => allExpenses.push(rec));
-            db.ref('operational_expenses').set(allExpenses).then(() => {
-                alert(`Berhasil! ${newRecords.length} catatan penyerahan dana material berhasil disimpan secara massal.`);
-                // Reset form massal
-                document.getElementById('bulkMaterialRowsContainer').innerHTML = `
-                    <div class="bulk-material-row">
-                        <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}" required>
-                        <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
-                        <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
-                        <input type="text" class="bm-desc" placeholder="Keterangan" required>
-                        <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
-                    </div>
-                `;
-            });
-            return;
-        }
-
-        // PENGELUARAN STANDAR / SATUAN
         let rawDate = document.getElementById('expenseDate').value;
         let method = document.getElementById('expenseMethod').value;
         let nominal = parseCleanNumber(document.getElementById('expenseNominal').value);
