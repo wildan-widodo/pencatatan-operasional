@@ -497,7 +497,7 @@
     let currentUser = "";
     let currentMaterialMode = "single";
 
-    let tempBulkAccumulatedData = null; // Menyimpan data sementara untuk akumulasi massal
+    let tempBulkAccumulatedData = null;
 
     const pinUserMap = {
         '123123': 'Mbak Ika',
@@ -656,7 +656,7 @@
         let isValid = true;
         let totalBulkSum = 0;
         let receiversSet = new Set();
-        let detailEntries = [];
+        let detailHtmlLines = [];
 
         rows.forEach(row => {
             let rawDate = row.querySelector('.bm-date').value;
@@ -671,10 +671,10 @@
             totalBulkSum += nominal;
             receiversSet.add(receiver);
 
-            // Format tanggal dari YYYY-MM-DD ke DD/MM/YYYY
             let p = rawDate.split('-');
             let formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
-            detailEntries.push(`${formattedDate}: ${formatRp(nominal)} (${desc})`);
+            // Format rincian vertikal menggunakan tag <br>
+            detailHtmlLines.append ? detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`) : detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`);
         });
 
         if (!isValid) {
@@ -686,7 +686,7 @@
             totalSum: totalBulkSum,
             receivers: Array.from(receiversSet).join(', '),
             method: document.getElementById('bulkMaterialMethod').value,
-            breakdownText: detailEntries.join(' | ')
+            breakdownHtml: detailHtmlLines.join('<br>')
         };
 
         document.getElementById('bulkTotalDanaSummary').innerText = formatRp(totalBulkSum);
@@ -771,6 +771,8 @@
             statusRekap
         };
 
+        let finalDescString = `Akumulasi Pemberian (${tempBulkAccumulatedData.receivers})<br><b style="color:#00796b;">Rincian Tanggal:</b><br>${tempBulkAccumulatedData.breakdownHtml}`;
+
         let newRecord = {
             id: Date.now(),
             date: dateWithTime,
@@ -779,17 +781,17 @@
             method: tempBulkAccumulatedData.method,
             nominal: tempBulkAccumulatedData.totalSum,
             sisaSetoran: 0,
-            desc: `Akumulasi Pemberian (${tempBulkAccumulatedData.receivers}) [Rincian Tgl: ${tempBulkAccumulatedData.breakdownText}]`,
+            desc: finalDescString,
+            isHtmlDesc: true, // Penanda bahwa keterangan menggunakan HTML vertikal
             materialData,
             createdBy: currentUser
         };
 
         allExpenses.push(newRecord);
         db.ref('operational_expenses').set(allExpenses).then(() => {
-            alert('Akumulasi pemberian dana material dan rekap selisih nota berhasil disimpan dalam 1 riwayat!');
+            alert('Akumulasi pemberian dana material dan rekap selisih nota berhasil disimpan!');
             document.getElementById('bulkRekapSetupModal').style.display = 'none';
             
-            // Reset form massal
             document.getElementById('bulkMaterialRowsContainer').innerHTML = `
                 <div class="bulk-material-row">
                     <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}" required>
@@ -840,6 +842,7 @@
             nominal,
             sisaSetoran: 0,
             desc,
+            isHtmlDesc: false,
             materialData,
             createdBy: currentUser
         };
@@ -864,7 +867,7 @@
         document.getElementById('editCategory').value = rec.category;
         document.getElementById('editMethod').value = rec.method;
         document.getElementById('editNominal').value = formatNumber(rec.nominal);
-        document.getElementById('editDesc').value = rec.desc;
+        document.getElementById('editDesc').value = rec.isHtmlDesc ? rec.desc.replace(/<br>/g, '\n') : rec.desc;
         document.getElementById('editReason').value = '';
 
         document.getElementById('editModal').style.display = 'flex';
@@ -911,7 +914,7 @@
             time: timeLog,
             user: currentUser,
             action: 'EDIT',
-            details: `Kategori: ${oldRec.category} ➔ ${newCat} | Nominal: ${formatRp(oldRec.nominal)} ➔ ${formatRp(newNom)} | Ket: ${oldRec.desc} ➔ ${newDesc}`,
+            details: `Kategori: ${oldRec.category} ➔ ${newCat} | Nominal: ${formatRp(oldRec.nominal)} ➔ ${formatRp(newNom)}`,
             reason: reason
         };
 
@@ -930,7 +933,7 @@
         if (!rec) return;
 
         document.getElementById('sisaRecordId').value = rec.id;
-        document.getElementById('modalSisaDescText').innerText = rec.desc;
+        document.getElementById('modalSisaDescText').innerHTML = rec.desc;
         document.getElementById('modalSisaBrutoText').innerText = formatRp(rec.nominal);
         document.getElementById('sisaAmountInput').value = rec.sisaSetoran ? formatNumber(rec.sisaSetoran) : '';
 
@@ -990,7 +993,7 @@
             time: timeLog,
             user: currentUser,
             action: 'HAPUS',
-            details: `Hapus [${targetRec.category}] - ${targetRec.desc} (${formatRp(targetRec.nominal)})`,
+            details: `Hapus [${targetRec.category}] (${formatRp(targetRec.nominal)})`,
             reason: reason
         };
 
@@ -1169,6 +1172,7 @@
 
             let sisaSetoran = i.sisaSetoran || 0;
             let netNominal = i.nominal - sisaSetoran;
+            let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4; min-width: 220px;">${i.desc}</div>` : i.desc;
 
             tbody.innerHTML += `<tr>
                 <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
@@ -1178,7 +1182,7 @@
                 <td style="color: #555;">${formatRp(i.nominal)}</td>
                 <td style="color: #e65100; font-weight: bold;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</td>
                 <td style="color: #c62828; font-weight: bold;">${formatRp(netNominal)}</td>
-                <td>${i.desc}</td>
+                <td>${descDisplay}</td>
                 <td>${detailHtml}</td>
             </tr>`;
         });
