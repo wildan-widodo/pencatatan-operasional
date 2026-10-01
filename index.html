@@ -398,7 +398,7 @@
         <input type="hidden" id="deleteRecordId">
         <div class="form-group" style="background: #ffebee; padding: 10px; border-radius: 4px;">
             <label style="color: #c62828;">⚠️ Alasan Penghapusan Data:</label>
-            <input type="text" id="deleteReason" placeholder="Contoh: Data tidak akurat/sampah" style="background: #fff;">
+            <input type="text" id="deleteReason" placeholder="Contoh: Data tidak akurat" style="background: #fff;">
         </div>
         <div style="display: flex; gap: 10px;">
             <button class="btn-danger" onclick="submitDeleteExpense()">Hapus Permanen</button>
@@ -446,7 +446,10 @@
         measurementId: "G-X3Z7GVB39Z"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    // Inisialisasi Firebase aman
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
     const db = firebase.database();
 
     let allExpenses = [];
@@ -461,7 +464,10 @@
     const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
     function handleLogin() {
-        let pin = document.getElementById('loginPinInput').value.trim();
+        let pinInput = document.getElementById('loginPinInput');
+        if (!pinInput) return;
+        let pin = pinInput.value.trim();
+
         if (pinUserMap.hasOwnProperty(pin)) {
             currentUser = pinUserMap[pin];
             document.getElementById('loginCard').style.display = 'none';
@@ -469,11 +475,12 @@
             document.getElementById('userStatusBanner').innerText = `👤 Mengakses sebagai: ${currentUser}`;
             document.getElementById('auditTabBtn').style.display = (currentUser === 'Owner') ? 'inline-block' : 'none';
             document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            
             loadDataFromFirebase();
             toggleCategoryDetail();
         } else {
             document.getElementById('loginError').innerText = 'PIN Akses Salah!';
-            document.getElementById('loginPinInput').value = '';
+            pinInput.value = '';
         }
     }
 
@@ -481,7 +488,8 @@
         currentUser = "";
         document.getElementById('loginCard').style.display = 'block';
         document.getElementById('appContainer').style.display = 'none';
-        document.getElementById('loginPinInput').value = '';
+        let pinInput = document.getElementById('loginPinInput');
+        if (pinInput) pinInput.value = '';
     }
 
     function switchTab(tabId) {
@@ -489,7 +497,7 @@
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
-        event.currentTarget.classList.add('active');
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
     }
 
     function formatNumber(num) { return isNaN(num) ? '' : new Intl.NumberFormat('id-ID').format(num); }
@@ -498,29 +506,43 @@
     function formatInputNumber(el) { el.value = parseCleanNumber(el.value) > 0 ? formatNumber(parseCleanNumber(el.value)) : ''; }
 
     function toggleCategoryDetail() {
-        let cat = document.getElementById('expenseCategory').value;
+        let catEl = document.getElementById('expenseCategory');
+        if (!catEl) return;
+        let cat = catEl.value;
         document.getElementById('materialModeToggleBox').style.display = (cat === 'Material') ? 'block' : 'none';
         if (cat === 'Material') setMaterialMode(currentMaterialMode);
         else {
-            document.getElementById('materialDetailBox').style.display = 'none';
-            document.getElementById('singleFormSection').style.display = 'block';
-            document.getElementById('bulkMaterialSection').style.display = 'none';
-            document.getElementById('submitExpenseBtn').style.display = 'block';
+            let detailBox = document.getElementById('materialDetailBox');
+            let singleSec = document.getElementById('singleFormSection');
+            let bulkSec = document.getElementById('bulkMaterialSection');
+            let subBtn = document.getElementById('submitExpenseBtn');
+            if(detailBox) detailBox.style.display = 'none';
+            if(singleSec) singleSec.style.display = 'block';
+            if(bulkSec) bulkSec.style.display = 'none';
+            if(subBtn) subBtn.style.display = 'block';
         }
     }
 
     function setMaterialMode(mode) {
         currentMaterialMode = mode;
-        document.getElementById('btnSingleMode').className = mode === 'single' ? 'mode-btn active' : 'mode-btn';
-        document.getElementById('btnBulkMode').className = mode === 'bulk' ? 'mode-btn active' : 'mode-btn';
-        document.getElementById('singleFormSection').style.display = mode === 'single' ? 'block' : 'none';
-        document.getElementById('bulkMaterialSection').style.display = mode === 'bulk' ? 'block' : 'none';
-        document.getElementById('materialDetailBox').style.display = mode === 'single' ? 'block' : 'none';
-        document.getElementById('submitExpenseBtn').style.display = mode === 'single' ? 'block' : 'none';
+        let btnSingle = document.getElementById('btnSingleMode');
+        let btnBulk = document.getElementById('btnBulkMode');
+        let singleSec = document.getElementById('singleFormSection');
+        let bulkSec = document.getElementById('bulkMaterialSection');
+        let detailBox = document.getElementById('materialDetailBox');
+        let subBtn = document.getElementById('submitExpenseBtn');
+
+        if(btnSingle) btnSingle.className = mode === 'single' ? 'mode-btn active' : 'mode-btn';
+        if(btnBulk) btnBulk.className = mode === 'bulk' ? 'mode-btn active' : 'mode-btn';
+        if(singleSec) singleSec.style.display = mode === 'single' ? 'block' : 'none';
+        if(bulkSec) bulkSec.style.display = mode === 'bulk' ? 'block' : 'none';
+        if(detailBox) detailBox.style.display = mode === 'single' ? 'block' : 'none';
+        if(subBtn) subBtn.style.display = mode === 'single' ? 'block' : 'none';
     }
 
     function addBulkMaterialRow() {
         let container = document.getElementById('bulkMaterialRowsContainer');
+        if (!container) return;
         let div = document.createElement('div');
         div.className = 'bulk-material-row';
         div.innerHTML = `
@@ -538,7 +560,6 @@
         db.ref('operational_audit_logs').on('value', snap => { auditLogs = snap.val() || []; renderAuditLogs(); });
         db.ref('operational_locations').on('value', snap => { locations = snap.val() || ['Proyek Utama']; renderLocations(); });
         
-        // Mengabaikan data store_closings yang kotor atau belum valid di bulan berjalan agar bersih / Rp 0
         db.ref('store_closings').on('value', snap => {
             storeClosingsData = snap.val() || [];
             calculateSummary();
@@ -654,6 +675,7 @@
 
     function renderExpenses() {
         let tbody = document.getElementById('expenseTableBody');
+        if(!tbody) return;
         tbody.innerHTML = allExpenses.length === 0 ? `<tr><td colspan="9" style="text-align: center;">Tidak ada data.</td></tr>` : '';
         allExpenses.forEach(i => {
             tbody.innerHTML += `<tr>
@@ -667,6 +689,7 @@
 
     function renderAuditLogs() {
         let tbody = document.getElementById('auditTableBody');
+        if(!tbody) return;
         tbody.innerHTML = '';
         auditLogs.forEach(l => {
             tbody.innerHTML += `<tr><td>${l.time}</td><td><b>${l.user}</b></td><td>${l.action}</td><td>${l.details}</td><td><b>${l.reason}</b></td></tr>`;
@@ -675,6 +698,7 @@
 
     function renderLocations() {
         let tbody = document.getElementById('locationTableBody');
+        if(!tbody) return;
         tbody.innerHTML = '';
         locations.forEach((l, idx) => {
             tbody.innerHTML += `<tr><td><b>${l}</b></td><td style="text-align:center;"><button class="btn-danger" onclick="locations.splice(${idx},1); db.ref('operational_locations').set(locations);">Hapus</button></td></tr>`;
@@ -689,72 +713,71 @@
     }
 
     function calculateSummary() {
-    let selectedMonth = parseInt(document.getElementById('filterMonth').value);
-    let selectedYear = parseInt(document.getElementById('filterYear').value);
+        let monthEl = document.getElementById('filterMonth');
+        let yearEl = document.getElementById('filterYear');
+        if (!monthEl || !yearEl) return;
 
-    let mName = monthNames[selectedMonth];
-    document.getElementById('labelStoreIncomeTitle').innerText = `TOTAL PEMASUKAN TOKO (${mName} ${selectedYear})`;
-    document.getElementById('labelExpenseTitle').innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
-    document.getElementById('labelNetTitle').innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
+        let selectedMonth = parseInt(monthEl.value);
+        let selectedYear = parseInt(yearEl.value);
 
-    // LOGIKA PENJUMPAHAN DISAMAKAN DENGAN APLIKASI PUSAT (4-5 Komponen Pemasukan)
-    let totalStoreIncome = 0;
-    
-    if (Array.isArray(storeClosingsData) || typeof storeClosingsData === 'object') {
-        // Jika data berupa objek / array dari firebase
-        let closingsArray = Array.isArray(storeClosingsData) ? storeClosingsData : Object.values(storeClosingsData);
-
-        closingsArray.forEach(item => {
-            if (!item) return;
-            let matchMonthYear = false;
-
-            // Validasi tanggal persis seperti aplikasi pusat
-            if (item.rawDate) {
-                let parts = item.rawDate.split('-');
-                if (parts.length === 3 && parseInt(parts[0]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
-                    matchMonthYear = true;
+        let totalStoreIncome = 0;
+        if (storeClosingsData) {
+            let closingsArray = Array.isArray(storeClosingsData) ? storeClosingsData : Object.values(storeClosingsData);
+            closingsArray.forEach(item => {
+                if (!item) return;
+                let matchMonthYear = false;
+                if (item.rawDate) {
+                    let parts = item.rawDate.split('-');
+                    if (parts.length === 3 && parseInt(parts[0]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
+                        matchMonthYear = true;
+                    }
+                } else if (item.date) {
+                    let d = new Date(item.date);
+                    if (!isNaN(d) && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+                        matchMonthYear = true;
+                    }
                 }
-            } else if (item.date) {
-                let d = new Date(item.date);
-                if (!isNaN(d) && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
-                    matchMonthYear = true;
-                }
-            }
 
-            if (matchMonthYear) {
-                // Menjumlahkan 4-5 kategori pemasukan dari aplikasi pusat: qris, debit, parkir, permen, fisik/cash
-                let debit = parseFloat(item.debit || item.debitAmount || 0);
-                let qris = parseFloat(item.qris || item.qrisAmount || 0);
-                let physicalCash = parseFloat(item.physicalCash || item.cashAmount || 0);
-                let permen = parseFloat(item.permen || item.permenAmount || 0);
-                let parkir = parseFloat(item.parkir || item.parkirAmount || 0);
-                
-                totalStoreIncome += (debit + qris + physicalCash + permen + parkir);
+                if (matchMonthYear) {
+                    let debit = parseFloat(item.debit || item.debitAmount || 0);
+                    let qris = parseFloat(item.qris || item.qrisAmount || 0);
+                    let physicalCash = parseFloat(item.physicalCash || item.cashAmount || 0);
+                    let permen = parseFloat(item.permen || item.permenAmount || 0);
+                    let parkir = parseFloat(item.parkir || item.parkirAmount || 0);
+                    totalStoreIncome += (debit + qris + physicalCash + permen + parkir);
+                }
+            });
+        }
+
+        let totalExpense = 0;
+        allExpenses.forEach(i => {
+            let inMonth = false;
+            if (i.rawDate) {
+                let p = i.rawDate.split('-');
+                if (p.length === 3 && parseInt(p[0]) === selectedYear && (parseInt(p[1]) - 1) === selectedMonth) inMonth = true;
             }
+            if (inMonth) totalExpense += (i.nominal - (i.sisaSetoran || 0));
         });
+
+        let net = totalStoreIncome - totalExpense;
+        let incTitle = document.getElementById('labelStoreIncomeTitle');
+        let expTitle = document.getElementById('labelExpenseTitle');
+        let netTitle = document.getElementById('labelNetTitle');
+        let sumInc = document.getElementById('summaryStoreIncome');
+        let sumExp = document.getElementById('summaryExpense');
+        let sumNet = document.getElementById('summaryNet');
+
+        let mName = monthNames[selectedMonth];
+        if(incTitle) incTitle.innerText = `TOTAL PEMASUKAN TOKO (${mName} ${selectedYear})`;
+        if(expTitle) expTitle.innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
+        if(netTitle) netTitle.innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
+        if(sumInc) sumInc.innerText = formatRp(totalStoreIncome);
+        if(sumExp) sumExp.innerText = formatRp(totalExpense);
+        if(sumNet) {
+            sumNet.innerText = formatRp(net);
+            sumNet.style.color = net >= 0 ? '#2e7d32' : '#c62828';
+        }
     }
-
-    let totalExpense = 0;
-    allExpenses.forEach(i => {
-        let inMonth = false;
-        if (i.rawDate) {
-            let p = i.rawDate.split('-');
-            if (p.length === 3 && parseInt(p[0]) === selectedYear && (parseInt(p[1]) - 1) === selectedMonth) {
-                inMonth = true;
-            }
-        }
-        if (inMonth) {
-            totalExpense += (i.nominal - (i.sisaSetoran || 0));
-        }
-    });
-
-    let net = totalStoreIncome - totalExpense;
-    document.getElementById('summaryStoreIncome').innerText = formatRp(totalStoreIncome);
-    document.getElementById('summaryExpense').innerText = formatRp(totalExpense);
-    
-    let netEl = document.getElementById('summaryNet');
-    netEl.innerText = formatRp(net);
-    netEl.style.color = net >= 0 ? '#2e7d32' : '#c62828';
-}
+</script>
 </body>
 </html>
