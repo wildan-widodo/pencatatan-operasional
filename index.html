@@ -674,7 +674,6 @@
             renderLocations();
         });
 
-        // Sinkronisasi data store_closings persis seperti di aplikasi pusat
         db.ref('store_closings').on('value', snapshot => {
             storeClosingsData = snapshot.val() || [];
             calculateSummary();
@@ -1296,7 +1295,7 @@
         document.getElementById('labelExpenseTitle').innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
         document.getElementById('labelNetTitle').innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
 
-        // Perhitungan pemasukan toko disamakan persis dengan logika rekapitulasi aplikasi pusat
+        // Perhitungan pemasukan toko disaring ketat berdasarkan bulan & tahun yang dipilih tanpa fallback global
         let totalStoreIncome = 0;
         storeClosingsData.forEach(item => {
             let itemDate = item.date ? new Date(item.date) : null;
@@ -1311,9 +1310,6 @@
                 if (parts.length === 3 && parseInt(parts[0]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
                     matchMonthYear = true;
                 }
-            } else {
-                // Jika tidak ada metadata tanggal spesifik, fallback membaca seluruh data toko terpusat
-                matchMonthYear = true;
             }
 
             if (matchMonthYear) {
