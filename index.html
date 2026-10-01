@@ -1295,7 +1295,8 @@
         document.getElementById('labelExpenseTitle').innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
         document.getElementById('labelNetTitle').innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
 
-        // Perhitungan pemasukan toko disaring ketat berdasarkan bulan & tahun yang dipilih tanpa fallback global
+        // Perhitungan pemasukan toko disaring secara mutlak (Strict Validation):
+        // Hanya menjumlahkan data store_closings yang tanggalnya VALID dan benar-benar jatuh di bulan & tahun yang sedang dipilih.
         let totalStoreIncome = 0;
         storeClosingsData.forEach(item => {
             let itemDate = item.date ? new Date(item.date) : null;
@@ -1310,13 +1311,23 @@
                 if (parts.length === 3 && parseInt(parts[0]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
                     matchMonthYear = true;
                 }
+            } else if (item.timestamp) {
+                let d = new Date(item.timestamp);
+                if (!isNaN(d) && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+                    matchMonthYear = true;
+                }
             }
 
+            // Jika data tidak memiliki tanggal valid yang sesuai dengan bulan pilihan, abaikan (tidak dimasukkan ke total)
             if (matchMonthYear) {
-                let debit = item.debit || 0;
-                let qris = item.qris || 0;
-                let physicalCash = item.physicalCash || 0;
-                totalStoreIncome += (debit + qris + physicalCash);
+                let debit = item.debit || item.debitAmount || 0;
+                let qris = item.qris || item.qrisAmount || 0;
+                let physicalCash = item.physicalCash || item.cashAmount || 0;
+                let permen = item.permen || item.permenAmount || 0;
+                let parkir = item.parkir || item.parkirAmount || 0;
+                
+                // Menjumlahkan seluruh komponen kategori pemasukan toko (qris, debit, parkir, permen, fisik/cash)
+                totalStoreIncome += (debit + qris + physicalCash + permen + parkir);
             }
         });
 
