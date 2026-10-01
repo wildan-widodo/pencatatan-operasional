@@ -689,54 +689,72 @@
     }
 
     function calculateSummary() {
-        let selectedMonth = parseInt(document.getElementById('filterMonth').value);
-        let selectedYear = parseInt(document.getElementById('filterYear').value);
+    let selectedMonth = parseInt(document.getElementById('filterMonth').value);
+    let selectedYear = parseInt(document.getElementById('filterYear').value);
 
-        // KETAT: Hanya menghitung data tutup buku yang tanggalnya benar-benar valid dan cocok di bulan/tahun pilihan.
-        // Jika belum ada tutup buku valid di bulan Oktober 2026, total pemasukan otomatis bernilai 0.
-        let totalStoreIncome = 0;
-        
-        if (Array.isArray(storeClosingsData)) {
-            storeClosingsData.forEach(item => {
-                let matchMonthYear = false;
-                if (item.rawDate) {
-                    let parts = item.rawDate.split('-');
-                    if (parts.length === 3 && parseInt(parts[0]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
-                        matchMonthYear = true;
-                    }
-                } else if (item.date) {
-                    let d = new Date(item.date);
-                    if (!isNaN(d) && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
-                        matchMonthYear = true;
-                    }
+    let mName = monthNames[selectedMonth];
+    document.getElementById('labelStoreIncomeTitle').innerText = `TOTAL PEMASUKAN TOKO (${mName} ${selectedYear})`;
+    document.getElementById('labelExpenseTitle').innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
+    document.getElementById('labelNetTitle').innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
+
+    // LOGIKA PENJUMPAHAN DISAMAKAN DENGAN APLIKASI PUSAT (4-5 Komponen Pemasukan)
+    let totalStoreIncome = 0;
+    
+    if (Array.isArray(storeClosingsData) || typeof storeClosingsData === 'object') {
+        // Jika data berupa objek / array dari firebase
+        let closingsArray = Array.isArray(storeClosingsData) ? storeClosingsData : Object.values(storeClosingsData);
+
+        closingsArray.forEach(item => {
+            if (!item) return;
+            let matchMonthYear = false;
+
+            // Validasi tanggal persis seperti aplikasi pusat
+            if (item.rawDate) {
+                let parts = item.rawDate.split('-');
+                if (parts.length === 3 && parseInt(parts[0]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
+                    matchMonthYear = true;
                 }
-
-                if (matchMonthYear) {
-                    let debit = item.debit || 0;
-                    let qris = item.qris || 0;
-                    let physicalCash = item.physicalCash || 0;
-                    let permen = item.permen || 0;
-                    let parkir = item.parkir || 0;
-                    totalStoreIncome += (debit + qris + physicalCash + permen + parkir);
+            } else if (item.date) {
+                let d = new Date(item.date);
+                if (!isNaN(d) && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+                    matchMonthYear = true;
                 }
-            });
-        }
-
-        let totalExpense = 0;
-        allExpenses.forEach(i => {
-            let inMonth = false;
-            if (i.rawDate) {
-                let p = i.rawDate.split('-');
-                if (p.length === 3 && parseInt(p[0]) === selectedYear && (parseInt(p[1]) - 1) === selectedMonth) inMonth = true;
             }
-            if (inMonth) totalExpense += (i.nominal - (i.sisaSetoran || 0));
-        });
 
-        let net = totalStoreIncome - totalExpense;
-        document.getElementById('summaryStoreIncome').innerText = formatRp(totalStoreIncome);
-        document.getElementById('summaryExpense').innerText = formatRp(totalExpense);
-        document.getElementById('summaryNet').innerText = formatRp(net);
+            if (matchMonthYear) {
+                // Menjumlahkan 4-5 kategori pemasukan dari aplikasi pusat: qris, debit, parkir, permen, fisik/cash
+                let debit = parseFloat(item.debit || item.debitAmount || 0);
+                let qris = parseFloat(item.qris || item.qrisAmount || 0);
+                let physicalCash = parseFloat(item.physicalCash || item.cashAmount || 0);
+                let permen = parseFloat(item.permen || item.permenAmount || 0);
+                let parkir = parseFloat(item.parkir || item.parkirAmount || 0);
+                
+                totalStoreIncome += (debit + qris + physicalCash + permen + parkir);
+            }
+        });
     }
-</script>
+
+    let totalExpense = 0;
+    allExpenses.forEach(i => {
+        let inMonth = false;
+        if (i.rawDate) {
+            let p = i.rawDate.split('-');
+            if (p.length === 3 && parseInt(p[0]) === selectedYear && (parseInt(p[1]) - 1) === selectedMonth) {
+                inMonth = true;
+            }
+        }
+        if (inMonth) {
+            totalExpense += (i.nominal - (i.sisaSetoran || 0));
+        }
+    });
+
+    let net = totalStoreIncome - totalExpense;
+    document.getElementById('summaryStoreIncome').innerText = formatRp(totalStoreIncome);
+    document.getElementById('summaryExpense').innerText = formatRp(totalExpense);
+    
+    let netEl = document.getElementById('summaryNet');
+    netEl.innerText = formatRp(net);
+    netEl.style.color = net >= 0 ? '#2e7d32' : '#c62828';
+}
 </body>
 </html>
