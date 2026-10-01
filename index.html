@@ -42,8 +42,8 @@
         .summary-item h4 { margin: 0 0 5px 0; color: #333; font-size: 0.85rem; }
         .summary-item p { margin: 0; font-size: 1.2rem; font-weight: bold; color: #2e7d32; }
         
-        .filter-bar { display: flex; gap: 15px; margin-bottom: 15px; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; flex-wrap: wrap; }
-        .filter-item { flex: 1; min-width: 200px; margin-bottom: 0; }
+        .filter-bar { display: flex; gap: 15px; margin-bottom: 15px; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; flex-wrap: wrap; align-items: flex-end; }
+        .filter-item { flex: 1; min-width: 180px; margin-bottom: 0; }
 
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -201,18 +201,47 @@
 
     <!-- TAB 2: RIWAYAT & REKAP -->
     <div id="historyTab" class="tab-content">
-        <!-- BANNER REKAPITULASI -->
+        <!-- FILTER BULANAN & TAHUNAN UNTUK BANNER REKAP -->
+        <div class="filter-bar">
+            <div class="form-group filter-item">
+                <label>📅 Pilah Bulan Rekap:</label>
+                <select id="filterMonth" onchange="calculateSummary()">
+                    <option value="0">Januari</option>
+                    <option value="1">Februari</option>
+                    <option value="2">Maret</option>
+                    <option value="3">April</option>
+                    <option value="4">Mei</option>
+                    <option value="5">Juni</option>
+                    <option value="6">Juli</option>
+                    <option value="7">Agustus</option>
+                    <option value="8">September</option>
+                    <option value="9" selected>Oktober</option>
+                    <option value="10">November</option>
+                    <option value="11">Desember</option>
+                </select>
+            </div>
+            <div class="form-group filter-item">
+                <label>📅 Pilah Tahun Rekap:</label>
+                <select id="filterYear" onchange="calculateSummary()">
+                    <option value="2025">2025</option>
+                    <option value="2026" selected>2026</option>
+                    <option value="2027">2027</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- BANNER REKAPITULASI (BULANAN) -->
         <div class="summary-box">
             <div class="summary-item">
-                <h4>TOTAL PEMASUKAN TOKO</h4>
+                <h4 id="labelStoreIncomeTitle">TOTAL PEMASUKAN TOKO</h4>
                 <p id="summaryStoreIncome" style="color: #1565c0;">Rp 0</p>
             </div>
             <div class="summary-item">
-                <h4>TOTAL PENGELUARAN (BERSIH)</h4>
+                <h4 id="labelExpenseTitle">TOTAL PENGELUARAN (BERSIH)</h4>
                 <p id="summaryExpense" style="color: #c62828;">Rp 0</p>
             </div>
             <div class="summary-item">
-                <h4>SELISIH ARUS KAS (NET)</h4>
+                <h4 id="labelNetTitle">SELISIH ARUS KAS (NET)</h4>
                 <p id="summaryNet">Rp 0</p>
             </div>
         </div>
@@ -221,8 +250,8 @@
             <h3>Riwayat Pengeluaran</h3>
             
             <!-- FILTER PILAH KATEGORI & METODE -->
-            <div class="filter-bar">
-                <div class="form-group filter-item">
+            <div class="filter-bar" style="border:none; background:transparent; padding:0; margin-bottom:15px;">
+                <div class="form-group filter-item" style="min-width: 200px;">
                     <label>🔍 Pilah Kategori:</label>
                     <select id="filterCategory" onchange="renderExpenses()">
                         <option value="ALL">Semua Kategori</option>
@@ -232,15 +261,13 @@
                         <option value="Order Toko">Order Toko</option>
                     </select>
                 </div>
-                <div class="filter-bar filter-item" style="border:none; background:transparent; padding:0;">
-                    <div class="form-group" style="width:100%;">
-                        <label>🔍 Pilah Metode Transaksi:</label>
-                        <select id="filterMethod" onchange="renderExpenses()">
-                            <option value="ALL">Semua Metode</option>
-                            <option value="Tunai">Tunai</option>
-                            <option value="Transfer">Transfer</option>
-                        </select>
-                    </div>
+                <div class="form-group filter-item" style="min-width: 200px;">
+                    <label>🔍 Pilah Metode Transaksi:</label>
+                    <select id="filterMethod" onchange="renderExpenses()">
+                        <option value="ALL">Semua Metode</option>
+                        <option value="Tunai">Tunai</option>
+                        <option value="Transfer">Transfer</option>
+                    </select>
                 </div>
             </div>
 
@@ -504,6 +531,8 @@
         '945336': 'Owner'
     };
 
+    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
     function handleLogin() {
         let pin = document.getElementById('loginPinInput').value.trim();
         if (pinUserMap.hasOwnProperty(pin)) {
@@ -673,8 +702,7 @@
 
             let p = rawDate.split('-');
             let formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
-            // Format rincian vertikal menggunakan tag <br>
-            detailHtmlLines.append ? detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`) : detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`);
+            detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`);
         });
 
         if (!isValid) {
@@ -782,7 +810,7 @@
             nominal: tempBulkAccumulatedData.totalSum,
             sisaSetoran: 0,
             desc: finalDescString,
-            isHtmlDesc: true, // Penanda bahwa keterangan menggunakan HTML vertikal
+            isHtmlDesc: true,
             materialData,
             createdBy: currentUser
         };
@@ -1259,19 +1287,66 @@
     }
 
     function calculateSummary() {
+        let selectedMonth = parseInt(document.getElementById('filterMonth').value);
+        let selectedYear = parseInt(document.getElementById('filterYear').value);
+
+        let mName = monthNames[selectedMonth];
+        document.getElementById('labelStoreIncomeTitle').innerText = `TOTAL PEMASUKAN TOKO (${mName} ${selectedYear})`;
+        document.getElementById('labelExpenseTitle').innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
+        document.getElementById('labelNetTitle').innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
+
         let totalStoreIncome = 0;
         storeClosingsData.forEach(item => {
-            let debit = item.debit || 0;
-            let qris = item.qris || 0;
-            let physicalCash = item.physicalCash || 0;
-            totalStoreIncome += (debit + qris + physicalCash);
+            let itemDate = item.date ? new Date(item.date) : null;
+            if (itemDate && !isNaN(itemDate)) {
+                if (itemDate.getMonth() === selectedMonth && itemDate.getFullYear() === selectedYear) {
+                    let debit = item.debit || 0;
+                    let qris = item.qris || 0;
+                    let physicalCash = item.physicalCash || 0;
+                    totalStoreIncome += (debit + qris + physicalCash);
+                }
+            } else {
+                // Fallback jika format tanggal string bebas
+                let debit = item.debit || 0;
+                let qris = item.qris || 0;
+                let physicalCash = item.physicalCash || 0;
+                totalStoreIncome += (debit + qris + physicalCash);
+            }
         });
 
         let totalExpense = 0;
         allExpenses.forEach(item => {
-            let nominal = item.nominal || 0;
-            let sisa = item.sisaSetoran || 0;
-            totalExpense += (nominal - sisa);
+            let inMonth = false;
+            if (item.rawDate) {
+                let parts = item.rawDate.split('-'); // Format YYYY-MM-DD
+                if (parts.length === 3) {
+                    let y = parseInt(parts[0]);
+                    let m = parseInt(parts[1]) - 1;
+                    if (y === selectedYear && m === selectedMonth) {
+                        inMonth = true;
+                    }
+                }
+            } else if (item.date) {
+                // Cek dari string tanggal DD/MM/YYYY
+                if (item.date.includes('/')) {
+                    let datePart = item.date.split(' ')[0];
+                    let parts = datePart.split('/');
+                    if (parts.length === 3) {
+                        let d = parseInt(parts[0]);
+                        let m = parseInt(parts[1]) - 1;
+                        let y = parseInt(parts[2]);
+                        if (y === selectedYear && m === selectedMonth) {
+                            inMonth = true;
+                        }
+                    }
+                }
+            }
+
+            if (inMonth) {
+                let nominal = item.nominal || 0;
+                let sisa = item.sisaSetoran || 0;
+                totalExpense += (nominal - sisa);
+            }
         });
 
         let netBalance = totalStoreIncome - totalExpense;
