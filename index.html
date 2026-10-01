@@ -674,6 +674,7 @@
             renderLocations();
         });
 
+        // Sinkronisasi data store_closings persis seperti di aplikasi pusat
         db.ref('store_closings').on('value', snapshot => {
             storeClosingsData = snapshot.val() || [];
             calculateSummary();
@@ -1295,18 +1296,27 @@
         document.getElementById('labelExpenseTitle').innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
         document.getElementById('labelNetTitle').innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
 
+        // Perhitungan pemasukan toko disamakan persis dengan logika rekapitulasi aplikasi pusat
         let totalStoreIncome = 0;
         storeClosingsData.forEach(item => {
             let itemDate = item.date ? new Date(item.date) : null;
+            let matchMonthYear = false;
+
             if (itemDate && !isNaN(itemDate)) {
                 if (itemDate.getMonth() === selectedMonth && itemDate.getFullYear() === selectedYear) {
-                    let debit = item.debit || 0;
-                    let qris = item.qris || 0;
-                    let physicalCash = item.physicalCash || 0;
-                    totalStoreIncome += (debit + qris + physicalCash);
+                    matchMonthYear = true;
+                }
+            } else if (item.rawDate) {
+                let parts = item.rawDate.split('-');
+                if (parts.length === 3 && parseInt(parts[0]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
+                    matchMonthYear = true;
                 }
             } else {
-                // Fallback jika format tanggal string bebas
+                // Jika tidak ada metadata tanggal spesifik, fallback membaca seluruh data toko terpusat
+                matchMonthYear = true;
+            }
+
+            if (matchMonthYear) {
                 let debit = item.debit || 0;
                 let qris = item.qris || 0;
                 let physicalCash = item.physicalCash || 0;
@@ -1318,7 +1328,7 @@
         allExpenses.forEach(item => {
             let inMonth = false;
             if (item.rawDate) {
-                let parts = item.rawDate.split('-'); // Format YYYY-MM-DD
+                let parts = item.rawDate.split('-'); 
                 if (parts.length === 3) {
                     let y = parseInt(parts[0]);
                     let m = parseInt(parts[1]) - 1;
@@ -1327,12 +1337,10 @@
                     }
                 }
             } else if (item.date) {
-                // Cek dari string tanggal DD/MM/YYYY
                 if (item.date.includes('/')) {
                     let datePart = item.date.split(' ')[0];
                     let parts = datePart.split('/');
                     if (parts.length === 3) {
-                        let d = parseInt(parts[0]);
                         let m = parseInt(parts[1]) - 1;
                         let y = parseInt(parts[2]);
                         if (y === selectedYear && m === selectedMonth) {
