@@ -72,9 +72,9 @@
     <p style="font-size: 0.85rem; color: #666; margin-bottom: 20px;">Masukkan PIN Akses Anda</p>
     <div class="form-group">
         <label>PIN Akses</label>
-        <input type="password" id="loginPinInput" placeholder="••••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.3rem;" onkeydown="if(event.key==='Enter'){ handleLogin(); }">
+        <input type="password" id="loginPinInput" placeholder="••••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.3rem;">
     </div>
-    <button type="button" class="btn-primary" onclick="handleLogin()">Masuk</button>
+    <button type="button" class="btn-primary" id="loginBtn">Masuk</button>
     <div id="loginError" style="color: #c62828; font-size: 0.85rem; margin-top: 15px;"></div>
 </div>
 
@@ -85,15 +85,15 @@
             <h2 style="margin: 0; color: white;">🏗️ Pencatatan Pengeluaran & Operasional AWW</h2>
             <p id="userStatusBanner" style="font-size: 0.85rem; margin: 5px 0 0 0; opacity: 0.9;">👤 Mengakses sebagai: -</p>
         </div>
-        <button onclick="handleLogout()" style="background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">🚪 Keluar Akun</button>
+        <button id="logoutBtn" style="background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">🚪 Keluar Akun</button>
     </div>
 
     <!-- TAB NAVIGASI -->
     <div class="nav-tabs" id="navTabsContainer">
-        <button class="nav-tab active" onclick="switchTab('inputTab')">📝 Catat Pengeluaran</button>
-        <button class="nav-tab" onclick="switchTab('historyTab')">📋 Riwayat & Rekap</button>
-        <button class="nav-tab" id="auditTabBtn" onclick="switchTab('auditTab')" style="display: none;">📜 Audit Trail Log</button>
-        <button class="nav-tab" onclick="switchTab('settingTab')">⚙️ Pengaturan & Lokasi</button>
+        <button class="nav-tab active" data-target="inputTab">📝 Catat Pengeluaran</button>
+        <button class="nav-tab" data-target="historyTab">📋 Riwayat & Rekap</button>
+        <button class="nav-tab" id="auditTabBtn" data-target="auditTab" style="display: none;">📜 Audit Trail Log</button>
+        <button class="nav-tab" data-target="settingTab">⚙️ Pengaturan & Lokasi</button>
     </div>
 
     <!-- TAB 1: INPUT PENGELUARAN -->
@@ -103,7 +103,7 @@
             
             <div class="form-group">
                 <label>Kategori Pengeluaran</label>
-                <select id="expenseCategory" onchange="toggleCategoryDetail()">
+                <select id="expenseCategory">
                     <option value="Gudang">Gudang</option>
                     <option value="Rumah">Rumah</option>
                     <option value="Material">Material</option>
@@ -113,12 +113,12 @@
 
             <div id="materialModeToggleBox" style="display: none;">
                 <div class="mode-toggle-bar">
-                    <button type="button" class="mode-btn active" id="btnSingleMode" onclick="setMaterialMode('single')">Catat Satuan</button>
-                    <button type="button" class="mode-btn" id="btnBulkMode" onclick="setMaterialMode('bulk')">📦 Input Akumulasi Massal Material</button>
+                    <button type="button" class="mode-btn active" id="btnSingleMode">Catat Satuan</button>
+                    <button type="button" class="mode-btn" id="btnBulkMode">📦 Input Akumulasi Massal Material</button>
                 </div>
             </div>
 
-            <form onsubmit="saveExpense(event)">
+            <form id="expenseForm">
                 <div id="singleFormSection">
                     <div class="form-group">
                         <label>Tanggal</label>
@@ -143,7 +143,7 @@
 
                     <div class="form-group">
                         <label>Nominal Total (Rp)</label>
-                        <input type="text" id="expenseNominal" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)">
+                        <input type="text" id="expenseNominal" inputmode="numeric" placeholder="0">
                     </div>
 
                     <div class="form-group">
@@ -168,13 +168,13 @@
                         <div class="bulk-material-row">
                             <input type="date" class="bm-date" required>
                             <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
-                            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
+                            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" required>
                             <input type="text" class="bm-desc" placeholder="Keterangan" required>
-                            <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
+                            <button type="button" class="btn-del-row" style="display:none;">✕</button>
                         </div>
                     </div>
 
-                    <button type="button" class="btn-add-row" onclick="addBulkMaterialRow()" style="background:#00796b; margin-top: 8px;">+ Tambah Riwayat Pemberian Lain</button>
+                    <button type="button" class="btn-add-row" id="addBulkRowBtn" style="background:#00796b; margin-top: 8px;">+ Tambah Riwayat Pemberian Lain</button>
                     
                     <div style="display: flex; gap: 15px; margin-top: 15px;">
                         <div class="form-group" style="flex: 1; margin-bottom: 0;">
@@ -185,7 +185,7 @@
                             </select>
                         </div>
                         <div class="form-group" style="flex: 1; margin-bottom: 0; display: flex; align-items: flex-end;">
-                            <button type="button" class="btn-primary" onclick="openBulkRekapSetupModal()" style="background: #00796b;">🧾 Lanjut Rincian Nota & Cek Selisih</button>
+                            <button type="button" class="btn-primary" id="openBulkModalBtn" style="background: #00796b;">🧾 Lanjut Rincian Nota & Cek Selisih</button>
                         </div>
                     </div>
                 </div>
@@ -200,7 +200,7 @@
         <div class="filter-bar">
             <div class="form-group filter-item">
                 <label>📅 Pilah Bulan Rekap:</label>
-                <select id="filterMonth" onchange="calculateSummary()">
+                <select id="filterMonth">
                     <option value="0">Januari</option>
                     <option value="1">Februari</option>
                     <option value="2">Maret</option>
@@ -217,7 +217,7 @@
             </div>
             <div class="form-group filter-item">
                 <label>📅 Pilah Tahun Rekap:</label>
-                <select id="filterYear" onchange="calculateSummary()">
+                <select id="filterYear">
                     <option value="2025">2025</option>
                     <option value="2026" selected>2026</option>
                     <option value="2027">2027</option>
@@ -246,7 +246,7 @@
             <div class="filter-bar" style="border:none; background:transparent; padding:0; margin-bottom:15px;">
                 <div class="form-group filter-item" style="min-width: 200px;">
                     <label>🔍 Pilah Kategori:</label>
-                    <select id="filterCategory" onchange="renderExpenses()">
+                    <select id="filterCategory">
                         <option value="ALL">Semua Kategori</option>
                         <option value="Gudang">Gudang</option>
                         <option value="Rumah">Rumah</option>
@@ -256,7 +256,7 @@
                 </div>
                 <div class="form-group filter-item" style="min-width: 200px;">
                     <label>🔍 Pilah Metode Transaksi:</label>
-                    <select id="filterMethod" onchange="renderExpenses()">
+                    <select id="filterMethod">
                         <option value="ALL">Semua Metode</option>
                         <option value="Tunai">Tunai</option>
                         <option value="Transfer">Transfer</option>
@@ -316,7 +316,7 @@
             <h3>⚙️ Kelola Lokasi Bangunan / Proyek</h3>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <input type="text" id="newLocationInput" placeholder="Nama Lokasi Baru">
-                <button type="button" class="btn-primary" onclick="addLocation()" style="width: 150px;">Tambah Lokasi</button>
+                <button type="button" class="btn-primary" id="addLocationBtn" style="width: 150px;">Tambah Lokasi</button>
             </div>
             <div class="table-responsive">
                 <table>
@@ -358,7 +358,7 @@
         </div>
         <div class="form-group">
             <label>Nominal Total (Rp)</label>
-            <input type="text" id="editNominal" inputmode="numeric" oninput="formatInputNumber(this)">
+            <input type="text" id="editNominal" inputmode="numeric">
         </div>
         <div class="form-group">
             <label>Keterangan / Keperluan</label>
@@ -369,8 +369,8 @@
             <input type="text" id="editReason" placeholder="Contoh: Salah input nominal" style="background: #fff;">
         </div>
         <div style="display: flex; gap: 10px;">
-            <button class="btn-primary" onclick="submitEditExpense()" style="background:#1565c0;">Simpan Perubahan</button>
-            <button class="btn-danger" onclick="document.getElementById('editModal').style.display='none'" style="width: 120px;">Batal</button>
+            <button class="btn-primary" id="submitEditBtn" style="background:#1565c0;">Simpan Perubahan</button>
+            <button class="btn-danger" id="closeEditModalBtn" style="width: 120px;">Batal</button>
         </div>
     </div>
 </div>
@@ -382,11 +382,11 @@
         <input type="hidden" id="sisaRecordId">
         <div class="form-group">
             <label>Masukkan Sisa / Selisih (Masuk Rek. Pribadi Owner):</label>
-            <input type="text" id="sisaAmountInput" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)">
+            <input type="text" id="sisaAmountInput" inputmode="numeric" placeholder="0">
         </div>
         <div style="display: flex; gap: 10px;">
-            <button class="btn-primary" onclick="submitSisaSetoran()" style="background:#e65100;">Simpan</button>
-            <button class="btn-danger" onclick="document.getElementById('sisaModal').style.display='none'" style="width: 120px;">Batal</button>
+            <button class="btn-primary" id="submitSisaBtn" style="background:#e65100;">Simpan</button>
+            <button class="btn-danger" id="closeSisaModalBtn" style="width: 120px;">Batal</button>
         </div>
     </div>
 </div>
@@ -401,8 +401,8 @@
             <input type="text" id="deleteReason" placeholder="Contoh: Data tidak akurat" style="background: #fff;">
         </div>
         <div style="display: flex; gap: 10px;">
-            <button class="btn-danger" onclick="submitDeleteExpense()">Hapus Permanen</button>
-            <button class="btn-primary" onclick="document.getElementById('deleteModal').style.display='none'" style="background: #9e9e9e; width: 120px;">Batal</button>
+            <button class="btn-danger" id="submitDeleteBtn">Hapus Permanen</button>
+            <button class="btn-primary" id="closeDeleteModalBtn" style="background: #9e9e9e; width: 120px;">Batal</button>
         </div>
     </div>
 </div>
@@ -413,10 +413,10 @@
         <h3 style="color: #00796b;">🧾 Rekapitulasi Nota Material</h3>
         <input type="hidden" id="rekapRecordId">
         <div id="modalShoppingRows"></div>
-        <button type="button" class="btn-add-row" onclick="addModalShopRow()" style="margin-top: 5px;">+ Tambah Alokasi</button>
+        <button type="button" class="btn-add-row" id="addModalShopRowBtn" style="margin-top: 5px;">+ Tambah Alokasi</button>
         <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button class="btn-primary" onclick="saveRekapNota()" style="background:#00796b;">Simpan</button>
-            <button class="btn-danger" onclick="document.getElementById('rekapModal').style.display='none'" style="width: 120px;">Batal</button>
+            <button class="btn-primary" id="submitRekapBtn" style="background:#00796b;">Simpan</button>
+            <button class="btn-danger" id="closeRekapModalBtn" style="width: 120px;">Batal</button>
         </div>
     </div>
 </div>
@@ -426,10 +426,10 @@
     <div class="modal-content" style="width: 600px;">
         <h3 style="color: #00796b;">🧾 Cek Selisih Akumulasi</h3>
         <div id="bulkFreeShoppingRows" style="max-height: 40vh; overflow-y: auto; margin-bottom: 10px;"></div>
-        <button type="button" class="btn-add-row" onclick="addBulkFreeShopRow()" style="margin-bottom: 15px;">+ Tambah Alokasi</button>
+        <button type="button" class="btn-add-row" id="addBulkFreeShopRowBtn" style="margin-bottom: 15px;">+ Tambah Alokasi</button>
         <div style="display: flex; gap: 10px;">
-            <button class="btn-primary" onclick="confirmAndSaveBulkFreeRekap()" style="background:#00796b;">Simpan</button>
-            <button class="btn-danger" onclick="document.getElementById('bulkRekapSetupModal').style.display='none'" style="width: 120px;">Batal</button>
+            <button class="btn-primary" id="submitBulkRekapBtn" style="background:#00796b;">Simpan</button>
+            <button class="btn-danger" id="closeBulkModalBtn" style="width: 120px;">Batal</button>
         </div>
     </div>
 </div>
@@ -446,7 +446,6 @@
         measurementId: "G-X3Z7GVB39Z"
     };
 
-    // Inisialisasi Firebase aman
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
@@ -463,8 +462,86 @@
     const pinUserMap = { '123123': 'Mbak Ika', '945336': 'Owner' };
     const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
+    // EVENT LISTENER UTAMA SETELAH HALAMAN DIMUAT
+    document.addEventListener("DOMContentLoaded", function () {
+        let loginBtn = document.getElementById('loginBtn');
+        let loginInput = document.getElementById('loginPinInput');
+        
+        if (loginBtn) {
+            loginBtn.addEventListener('click', handleLogin);
+        }
+        if (loginInput) {
+            loginInput.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') handleLogin();
+            });
+        }
+
+        let logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
+        // Tab Navigasi
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function(e) {
+                switchTab(this.getAttribute('data-target'), this);
+            });
+        });
+
+        // Event Form & Tombol lainnya
+        let expenseCat = document.getElementById('expenseCategory');
+        if (expenseCat) expenseCat.addEventListener('change', toggleCategoryDetail);
+
+        let btnSingle = document.getElementById('btnSingleMode');
+        let btnBulk = document.getElementById('btnBulkMode');
+        if (btnSingle) btnSingle.addEventListener('click', () => setMaterialMode('single'));
+        if (btnBulk) btnBulk.addEventListener('click', () => setMaterialMode('bulk'));
+
+        let expenseForm = document.getElementById('expenseForm');
+        if (expenseForm) expenseForm.addEventListener('submit', saveExpense);
+
+        let addBulkRowBtn = document.getElementById('addBulkRowBtn');
+        if (addBulkRowBtn) addBulkRowBtn.addEventListener('click', addBulkMaterialRow);
+
+        let openBulkModalBtn = document.getElementById('openBulkModalBtn');
+        if (openBulkModalBtn) openBulkModalBtn.addEventListener('click', openBulkRekapSetupModal);
+
+        // Filter rekap & tabel
+        let filterMonth = document.getElementById('filterMonth');
+        let filterYear = document.getElementById('filterYear');
+        let filterCat = document.getElementById('filterCategory');
+        let filterMeth = document.getElementById('filterMethod');
+
+        if (filterMonth) filterMonth.addEventListener('change', calculateSummary);
+        if (filterYear) filterYear.addEventListener('change', calculateSummary);
+        if (filterCat) filterCat.addEventListener('change', renderExpenses);
+        if (filterMeth) filterMeth.addEventListener('change', renderExpenses);
+
+        let addLocationBtn = document.getElementById('addLocationBtn');
+        if (addLocationBtn) addLocationBtn.addEventListener('click', addLocation);
+
+        // Tombol Modals
+        document.getElementById('submitEditBtn')?.addEventListener('click', submitEditExpense);
+        document.getElementById('closeEditModalBtn')?.addEventListener('click', () => document.getElementById('editModal').style.display = 'none');
+        document.getElementById('submitSisaBtn')?.addEventListener('click', submitSisaSetoran);
+        document.getElementById('closeSisaModalBtn')?.addEventListener('click', () => document.getElementById('sisaModal').style.display = 'none');
+        document.getElementById('submitDeleteBtn')?.addEventListener('click', submitDeleteExpense);
+        document.getElementById('closeDeleteModalBtn')?.addEventListener('click', () => document.getElementById('deleteModal').style.display = 'none');
+        document.getElementById('addModalShopRowBtn')?.addEventListener('click', addModalShopRow);
+        document.getElementById('submitRekapBtn')?.addEventListener('click', saveRekapNota);
+        document.getElementById('closeRekapModalBtn')?.addEventListener('click', () => document.getElementById('rekapModal').style.display = 'none');
+        document.getElementById('addBulkFreeShopRowBtn')?.addEventListener('click', addBulkFreeShopRow);
+        document.getElementById('submitBulkRekapBtn')?.addEventListener('click', confirmAndSaveBulkFreeRekap);
+        document.getElementById('closeBulkModalBtn')?.addEventListener('click', () => document.getElementById('bulkRekapSetupModal').style.display = 'none');
+
+        // Format angka input
+        ['expenseNominal', 'editNominal', 'sisaAmountInput'].forEach(id => {
+            let el = document.getElementById(id);
+            if (el) el.addEventListener('input', function() { formatInputNumber(this); });
+        });
+    });
+
     function handleLogin() {
         let pinInput = document.getElementById('loginPinInput');
+        let errorEl = document.getElementById('loginError');
         if (!pinInput) return;
         let pin = pinInput.value.trim();
 
@@ -473,13 +550,17 @@
             document.getElementById('loginCard').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
             document.getElementById('userStatusBanner').innerText = `👤 Mengakses sebagai: ${currentUser}`;
-            document.getElementById('auditTabBtn').style.display = (currentUser === 'Owner') ? 'inline-block' : 'none';
-            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            
+            let auditBtn = document.getElementById('auditTabBtn');
+            if (auditBtn) auditBtn.style.display = (currentUser === 'Owner') ? 'inline-block' : 'none';
+            
+            let expenseDate = document.getElementById('expenseDate');
+            if (expenseDate) expenseDate.value = new Date().toISOString().split('T')[0];
             
             loadDataFromFirebase();
             toggleCategoryDetail();
         } else {
-            document.getElementById('loginError').innerText = 'PIN Akses Salah!';
+            if (errorEl) errorEl.innerText = 'PIN Akses Salah!';
             pinInput.value = '';
         }
     }
@@ -490,14 +571,17 @@
         document.getElementById('appContainer').style.display = 'none';
         let pinInput = document.getElementById('loginPinInput');
         if (pinInput) pinInput.value = '';
+        let errorEl = document.getElementById('loginError');
+        if (errorEl) errorEl.innerText = '';
     }
 
-    function switchTab(tabId) {
+    function switchTab(tabId, tabElement) {
         if (tabId === 'auditTab' && currentUser !== 'Owner') return;
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        if (event && event.currentTarget) event.currentTarget.classList.add('active');
+        let targetContent = document.getElementById(tabId);
+        if (targetContent) targetContent.classList.add('active');
+        if (tabElement) tabElement.classList.add('active');
     }
 
     function formatNumber(num) { return isNaN(num) ? '' : new Intl.NumberFormat('id-ID').format(num); }
@@ -509,9 +593,12 @@
         let catEl = document.getElementById('expenseCategory');
         if (!catEl) return;
         let cat = catEl.value;
-        document.getElementById('materialModeToggleBox').style.display = (cat === 'Material') ? 'block' : 'none';
-        if (cat === 'Material') setMaterialMode(currentMaterialMode);
-        else {
+        let modeToggleBox = document.getElementById('materialModeToggleBox');
+        if (modeToggleBox) modeToggleBox.style.display = (cat === 'Material') ? 'block' : 'none';
+        
+        if (cat === 'Material') {
+            setMaterialMode(currentMaterialMode);
+        } else {
             let detailBox = document.getElementById('materialDetailBox');
             let singleSec = document.getElementById('singleFormSection');
             let bulkSec = document.getElementById('bulkMaterialSection');
@@ -548,11 +635,16 @@
         div.innerHTML = `
             <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}" required>
             <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
-            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
+            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" required>
             <input type="text" class="bm-desc" placeholder="Keterangan" required>
             <button type="button" class="btn-del-row" onclick="this.parentElement.remove()">✕</button>
         `;
         container.appendChild(div);
+        
+        let newNominalInput = div.querySelector('.bm-nominal');
+        if (newNominalInput) {
+            newNominalInput.addEventListener('input', function() { formatInputNumber(this); });
+        }
     }
 
     function loadDataFromFirebase() {
@@ -566,6 +658,132 @@
         });
     }
 
+    function openBulkRekapSetupModal() {
+        let rows = document.querySelectorAll('.bulk-material-row');
+        let isValid = true;
+        let totalBulkSum = 0;
+        let receiversSet = new Set();
+        let detailHtmlLines = [];
+
+        rows.forEach(row => {
+            let rawDate = row.querySelector('.bm-date').value;
+            let receiver = row.querySelector('.bm-receiver').value.trim();
+            let nominal = parseCleanNumber(row.querySelector('.bm-nominal').value);
+            let desc = row.querySelector('.bm-desc').value.trim();
+
+            if (!rawDate || !receiver || nominal <= 0 || !desc) {
+                isValid = false;
+                return;
+            }
+            totalBulkSum += nominal;
+            receiversSet.add(receiver);
+
+            let p = rawDate.split('-');
+            let formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
+            detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`);
+        });
+
+        if (!isValid) {
+            alert('Mohon lengkapi seluruh kolom pada setiap baris pemberian dana dengan benar!');
+            return;
+        }
+
+        tempBulkAccumulatedData = {
+            totalSum: totalBulkSum,
+            receivers: Array.from(receiversSet).join(', '),
+            method: document.getElementById('bulkMaterialMethod').value,
+            breakdownHtml: detailHtmlLines.join('<br>')
+        };
+        
+        let container = document.getElementById('bulkFreeShoppingRows');
+        if(container) container.innerHTML = '';
+        addBulkFreeShopRow();
+
+        document.getElementById('bulkRekapSetupModal').style.display = 'flex';
+    }
+
+    function addBulkFreeShopRow() {
+        let container = document.getElementById('bulkFreeShoppingRows');
+        if(!container) return;
+        let div = document.createElement('div');
+        div.className = 'sub-row';
+        
+        let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
+        locations.forEach(loc => {
+            optionsHtml += `<option value="${loc}">${loc}</option>`;
+        });
+
+        div.innerHTML = `
+            <select class="bf-shop-name" style="flex: 2;">${optionsHtml}</select>
+            <input type="text" class="bf-shop-cost" inputmode="numeric" placeholder="Nominal Alokasi (Rp)" style="flex: 1.5;">
+            <button type="button" class="btn-del-row" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(div);
+
+        let costInput = div.querySelector('.bf-shop-cost');
+        if(costInput) {
+            costInput.addEventListener('input', function() { formatInputNumber(this); });
+        }
+    }
+
+    function confirmAndSaveBulkFreeRekap() {
+        if (!tempBulkAccumulatedData) return;
+
+        let now = new Date();
+        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        let formattedDate = now.toLocaleDateString('id-ID');
+        let dateWithTime = `${formattedDate} ${timeNow}`;
+
+        let shops = [];
+        document.querySelectorAll('.sub-row').forEach(row => {
+            let nameSelect = row.querySelector('.bf-shop-name');
+            let costInput = row.querySelector('.bf-shop-cost');
+            if(nameSelect && costInput) {
+                let name = nameSelect.value.trim();
+                let cost = parseCleanNumber(costInput.value);
+                if (name && cost > 0) {
+                    shops.push({ name, cost });
+                }
+            }
+        });
+
+        let totalNota = shops.reduce((sum, s) => sum + s.cost, 0);
+        let selisih = tempBulkAccumulatedData.totalSum - totalNota;
+        
+        let statusRekap = 'Belum Direkap';
+        if (shops.length > 0) {
+            statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+        }
+
+        let materialData = {
+            receiver: tempBulkAccumulatedData.receivers,
+            shops,
+            statusRekap
+        };
+
+        let finalDescString = `Akumulasi Pemberian (${tempBulkAccumulatedData.receivers})<br><b style="color:#00796b;">Rincian Tanggal:</b><br>${tempBulkAccumulatedData.breakdownHtml}`;
+
+        let newRecord = {
+            id: Date.now(),
+            date: dateWithTime,
+            rawDate: now.toISOString().split('T')[0],
+            category: 'Material',
+            method: tempBulkAccumulatedData.method,
+            nominal: tempBulkAccumulatedData.totalSum,
+            sisaSetoran: 0,
+            desc: finalDescString,
+            isHtmlDesc: true,
+            materialData,
+            createdBy: currentUser
+        };
+
+        allExpenses.push(newRecord);
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert('Akumulasi pemberian dana material berhasil disimpan!');
+            document.getElementById('bulkRekapSetupModal').style.display = 'none';
+        });
+    }
+
     function saveExpense(e) {
         e.preventDefault();
         let cat = document.getElementById('expenseCategory').value;
@@ -573,13 +791,21 @@
         let method = document.getElementById('expenseMethod').value;
         let nominal = parseCleanNumber(document.getElementById('expenseNominal').value);
         let desc = document.getElementById('expenseDesc').value.trim();
-        if (nominal <= 0) { alert('Nominal harus > 0'); return; }
+        
+        if (nominal <= 0) { alert('Nominal pengeluaran harus lebih besar dari 0!'); return; }
 
         let p = rawDate.split('-');
         let formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
         let timeNow = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-        allExpenses.push({
+        let materialData = null;
+        if (cat === 'Material') {
+            let receiverEl = document.getElementById('materialReceiver');
+            let receiver = receiverEl ? receiverEl.value.trim() : '';
+            materialData = { receiver, shops: [], statusRekap: 'Belum Direkap' };
+        }
+
+        let newRecord = {
             id: Date.now(),
             date: `${formattedDate} ${timeNow}`,
             rawDate: rawDate,
@@ -589,12 +815,13 @@
             sisaSetoran: 0,
             desc,
             isHtmlDesc: false,
-            materialData: cat === 'Material' ? { receiver: document.getElementById('materialReceiver').value.trim(), shops: [], statusRekap: 'Belum Direkap' } : null,
+            materialData,
             createdBy: currentUser
-        });
+        };
 
+        allExpenses.push(newRecord);
         db.ref('operational_expenses').set(allExpenses).then(() => {
-            alert('Berhasil disimpan!');
+            alert('Pengeluaran berhasil dicatat!');
             document.getElementById('expenseNominal').value = '';
             document.getElementById('expenseDesc').value = '';
         });
@@ -607,7 +834,7 @@
         document.getElementById('editCategory').value = rec.category;
         document.getElementById('editMethod').value = rec.method;
         document.getElementById('editNominal').value = formatNumber(rec.nominal);
-        document.getElementById('editDesc').value = rec.desc;
+        document.getElementById('editDesc').value = rec.isHtmlDesc ? rec.desc.replace(/<br>/g, '\n') : rec.desc;
         document.getElementById('editReason').value = '';
         document.getElementById('editModal').style.display = 'flex';
     }
@@ -619,14 +846,27 @@
         let newNom = parseCleanNumber(document.getElementById('editNominal').value);
         let newDesc = document.getElementById('editDesc').value.trim();
         let reason = document.getElementById('editReason').value.trim();
-        if (!reason) { alert('Alasan wajib diisi!'); return; }
+        
+        if (!reason) { alert('Alasan edit data wajib diisi!'); return; }
+        if (newNom <= 0) { alert('Nominal harus valid!'); return; }
 
-        allExpenses = allExpenses.map(i => i.id === id ? { ...i, category: newCat, method: newMeth, nominal: newNom, desc: newDesc } : i);
-        auditLogs.push({ id: Date.now(), time: new Date().toLocaleString('id-ID'), user: currentUser, action: 'EDIT', details: `Ubah ID ${id}`, reason });
+        let oldRec = allExpenses.find(i => i.id === id);
+        if (!oldRec) return;
+
+        allExpenses = allExpenses.map(item => item.id === id ? { ...item, category: newCat, method: newMeth, nominal: newNom, desc: newDesc } : item);
+        
+        auditLogs.push({
+            id: Date.now(),
+            time: new Date().toLocaleString('id-ID'),
+            user: currentUser,
+            action: 'EDIT',
+            details: `Kategori: ${oldRec.category} ➔ ${newCat} | Nominal: ${formatRp(oldRec.nominal)} ➔ ${formatRp(newNom)}`,
+            reason: reason
+        });
 
         db.ref('operational_expenses').set(allExpenses).then(() => {
             db.ref('operational_audit_logs').set(auditLogs).then(() => {
-                alert('Berhasil diubah!');
+                alert('Data berhasil diperbarui!');
                 document.getElementById('editModal').style.display = 'none';
             });
         });
@@ -643,9 +883,14 @@
     function submitSisaSetoran() {
         let id = parseFloat(document.getElementById('sisaRecordId').value);
         let sisaVal = parseCleanNumber(document.getElementById('sisaAmountInput').value);
-        allExpenses = allExpenses.map(i => i.id === id ? { ...i, sisaSetoran: sisaVal } : i);
+        
+        let rec = allExpenses.find(i => i.id === id);
+        if (!rec) return;
+        if (sisaVal >= rec.nominal) { alert('Sisa setoran tidak boleh melebihi atau sama dengan total nominal!'); return; }
+
+        allExpenses = allExpenses.map(item => item.id === id ? { ...item, sisaSetoran: sisaVal } : item);
         db.ref('operational_expenses').set(allExpenses).then(() => {
-            alert('Sisa setoran disimpan!');
+            alert('Sisa setoran berhasil disimpan!');
             document.getElementById('sisaModal').style.display = 'none';
         });
     }
@@ -659,30 +904,159 @@
     function submitDeleteExpense() {
         let id = parseFloat(document.getElementById('deleteRecordId').value);
         let reason = document.getElementById('deleteReason').value.trim();
-        if (!reason) { alert('Alasan wajib diisi!'); return; }
+        if (!reason) { alert('Alasan penghapusan wajib diisi!'); return; }
 
-        let target = allExpenses.find(i => i.id === id);
-        allExpenses = allExpenses.filter(i => i.id !== id);
-        auditLogs.push({ id: Date.now(), time: new Date().toLocaleString('id-ID'), user: currentUser, action: 'HAPUS', details: `Hapus [${target?.category}]`, reason });
+        let targetRec = allExpenses.find(i => i.id === id);
+        if (!targetRec) return;
+
+        allExpenses = allExpenses.filter(item => item.id !== id);
+        auditLogs.push({
+            id: Date.now(),
+            time: new Date().toLocaleString('id-ID'),
+            user: currentUser,
+            action: 'HAPUS',
+            details: `Hapus [${targetRec.category}] (${formatRp(targetRec.nominal)})`,
+            reason: reason
+        });
 
         db.ref('operational_expenses').set(allExpenses).then(() => {
             db.ref('operational_audit_logs').set(auditLogs).then(() => {
-                alert('Berhasil dihapus!');
+                alert('Data berhasil dihapus!');
                 document.getElementById('deleteModal').style.display = 'none';
             });
+        });
+    }
+
+    function openRekapModal(id) {
+        let rec = allExpenses.find(i => i.id === id);
+        if (!rec || !rec.materialData) return;
+        document.getElementById('rekapRecordId').value = rec.id;
+
+        let container = document.getElementById('modalShoppingRows');
+        if(container) container.innerHTML = '';
+
+        if (rec.materialData.shops && rec.materialData.shops.length > 0) {
+            rec.materialData.shops.forEach(s => {
+                let div = document.createElement('div');
+                div.className = 'sub-row';
+                let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
+                locations.forEach(loc => {
+                    let selected = (s.name === loc) ? 'selected' : '';
+                    optionsHtml += `<option value="${loc}" ${selected}>${loc}</option>`;
+                });
+                div.innerHTML = `
+                    <select class="modal-shop-name" style="flex: 2;">${optionsHtml}</select>
+                    <input type="text" class="modal-shop-cost" inputmode="numeric" value="${formatNumber(s.cost)}" placeholder="Nominal (Rp)" style="flex: 1.5;">
+                    <button type="button" class="btn-del-row" onclick="this.parentElement.remove()">✕</button>
+                `;
+                container.appendChild(div);
+                let costInp = div.querySelector('.modal-shop-cost');
+                if(costInp) costInp.addEventListener('input', function() { formatInputNumber(this); });
+            });
+        } else {
+            addModalShopRow();
+        }
+        document.getElementById('rekapModal').style.display = 'flex';
+    }
+
+    function addModalShopRow() {
+        let container = document.getElementById('modalShoppingRows');
+        if(!container) return;
+        let div = document.createElement('div');
+        div.className = 'sub-row';
+        let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
+        locations.forEach(loc => { optionsHtml += `<option value="${loc}">${loc}</option>`; });
+        div.innerHTML = `
+            <select class="modal-shop-name" style="flex: 2;">${optionsHtml}</select>
+            <input type="text" class="modal-shop-cost" inputmode="numeric" placeholder="Nominal (Rp)" style="flex: 1.5;">
+            <button type="button" class="btn-del-row" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(div);
+        let costInp = div.querySelector('.modal-shop-cost');
+        if(costInp) costInp.addEventListener('input', function() { formatInputNumber(this); });
+    }
+
+    function saveRekapNota() {
+        let recId = parseFloat(document.getElementById('rekapRecordId').value);
+        let shops = [];
+        document.querySelectorAll('.sub-row').forEach(row => {
+            let nameSel = row.querySelector('.modal-shop-name');
+            let costInp = row.querySelector('.modal-shop-cost');
+            if(nameSel && costInp) {
+                let name = nameSel.value.trim();
+                let cost = parseCleanNumber(costInp.value);
+                if (name && cost > 0) shops.push({ name, cost });
+            }
+        });
+
+        allExpenses = allExpenses.map(item => {
+            if (item.id === recId) {
+                let totalNota = shops.reduce((sum, s) => sum + s.cost, 0);
+                let selisih = item.nominal - totalNota;
+                let statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+                return { ...item, materialData: { ...item.materialData, shops, statusRekap } };
+            }
+            return item;
+        });
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert('Rekapitulasi nota berhasil diperbarui!');
+            document.getElementById('rekapModal').style.display = 'none';
         });
     }
 
     function renderExpenses() {
         let tbody = document.getElementById('expenseTableBody');
         if(!tbody) return;
-        tbody.innerHTML = allExpenses.length === 0 ? `<tr><td colspan="9" style="text-align: center;">Tidak ada data.</td></tr>` : '';
-        allExpenses.forEach(i => {
+        tbody.innerHTML = '';
+
+        let filterCat = document.getElementById('filterCategory')?.value || 'ALL';
+        let filterMeth = document.getElementById('filterMethod')?.value || 'ALL';
+
+        let filtered = allExpenses.filter(i => {
+            let matchCat = (filterCat === 'ALL' || i.category === filterCat);
+            let matchMeth = (filterMeth === 'ALL' || i.method === filterMeth);
+            return matchCat && matchMeth;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #777;">Tidak ada data pengeluaran.</td></tr>`;
+            return;
+        }
+
+        filtered.sort((a, b) => b.id - a.id);
+
+        filtered.forEach(i => {
+            let detailHtml = '-';
+            let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
+                            `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
+
+            if (i.category === 'Order Toko') {
+                actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
+            }
+
+            if (i.category === 'Material' && i.materialData) {
+                let m = i.materialData;
+                actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` + actionBtn;
+                detailHtml = `<div class="vertical-details">👤 <b>Penerima:</b> ${m.receiver || '-'}<br>📌 <b>Status:</b> ${m.statusRekap || 'Belum'}<br>`;
+                if (m.shops) m.shops.forEach(s => { detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`; });
+                detailHtml += `</div>`;
+            }
+
+            let sisaSetoran = i.sisaSetoran || 0;
+            let netNom = i.nominal - sisaSetoran;
+            let descDisplay = i.isHtmlDesc ? i.desc : i.desc;
+
             tbody.innerHTML += `<tr>
-                <td><button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button><button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button></td>
-                <td>${i.date}</td><td><b>${i.category}</b></td><td>${i.method}</td>
-                <td>${formatRp(i.nominal)}</td><td>${formatRp(i.sisaSetoran || 0)}</td><td><b>${formatRp(i.nominal - (i.sisaSetoran || 0))}</b></td>
-                <td>${i.desc}</td><td>-</td>
+                <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
+                <td>${i.date || '-'}</td>
+                <td><b>${i.category}</b></td>
+                <td>${i.method || 'Tunai'}</td>
+                <td>${formatRp(i.nominal)}</td>
+                <td style="color: #e65100;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</td>
+                <td style="color: #c62828; font-weight: bold;">${formatRp(netNom)}</td>
+                <td>${descDisplay}</td>
+                <td>${detailHtml}</td>
             </tr>`;
         });
     }
@@ -690,8 +1064,8 @@
     function renderAuditLogs() {
         let tbody = document.getElementById('auditTableBody');
         if(!tbody) return;
-        tbody.innerHTML = '';
-        auditLogs.forEach(l => {
+        tbody.innerHTML = auditLogs.length === 0 ? `<tr><td colspan="5" style="text-align: center;">Belum ada log.</td></tr>` : '';
+        auditLogs.sort((a, b) => b.id - a.id).forEach(l => {
             tbody.innerHTML += `<tr><td>${l.time}</td><td><b>${l.user}</b></td><td>${l.action}</td><td>${l.details}</td><td><b>${l.reason}</b></td></tr>`;
         });
     }
@@ -701,87 +1075,87 @@
         if(!tbody) return;
         tbody.innerHTML = '';
         locations.forEach((l, idx) => {
-            tbody.innerHTML += `<tr><td><b>${l}</b></td><td style="text-align:center;"><button class="btn-danger" onclick="locations.splice(${idx},1); db.ref('operational_locations').set(locations);">Hapus</button></td></tr>`;
+            tbody.innerHTML += `<tr><td><b>${l}</b></td><td style="text-align:center;">${locations.length > 1 ? `<button class="btn-danger" onclick="deleteLocation(${idx})">Hapus</button>` : '-'}</td></tr>`;
         });
     }
 
     function addLocation() {
-        let val = document.getElementById('newLocationInput').value.trim();
+        let input = document.getElementById('newLocationInput');
+        if(!input) return;
+        let val = input.value.trim();
         if (!val) return;
+        if (locations.includes(val)) { alert('Lokasi sudah ada!'); return; }
         locations.push(val);
-        db.ref('operational_locations').set(locations).then(() => { alert('Ditambahkan!'); document.getElementById('newLocationInput').value = ''; });
+        db.ref('operational_locations').set(locations).then(() => { alert('Ditambahkan!'); input.value = ''; });
+    }
+
+    function deleteLocation(idx) {
+        if (confirm(`Hapus lokasi ini?`)) {
+            locations.splice(idx, 1);
+            db.ref('operational_locations').set(locations);
+        }
     }
 
     function calculateSummary() {
-    let monthEl = document.getElementById('filterMonth');
-    let yearEl = document.getElementById('filterYear');
-    if (!monthEl || !yearEl) return;
+        let monthEl = document.getElementById('filterMonth');
+        let yearEl = document.getElementById('filterYear');
+        if (!monthEl || !yearEl) return;
 
-    let selectedMonth = parseInt(monthEl.value); // Oktober = 9
-    let selectedYear = parseInt(yearEl.value);   // 2026
+        let selectedMonth = parseInt(monthEl.value);
+        let selectedYear = parseInt(yearEl.value);
 
-    let totalStoreIncome = 0;
-    if (storeClosingsData) {
-        let closingsArray = Array.isArray(storeClosingsData) ? storeClosingsData : Object.values(storeClosingsData);
-        closingsArray.forEach(item => {
-            if (!item) return;
-            let matchMonthYear = false;
-
-            // Periksa apakah data memiliki informasi tanggal yang valid
-            let dateStr = item.rawDate || item.date || item.timestamp;
-            if (dateStr) {
-                let d = new Date(dateStr);
-                // Jika format tanggal valid dan cocok persis dengan bulan & tahun filter
-                if (!isNaN(d) && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
-                    matchMonthYear = true;
-                } else if (typeof dateStr === 'string' && dateStr.includes('-')) {
-                    // Cek format YYYY-MM-DD
-                    let parts = dateStr.split('-');
-                    if (parts.length === 3 && parseInt(parts[0]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
+        let totalStoreIncome = 0;
+        if (storeClosingsData) {
+            let closingsArray = Array.isArray(storeClosingsData) ? storeClosingsData : Object.values(storeClosingsData);
+            closingsArray.forEach(item => {
+                if (!item) return;
+                let matchMonthYear = false;
+                let dateStr = item.rawDate || item.date || item.timestamp;
+                if (dateStr) {
+                    let d = new Date(dateStr);
+                    if (!isNaN(d) && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
                         matchMonthYear = true;
-                    }
-                } else if (typeof dateStr === 'string' && dateStr.includes('/')) {
-                    // Cek format DD/MM/YYYY
-                    let parts = dateStr.split(' ')[0].split('/');
-                    if (parts.length === 3 && parseInt(parts[2]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
-                        matchMonthYear = true;
+                    } else if (typeof dateStr === 'string' && dateStr.includes('-')) {
+                        let parts = dateStr.split('-');
+                        if (parts.length === 3 && parseInt(parts[0]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) matchMonthYear = true;
                     }
                 }
-            }
 
-            // HANYA JUMLAHKAN JIKA BULAN & TAHUNNYA PERSIS SAMA DENGAN FILTER (Oktober 2026)
-            if (matchMonthYear) {
-                let debit = parseFloat(item.debit || item.debitAmount || 0);
-                let qris = parseFloat(item.qris || item.qrisAmount || 0);
-                let physicalCash = parseFloat(item.physicalCash || item.cashAmount || 0);
-                let permen = parseFloat(item.permen || item.permenAmount || 0);
-                let parkir = parseFloat(item.parkir || item.parkirAmount || 0);
-                totalStoreIncome += (debit + qris + physicalCash + permen + parkir);
-            }
-        });
-    }
-
-    let totalExpense = 0;
-    allExpenses.forEach(i => {
-        let inMonth = false;
-        if (i.rawDate) {
-            let p = i.rawDate.split('-');
-            if (p.length === 3 && parseInt(p[0]) === selectedYear && (parseInt(p[1]) - 1) === selectedMonth) inMonth = true;
+                if (matchMonthYear) {
+                    totalStoreIncome += parseFloat(item.debit || item.debitAmount || 0) +
+                                        parseFloat(item.qris || item.qrisAmount || 0) +
+                                        parseFloat(item.physicalCash || item.cashAmount || 0) +
+                                        parseFloat(item.permen || item.permenAmount || 0) +
+                                        parseFloat(item.parkir || item.parkirAmount || 0);
+                }
+            });
         }
-        if (inMonth) totalExpense += (i.nominal - (i.sisaSetoran || 0));
-    });
 
-    let net = totalStoreIncome - totalExpense;
-    let mName = monthNames[selectedMonth];
-    
-    document.getElementById('labelStoreIncomeTitle').innerText = `TOTAL PEMASUKAN TOKO (${mName} ${selectedYear})`;
-    document.getElementById('labelExpenseTitle').innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
-    document.getElementById('labelNetTitle').innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
-    
-    document.getElementById('summaryStoreIncome').innerText = formatRp(totalStoreIncome);
-    document.getElementById('summaryExpense').innerText = formatRp(totalExpense);
-    
-    let sumNet = document.getElementById('summaryNet');
-    sumNet.innerText = formatRp(net);
-    sumNet.style.color = net >= 0 ? '#2e7d32' : '#c62828';
-}
+        let totalExpense = 0;
+        allExpenses.forEach(i => {
+            let inMonth = false;
+            if (i.rawDate) {
+                let p = i.rawDate.split('-');
+                if (p.length === 3 && parseInt(p[0]) === selectedYear && (parseInt(p[1]) - 1) === selectedMonth) inMonth = true;
+            }
+            if (inMonth) totalExpense += (i.nominal - (i.sisaSetoran || 0));
+        });
+
+        let net = totalStoreIncome - totalExpense;
+        let mName = monthNames[selectedMonth];
+        
+        document.getElementById('labelStoreIncomeTitle').innerText = `TOTAL PEMASUKAN TOKO (${mName} ${selectedYear})`;
+        document.getElementById('labelExpenseTitle').innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
+        document.getElementById('labelNetTitle').innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
+        document.getElementById('summaryStoreIncome').innerText = formatRp(totalStoreIncome);
+        document.getElementById('summaryExpense').innerText = formatRp(totalExpense);
+        
+        let sumNet = document.getElementById('summaryNet');
+        if(sumNet) {
+            sumNet.innerText = formatRp(net);
+            sumNet.style.color = net >= 0 ? '#2e7d32' : '#c62828';
+        }
+    }
+</script>
+</body>
+</html>
