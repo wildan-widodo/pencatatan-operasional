@@ -713,71 +713,75 @@
     }
 
     function calculateSummary() {
-        let monthEl = document.getElementById('filterMonth');
-        let yearEl = document.getElementById('filterYear');
-        if (!monthEl || !yearEl) return;
+    let monthEl = document.getElementById('filterMonth');
+    let yearEl = document.getElementById('filterYear');
+    if (!monthEl || !yearEl) return;
 
-        let selectedMonth = parseInt(monthEl.value);
-        let selectedYear = parseInt(yearEl.value);
+    let selectedMonth = parseInt(monthEl.value); // Oktober = 9
+    let selectedYear = parseInt(yearEl.value);   // 2026
 
-        let totalStoreIncome = 0;
-        if (storeClosingsData) {
-            let closingsArray = Array.isArray(storeClosingsData) ? storeClosingsData : Object.values(storeClosingsData);
-            closingsArray.forEach(item => {
-                if (!item) return;
-                let matchMonthYear = false;
-                if (item.rawDate) {
-                    let parts = item.rawDate.split('-');
+    let totalStoreIncome = 0;
+    if (storeClosingsData) {
+        let closingsArray = Array.isArray(storeClosingsData) ? storeClosingsData : Object.values(storeClosingsData);
+        closingsArray.forEach(item => {
+            if (!item) return;
+            let matchMonthYear = false;
+
+            // Periksa apakah data memiliki informasi tanggal yang valid
+            let dateStr = item.rawDate || item.date || item.timestamp;
+            if (dateStr) {
+                let d = new Date(dateStr);
+                // Jika format tanggal valid dan cocok persis dengan bulan & tahun filter
+                if (!isNaN(d) && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+                    matchMonthYear = true;
+                } else if (typeof dateStr === 'string' && dateStr.includes('-')) {
+                    // Cek format YYYY-MM-DD
+                    let parts = dateStr.split('-');
                     if (parts.length === 3 && parseInt(parts[0]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
                         matchMonthYear = true;
                     }
-                } else if (item.date) {
-                    let d = new Date(item.date);
-                    if (!isNaN(d) && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+                } else if (typeof dateStr === 'string' && dateStr.includes('/')) {
+                    // Cek format DD/MM/YYYY
+                    let parts = dateStr.split(' ')[0].split('/');
+                    if (parts.length === 3 && parseInt(parts[2]) === selectedYear && (parseInt(parts[1]) - 1) === selectedMonth) {
                         matchMonthYear = true;
                     }
                 }
-
-                if (matchMonthYear) {
-                    let debit = parseFloat(item.debit || item.debitAmount || 0);
-                    let qris = parseFloat(item.qris || item.qrisAmount || 0);
-                    let physicalCash = parseFloat(item.physicalCash || item.cashAmount || 0);
-                    let permen = parseFloat(item.permen || item.permenAmount || 0);
-                    let parkir = parseFloat(item.parkir || item.parkirAmount || 0);
-                    totalStoreIncome += (debit + qris + physicalCash + permen + parkir);
-                }
-            });
-        }
-
-        let totalExpense = 0;
-        allExpenses.forEach(i => {
-            let inMonth = false;
-            if (i.rawDate) {
-                let p = i.rawDate.split('-');
-                if (p.length === 3 && parseInt(p[0]) === selectedYear && (parseInt(p[1]) - 1) === selectedMonth) inMonth = true;
             }
-            if (inMonth) totalExpense += (i.nominal - (i.sisaSetoran || 0));
+
+            // HANYA JUMLAHKAN JIKA BULAN & TAHUNNYA PERSIS SAMA DENGAN FILTER (Oktober 2026)
+            if (matchMonthYear) {
+                let debit = parseFloat(item.debit || item.debitAmount || 0);
+                let qris = parseFloat(item.qris || item.qrisAmount || 0);
+                let physicalCash = parseFloat(item.physicalCash || item.cashAmount || 0);
+                let permen = parseFloat(item.permen || item.permenAmount || 0);
+                let parkir = parseFloat(item.parkir || item.parkirAmount || 0);
+                totalStoreIncome += (debit + qris + physicalCash + permen + parkir);
+            }
         });
-
-        let net = totalStoreIncome - totalExpense;
-        let incTitle = document.getElementById('labelStoreIncomeTitle');
-        let expTitle = document.getElementById('labelExpenseTitle');
-        let netTitle = document.getElementById('labelNetTitle');
-        let sumInc = document.getElementById('summaryStoreIncome');
-        let sumExp = document.getElementById('summaryExpense');
-        let sumNet = document.getElementById('summaryNet');
-
-        let mName = monthNames[selectedMonth];
-        if(incTitle) incTitle.innerText = `TOTAL PEMASUKAN TOKO (${mName} ${selectedYear})`;
-        if(expTitle) expTitle.innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
-        if(netTitle) netTitle.innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
-        if(sumInc) sumInc.innerText = formatRp(totalStoreIncome);
-        if(sumExp) sumExp.innerText = formatRp(totalExpense);
-        if(sumNet) {
-            sumNet.innerText = formatRp(net);
-            sumNet.style.color = net >= 0 ? '#2e7d32' : '#c62828';
-        }
     }
-</script>
-</body>
-</html>
+
+    let totalExpense = 0;
+    allExpenses.forEach(i => {
+        let inMonth = false;
+        if (i.rawDate) {
+            let p = i.rawDate.split('-');
+            if (p.length === 3 && parseInt(p[0]) === selectedYear && (parseInt(p[1]) - 1) === selectedMonth) inMonth = true;
+        }
+        if (inMonth) totalExpense += (i.nominal - (i.sisaSetoran || 0));
+    });
+
+    let net = totalStoreIncome - totalExpense;
+    let mName = monthNames[selectedMonth];
+    
+    document.getElementById('labelStoreIncomeTitle').innerText = `TOTAL PEMASUKAN TOKO (${mName} ${selectedYear})`;
+    document.getElementById('labelExpenseTitle').innerText = `TOTAL PENGELUARAN (${mName} ${selectedYear})`;
+    document.getElementById('labelNetTitle').innerText = `SELISIH ARUS KAS (${mName} ${selectedYear})`;
+    
+    document.getElementById('summaryStoreIncome').innerText = formatRp(totalStoreIncome);
+    document.getElementById('summaryExpense').innerText = formatRp(totalExpense);
+    
+    let sumNet = document.getElementById('summaryNet');
+    sumNet.innerText = formatRp(net);
+    sumNet.style.color = net >= 0 ? '#2e7d32' : '#c62828';
+}
