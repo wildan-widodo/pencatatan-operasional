@@ -202,7 +202,7 @@
 
     <!-- TAB 2: RIWAYAT & REKAP -->
     <div id="historyTab" class="tab-content">
-        <!-- BANNER HANYA TOTAL PENGELUARAN DENGAN FILTER BULAN & TAHUN -->
+        <!-- BANNER TOTAL PENGELUARAN DENGAN FILTER BULAN & TAHUN -->
         <div class="card" style="border-top: 4px solid #c62828;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="margin: 0; color: #c62828; font-size: 1.1rem;">📊 Rekapitulasi Pengeluaran Operasional</h3>
@@ -642,17 +642,38 @@
 
     function loadDataFromFirebase() {
         db.ref('operational_expenses').on('value', snapshot => {
-            allExpenses = snapshot.val() || [];
+            let rawData = snapshot.val();
+            if (Array.isArray(rawData)) {
+                allExpenses = rawData.filter(item => item !== null && item !== undefined);
+            } else if (rawData && typeof rawData === 'object') {
+                allExpenses = Object.values(rawData);
+            } else {
+                allExpenses = [];
+            }
             renderExpenses();
         });
 
         db.ref('operational_audit_logs').on('value', snapshot => {
-            auditLogs = snapshot.val() || [];
+            let rawData = snapshot.val();
+            if (Array.isArray(rawData)) {
+                auditLogs = rawData.filter(item => item !== null && item !== undefined);
+            } else if (rawData && typeof rawData === 'object') {
+                auditLogs = Object.values(rawData);
+            } else {
+                auditLogs = [];
+            }
             renderAuditLogs();
         });
 
         db.ref('operational_locations').on('value', snapshot => {
-            locations = snapshot.val() || ['Proyek Utama'];
+            let rawData = snapshot.val();
+            if (Array.isArray(rawData)) {
+                locations = rawData.filter(item => item !== null && item !== undefined);
+            } else if (rawData && typeof rawData === 'object') {
+                locations = Object.values(rawData);
+            } else {
+                locations = ['Proyek Utama'];
+            }
             renderLocations();
         });
     }
@@ -865,7 +886,7 @@
     }
 
     function openEditModal(id) {
-        let rec = allExpenses.find(i => i.id === id);
+        let rec = allExpenses.find(i => i && i.id === id);
         if (!rec) return;
 
         document.getElementById('editRecordId').value = rec.id;
@@ -895,14 +916,14 @@
             return;
         }
 
-        let oldRec = allExpenses.find(i => i.id === id);
+        let oldRec = allExpenses.find(i => i && i.id === id);
         if (!oldRec) return;
 
         let now = new Date();
         let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
 
         allExpenses = allExpenses.map(item => {
-            if (item.id === id) {
+            if (item && item.id === id) {
                 return {
                     ...item,
                     category: newCat,
@@ -934,7 +955,7 @@
     }
 
     function openSisaModal(id) {
-        let rec = allExpenses.find(i => i.id === id);
+        let rec = allExpenses.find(i => i && i.id === id);
         if (!rec) return;
 
         document.getElementById('sisaRecordId').value = rec.id;
@@ -949,7 +970,7 @@
         let id = parseFloat(document.getElementById('sisaRecordId').value);
         let sisaVal = parseCleanNumber(document.getElementById('sisaAmountInput').value);
 
-        let rec = allExpenses.find(i => i.id === id);
+        let rec = allExpenses.find(i => i && i.id === id);
         if (!rec) return;
 
         if (sisaVal >= rec.nominal) {
@@ -958,7 +979,7 @@
         }
 
         allExpenses = allExpenses.map(item => {
-            if (item.id === id) {
+            if (item && item.id === id) {
                 return { ...item, sisaSetoran: sisaVal };
             }
             return item;
@@ -985,13 +1006,13 @@
             return;
         }
 
-        let targetRec = allExpenses.find(i => i.id === id);
+        let targetRec = allExpenses.find(i => i && i.id === id);
         if (!targetRec) return;
 
         let now = new Date();
         let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
 
-        allExpenses = allExpenses.filter(item => item.id !== id);
+        allExpenses = allExpenses.filter(item => item && item.id !== id);
 
         let auditEntry = {
             id: Date.now(),
@@ -1013,7 +1034,7 @@
     }
 
     function openRekapModal(id) {
-        let rec = allExpenses.find(i => i.id === id);
+        let rec = allExpenses.find(i => i && i.id === id);
         if (!rec || !rec.materialData) return;
 
         document.getElementById('rekapRecordId').value = rec.id;
@@ -1077,7 +1098,7 @@
         document.getElementById('modalTotalNotaText').innerText = formatRp(totalNota);
 
         let recId = parseFloat(document.getElementById('rekapRecordId').value);
-        let rec = allExpenses.find(i => i.id === recId);
+        let rec = allExpenses.find(i => i && i.id === recId);
         if (!rec) return;
 
         let selisih = rec.nominal - totalNota;
@@ -1105,7 +1126,7 @@
         });
 
         allExpenses = allExpenses.map(item => {
-            if (item.id === recId) {
+            if (item && item.id === recId) {
                 let totalNota = shops.reduce((sum, s) => sum + s.cost, 0);
                 let selisih = item.nominal - totalNota;
                 let statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
@@ -1137,7 +1158,9 @@
         let selectedMonth = document.getElementById('recapMonthSelect').value;
         let selectedYear = document.getElementById('recapYearSelect').value;
 
-        let filteredExpenses = allExpenses.filter(i => {
+        let safeExpenses = allExpenses.filter(i => i !== null && i !== undefined);
+
+        let filteredExpenses = safeExpenses.filter(i => {
             let matchCat = (filterCategory === 'ALL' || i.category === filterCategory);
             let matchMeth = (filterMethod === 'ALL' || i.method === filterMethod);
             
@@ -1163,7 +1186,7 @@
         });
 
         let totalFilteredExpense = 0;
-        allExpenses.forEach(i => {
+        safeExpenses.forEach(i => {
             let monthMatch = true;
             let yearMatch = true;
 
@@ -1255,14 +1278,16 @@
         let tbody = document.getElementById('auditTableBody');
         tbody.innerHTML = '';
 
-        if (auditLogs.length === 0) {
+        let safeAudit = auditLogs.filter(i => i !== null && i !== undefined);
+
+        if (safeAudit.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>`;
             return;
         }
 
-        auditLogs.sort((a, b) => b.id - a.id);
+        safeAudit.sort((a, b) => b.id - a.id);
 
-        auditLogs.forEach(log => {
+        safeAudit.forEach(log => {
             let badgeColor = (log.action === 'HAPUS') ? '#c62828' : '#1565c0';
             tbody.innerHTML += `<tr>
                 <td>${log.time}</td>
@@ -1278,15 +1303,17 @@
         let tbody = document.getElementById('locationTableBody');
         tbody.innerHTML = '';
 
-        if (locations.length === 0) {
-            locations = ['Proyek Utama'];
+        let safeLoc = locations.filter(i => i !== null && i !== undefined);
+
+        if (safeLoc.length === 0) {
+            safeLoc = ['Proyek Utama'];
         }
 
-        locations.forEach((loc, idx) => {
+        safeLoc.forEach((loc, idx) => {
             tbody.innerHTML += `<tr>
                 <td><b>${loc}</b></td>
                 <td style="text-align: center;">
-                    ${locations.length > 1 ? `<button class="btn-danger" onclick="deleteLocation(${idx})">Hapus</button>` : '<span style="font-size:0.75rem; color:#888;">Utama</span>'}
+                    ${safeLoc.length > 1 ? `<button class="btn-danger" onclick="deleteLocation(${idx})">Hapus</button>` : '<span style="font-size:0.75rem; color:#888;">Utama</span>'}
                 </td>
             </tr>`;
         });
