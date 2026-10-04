@@ -1162,7 +1162,6 @@
             return matchCat && matchMeth && monthMatch && yearMatch;
         });
 
-        // Hitung total pengeluaran khusus periode yang difilter (bulan & tahun)
         let totalFilteredExpense = 0;
         allExpenses.forEach(i => {
             let monthMatch = true;
@@ -1185,7 +1184,7 @@
 
             if (monthMatch && yearMatch) {
                 let nominal = i.nominal || 0;
-                let sisa = i.sisaSetoran || 0;
+                let sisa = (i.category === 'Order Toko' && i.method === 'Tunai') ? (i.sisaSetoran || 0) : 0;
                 totalFilteredExpense += (nominal - sisa);
             }
         });
@@ -1197,6 +1196,7 @@
             return;
         }
 
+        // Urutkan dari yang terbaru ke terlama berdasarkan ID (timestamp)
         filteredExpenses.sort((a, b) => b.id - a.id);
 
         filteredExpenses.forEach(i => {
@@ -1204,7 +1204,9 @@
             let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
                             `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
 
-            if (i.category === 'Order Toko') {
+            let isOrderTokoTunai = (i.category === 'Order Toko' && i.method === 'Tunai');
+
+            if (isOrderTokoTunai) {
                 actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
             }
 
@@ -1226,9 +1228,14 @@
                 detailHtml += `</div>`;
             }
 
-            let sisaSetoran = i.sisaSetoran || 0;
+            let sisaSetoran = isOrderTokoTunai ? (i.sisaSetoran || 0) : 0;
             let netNominal = i.nominal - sisaSetoran;
             let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4; min-width: 220px;">${i.desc}</div>` : i.desc;
+
+            let sisaColumnContent = '-';
+            if (isOrderTokoTunai) {
+                sisaColumnContent = `<span style="color: #e65100; font-weight: bold;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</span>`;
+            }
 
             tbody.innerHTML += `<tr>
                 <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
@@ -1236,7 +1243,7 @@
                 <td><b>${i.category}</b></td>
                 <td>${i.method || 'Tunai'}</td>
                 <td style="color: #555;">${formatRp(i.nominal)}</td>
-                <td style="color: #e65100; font-weight: bold;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</td>
+                <td>${sisaColumnContent}</td>
                 <td style="color: #c62828; font-weight: bold;">${formatRp(netNominal)}</td>
                 <td>${descDisplay}</td>
                 <td>${detailHtml}</td>
