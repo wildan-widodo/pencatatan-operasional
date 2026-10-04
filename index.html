@@ -38,12 +38,12 @@
         .mode-btn { flex: 1; padding: 8px; border: none; background: transparent; font-weight: bold; cursor: pointer; border-radius: 4px; color: #555; }
         .mode-btn.active { background: #00796b; color: white; }
         
-        .summary-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap; gap: 15px; }
-        .summary-item h4 { margin: 0 0 5px 0; color: #333; font-size: 0.85rem; }
-        .summary-item p { margin: 0; font-size: 1.2rem; font-weight: bold; color: #2e7d32; }
+        .summary-box { background: #ffebee; border: 2px dashed #c62828; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+        .summary-box span { font-size: 0.85rem; color: #c62828; font-weight: bold; display: block; }
+        .summary-box div { font-size: 1.6rem; font-weight: bold; color: #b71c1c; margin-top: 4px; }
         
-        .filter-bar { display: flex; gap: 15px; margin-bottom: 15px; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; flex-wrap: wrap; }
-        .filter-item { flex: 1; min-width: 200px; margin-bottom: 0; }
+        .filter-bar { display: flex; gap: 15px; margin-bottom: 15px; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; flex-wrap: wrap; align-items: flex-end; }
+        .filter-item { flex: 1; min-width: 180px; margin-bottom: 0; }
 
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -108,6 +108,7 @@
                     <option value="Rumah">Rumah</option>
                     <option value="Material">Material</option>
                     <option value="Order Toko">Order Toko</option>
+                    <option value="Gaji Pegawai">Gaji Pegawai</option>
                 </select>
             </div>
 
@@ -201,19 +202,28 @@
 
     <!-- TAB 2: RIWAYAT & REKAP -->
     <div id="historyTab" class="tab-content">
-        <!-- BANNER REKAPITULASI -->
-        <div class="summary-box">
-            <div class="summary-item">
-                <h4>TOTAL PEMASUKAN TOKO</h4>
-                <p id="summaryStoreIncome" style="color: #1565c0;">Rp 0</p>
+        <!-- BANNER HANYA TOTAL PENGELUARAN DENGAN FILTER BULAN & TAHUN -->
+        <div class="card" style="border-top: 4px solid #c62828;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0; color: #c62828; font-size: 1.1rem;">📊 Rekapitulasi Pengeluaran Operasional</h3>
+                <div style="display: flex; gap: 8px;">
+                    <select id="recapMonthSelect" onchange="renderExpenses()" style="padding: 6px; font-size: 0.85rem;">
+                        <option value="ALL">Semua Bulan</option>
+                        <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option>
+                        <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
+                        <option value="07">Juli</option><option value="08">Agustus</option><option value="09">September</option>
+                        <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                    </select>
+                    <select id="recapYearSelect" onchange="renderExpenses()" style="padding: 6px; font-size: 0.85rem;">
+                        <option value="ALL">Semua Tahun</option>
+                        <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                    </select>
+                </div>
             </div>
-            <div class="summary-item">
-                <h4>TOTAL PENGELUARAN (BERSIH)</h4>
-                <p id="summaryExpense" style="color: #c62828;">Rp 0</p>
-            </div>
-            <div class="summary-item">
-                <h4>SELISIH ARUS KAS (NET)</h4>
-                <p id="summaryNet">Rp 0</p>
+
+            <div class="summary-box" style="margin-bottom: 0;">
+                <span>TOTAL KESELURUHAN PENGELUARAN OPERASIONAL</span>
+                <div id="summaryExpense">Rp 0</div>
             </div>
         </div>
 
@@ -230,17 +240,16 @@
                         <option value="Rumah">Rumah</option>
                         <option value="Material">Material</option>
                         <option value="Order Toko">Order Toko</option>
+                        <option value="Gaji Pegawai">Gaji Pegawai</option>
                     </select>
                 </div>
-                <div class="filter-bar filter-item" style="border:none; background:transparent; padding:0;">
-                    <div class="form-group" style="width:100%;">
-                        <label>🔍 Pilah Metode Transaksi:</label>
-                        <select id="filterMethod" onchange="renderExpenses()">
-                            <option value="ALL">Semua Metode</option>
-                            <option value="Tunai">Tunai</option>
-                            <option value="Transfer">Transfer</option>
-                        </select>
-                    </div>
+                <div class="form-group filter-item">
+                    <label>🔍 Pilah Metode Transaksi:</label>
+                    <select id="filterMethod" onchange="renderExpenses()">
+                        <option value="ALL">Semua Metode</option>
+                        <option value="Tunai">Tunai</option>
+                        <option value="Transfer">Transfer</option>
+                    </select>
                 </div>
             </div>
 
@@ -332,6 +341,7 @@
                 <option value="Rumah">Rumah</option>
                 <option value="Material">Material</option>
                 <option value="Order Toko">Order Toko</option>
+                <option value="Gaji Pegawai">Gaji Pegawai</option>
             </select>
         </div>
 
@@ -493,10 +503,8 @@
     let allExpenses = [];
     let auditLogs = [];
     let locations = [];
-    let storeClosingsData = [];
     let currentUser = "";
     let currentMaterialMode = "single";
-
     let tempBulkAccumulatedData = null;
 
     const pinUserMap = {
@@ -523,6 +531,10 @@
             
             let firstBmDate = document.querySelector('.bm-date');
             if(firstBmDate) firstBmDate.value = new Date().toISOString().split('T')[0];
+
+            let now = new Date();
+            document.getElementById('recapMonthSelect').value = String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('recapYearSelect').value = String(now.getFullYear());
 
             loadDataFromFirebase();
             toggleCategoryDetail();
@@ -632,7 +644,6 @@
         db.ref('operational_expenses').on('value', snapshot => {
             allExpenses = snapshot.val() || [];
             renderExpenses();
-            calculateSummary();
         });
 
         db.ref('operational_audit_logs').on('value', snapshot => {
@@ -643,11 +654,6 @@
         db.ref('operational_locations').on('value', snapshot => {
             locations = snapshot.val() || ['Proyek Utama'];
             renderLocations();
-        });
-
-        db.ref('store_closings').on('value', snapshot => {
-            storeClosingsData = snapshot.val() || [];
-            calculateSummary();
         });
     }
 
@@ -673,8 +679,7 @@
 
             let p = rawDate.split('-');
             let formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
-            // Format rincian vertikal menggunakan tag <br>
-            detailHtmlLines.append ? detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`) : detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`);
+            detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`);
         });
 
         if (!isValid) {
@@ -782,7 +787,7 @@
             nominal: tempBulkAccumulatedData.totalSum,
             sisaSetoran: 0,
             desc: finalDescString,
-            isHtmlDesc: true, // Penanda bahwa keterangan menggunakan HTML vertikal
+            isHtmlDesc: true,
             materialData,
             createdBy: currentUser
         };
@@ -1129,12 +1134,63 @@
 
         let filterCategory = document.getElementById('filterCategory').value;
         let filterMethod = document.getElementById('filterMethod').value;
+        let selectedMonth = document.getElementById('recapMonthSelect').value;
+        let selectedYear = document.getElementById('recapYearSelect').value;
 
         let filteredExpenses = allExpenses.filter(i => {
             let matchCat = (filterCategory === 'ALL' || i.category === filterCategory);
             let matchMeth = (filterMethod === 'ALL' || i.method === filterMethod);
-            return matchCat && matchMeth;
+            
+            let monthMatch = true;
+            let yearMatch = true;
+
+            if (i.rawDate) {
+                let parts = i.rawDate.split('-');
+                if (parts.length >= 3) {
+                    yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                }
+            } else if (i.date && i.date.includes('/')) {
+                let datePart = i.date.split(' ')[0];
+                let parts = datePart.split('/');
+                if (parts.length >= 3) {
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                    yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
+                }
+            }
+
+            return matchCat && matchMeth && monthMatch && yearMatch;
         });
+
+        // Hitung total pengeluaran khusus periode yang difilter (bulan & tahun)
+        let totalFilteredExpense = 0;
+        allExpenses.forEach(i => {
+            let monthMatch = true;
+            let yearMatch = true;
+
+            if (i.rawDate) {
+                let parts = i.rawDate.split('-');
+                if (parts.length >= 3) {
+                    yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                }
+            } else if (i.date && i.date.includes('/')) {
+                let datePart = i.date.split(' ')[0];
+                let parts = datePart.split('/');
+                if (parts.length >= 3) {
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                    yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
+                }
+            }
+
+            if (monthMatch && yearMatch) {
+                let nominal = i.nominal || 0;
+                let sisa = i.sisaSetoran || 0;
+                totalFilteredExpense += (nominal - sisa);
+            }
+        });
+
+        document.getElementById('summaryExpense').innerText = formatRp(totalFilteredExpense);
 
         if (filteredExpenses.length === 0) {
             tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #777;">Tidak ada data pengeluaran yang sesuai filter.</td></tr>`;
@@ -1256,32 +1312,6 @@
                 alert('Lokasi berhasil dihapus!');
             });
         }
-    }
-
-    function calculateSummary() {
-        let totalStoreIncome = 0;
-        storeClosingsData.forEach(item => {
-            let debit = item.debit || 0;
-            let qris = item.qris || 0;
-            let physicalCash = item.physicalCash || 0;
-            totalStoreIncome += (debit + qris + physicalCash);
-        });
-
-        let totalExpense = 0;
-        allExpenses.forEach(item => {
-            let nominal = item.nominal || 0;
-            let sisa = item.sisaSetoran || 0;
-            totalExpense += (nominal - sisa);
-        });
-
-        let netBalance = totalStoreIncome - totalExpense;
-
-        document.getElementById('summaryStoreIncome').innerText = formatRp(totalStoreIncome);
-        document.getElementById('summaryExpense').innerText = formatRp(totalExpense);
-        
-        let netEl = document.getElementById('summaryNet');
-        netEl.innerText = formatRp(netBalance);
-        netEl.style.color = netBalance >= 0 ? '#2e7d32' : '#c62828';
     }
 </script>
 </body>
