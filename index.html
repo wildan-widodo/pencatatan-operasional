@@ -911,4 +911,451 @@
 
     function submitEditExpense() {
         let id = parseFloat(document.getElementById('editRecordId').value);
-        let newCat = document.getElementById('editCategory').value
+        let newCat = document.getElementById('editCategory').value;
+        let newMeth = document.getElementById('editMethod').value;
+        let newNom = parseCleanNumber(document.getElementById('editNominal').value);
+        let newDesc = document.getElementById('editDesc').value.trim();
+        let reason = document.getElementById('editReason').value.trim();
+
+        if (!reason) {
+            alert('Alasan edit data wajib diisi!');
+            return;
+        }
+        if (newNom <= 0) {
+            alert('Nominal harus valid!');
+            return;
+        }
+
+        let oldRec = allExpenses.find(i => i && i.id === id);
+        if (!oldRec) return;
+
+        let now = new Date();
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
+
+        allExpenses = allExpenses.map(item => {
+            if (item && item.id === id) {
+                return {
+                    ...item,
+                    category: newCat,
+                    method: newMeth,
+                    nominal: newNom,
+                    desc: newDesc
+                };
+            }
+            return item;
+        });
+
+        let auditEntry = {
+            id: Date.now(),
+            time: timeLog,
+            user: currentUser,
+            action: 'EDIT',
+            details: `Kategori: ${oldRec.category} ➔ ${newCat} | Nominal: ${formatRp(oldRec.nominal)} ➔ ${formatRp(newNom)}`,
+            reason: reason
+        };
+
+        auditLogs.push(auditEntry);
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            db.ref('operational_audit_logs').set(auditLogs).then(() => {
+                alert('Data pengeluaran berhasil diperbarui!');
+                document.getElementById('editModal').style.display = 'none';
+            });
+        });
+    }
+
+    function openSisaModal(id) {
+        let rec = allExpenses.find(i => i && i.id === id);
+        if (!rec) return;
+
+        document.getElementById('sisaRecordId').value = rec.id;
+        document.getElementById('modalSisaDescText').innerHTML = rec.desc;
+        document.getElementById('modalSisaBrutoText').innerText = formatRp(rec.nominal);
+        document.getElementById('sisaAmountInput').value = rec.sisaSetoran ? formatNumber(rec.sisaSetoran) : '';
+
+        document.getElementById('sisaModal').style.display = 'flex';
+    }
+
+    function submitSisaSetoran() {
+        let id = parseFloat(document.getElementById('sisaRecordId').value);
+        let sisaVal = parseCleanNumber(document.getElementById('sisaAmountInput').value);
+
+        let rec = allExpenses.find(i => i && i.id === id);
+        if (!rec) return;
+
+        if (sisaVal >= rec.nominal) {
+            alert('Sisa setoran tidak boleh melebihi atau sama dengan total nominal bruto!');
+            return;
+        }
+
+        allExpenses = allExpenses.map(item => {
+            if (item && item.id === id) {
+                return { ...item, sisaSetoran: sisaVal };
+            }
+            return item;
+        });
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert('Sisa setoran berhasil disimpan dan dikurangkan dari pengeluaran!');
+            document.getElementById('sisaModal').style.display = 'none';
+        });
+    }
+
+    function openDeleteModal(id) {
+        document.getElementById('deleteRecordId').value = id;
+        document.getElementById('deleteReason').value = '';
+        document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function submitDeleteExpense() {
+        let id = parseFloat(document.getElementById('deleteRecordId').value);
+        let reason = document.getElementById('deleteReason').value.trim();
+
+        if (!reason) {
+            alert('Alasan penghapusan wajib diisi!');
+            return;
+        }
+
+        let targetRec = allExpenses.find(i => i && i.id === id);
+        if (!targetRec) return;
+
+        let now = new Date();
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
+
+        allExpenses = allExpenses.filter(item => item && item.id !== id);
+
+        let auditEntry = {
+            id: Date.now(),
+            time: timeLog,
+            user: currentUser,
+            action: 'HAPUS',
+            details: `Hapus [${targetRec.category}] (${formatRp(targetRec.nominal)})`,
+            reason: reason
+        };
+
+        auditLogs.push(auditEntry);
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            db.ref('operational_audit_logs').set(auditLogs).then(() => {
+                alert('Data berhasil dihapus dan tercatat di audit trail!');
+                document.getElementById('deleteModal').style.display = 'none';
+            });
+        });
+    }
+
+    function openRekapModal(id) {
+        let rec = allExpenses.find(i => i && i.id === id);
+        if (!rec || !rec.materialData) return;
+
+        document.getElementById('rekapRecordId').value = rec.id;
+        document.getElementById('modalReceiverText').innerText = rec.materialData.receiver || '-';
+        document.getElementById('modalTotalDanaText').innerText = formatRp(rec.nominal);
+
+        let container = document.getElementById('modalShoppingRows');
+        container.innerHTML = '';
+
+        if (rec.materialData.shops && rec.materialData.shops.length > 0) {
+            rec.materialData.shops.forEach(s => {
+                let div = document.createElement('div');
+                div.className = 'sub-row';
+                
+                let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
+                locations.forEach(loc => {
+                    let selected = (s.name === loc) ? 'selected' : '';
+                    optionsHtml += `<option value="${loc}" ${selected}>${loc}</option>`;
+                });
+
+                div.innerHTML = `
+                    <select class="modal-shop-name" style="flex: 2;">${optionsHtml}</select>
+                    <input type="text" class="modal-shop-cost" inputmode="numeric" value="${formatNumber(s.cost)}" placeholder="Nominal (Rp)" style="flex: 1.5;" oninput="formatInputNumber(this); calculateModalTotal();">
+                    <button type="button" class="btn-del-row" onclick="this.parentElement.remove(); calculateModalTotal();">✕</button>
+                `;
+                container.appendChild(div);
+            });
+        } else {
+            addModalShopRow();
+        }
+
+        calculateModalTotal();
+        document.getElementById('rekapModal').style.display = 'flex';
+    }
+
+    function addModalShopRow() {
+        let container = document.getElementById('modalShoppingRows');
+        let div = document.createElement('div');
+        div.className = 'sub-row';
+        
+        let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
+        locations.forEach(loc => {
+            optionsHtml += `<option value="${loc}">${loc}</option>`;
+        });
+
+        div.innerHTML = `
+            <select class="modal-shop-name" style="flex: 2;">${optionsHtml}</select>
+            <input type="text" class="modal-shop-cost" inputmode="numeric" placeholder="Nominal (Rp)" style="flex: 1.5;" oninput="formatInputNumber(this); calculateModalTotal();">
+            <button type="button" class="btn-del-row" onclick="this.parentElement.remove(); calculateModalTotal();">✕</button>
+        `;
+        container.appendChild(div);
+        calculateModalTotal();
+    }
+
+    function calculateModalTotal() {
+        let totalNota = 0;
+        document.querySelectorAll('.modal-shop-cost').forEach(el => {
+            totalNota += parseCleanNumber(el.value);
+        });
+
+        document.getElementById('modalTotalNotaText').innerText = formatRp(totalNota);
+
+        let recId = parseFloat(document.getElementById('rekapRecordId').value);
+        let rec = allExpenses.find(i => i && i.id === recId);
+        if (!rec) return;
+
+        let selisih = rec.nominal - totalNota;
+        let selisihEl = document.getElementById('modalSelisihText');
+
+        if (selisih === 0) {
+            selisihEl.innerHTML = `<span style="color: #2e7d32;">PAS (Tidak ada selisih)</span>`;
+        } else if (selisih > 0) {
+            selisihEl.innerHTML = `<span style="color: #1565c0;">Sisa Uang (Lebih): ${formatRp(selisih)}</span>`;
+        } else {
+            selisihEl.innerHTML = `<span style="color: #c62828;">Kurang Uang (Minus): ${formatRp(Math.abs(selisih))}</span>`;
+        }
+    }
+
+    function saveRekapNota() {
+        let recId = parseFloat(document.getElementById('rekapRecordId').value);
+        let shops = [];
+
+        document.querySelectorAll('.sub-row').forEach(row => {
+            let name = row.querySelector('.modal-shop-name').value.trim();
+            let cost = parseCleanNumber(row.querySelector('.modal-shop-cost').value);
+            if (name && cost > 0) {
+                shops.push({ name, cost });
+            }
+        });
+
+        allExpenses = allExpenses.map(item => {
+            if (item && item.id === recId) {
+                let totalNota = shops.reduce((sum, s) => sum + s.cost, 0);
+                let selisih = item.nominal - totalNota;
+                let statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+
+                return {
+                    ...item,
+                    materialData: {
+                        ...item.materialData,
+                        shops,
+                        statusRekap
+                    }
+                };
+            }
+            return item;
+        });
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert('Rekapitulasi nota berhasil diperbarui!');
+            document.getElementById('rekapModal').style.display = 'none';
+        });
+    }
+
+    function renderExpenses() {
+        let tbody = document.getElementById('expenseTableBody');
+        tbody.innerHTML = '';
+
+        let filterCategory = document.getElementById('filterCategory').value;
+        let filterMethod = document.getElementById('filterMethod').value;
+        let selectedMonth = document.getElementById('recapMonthSelect').value;
+        let selectedYear = document.getElementById('recapYearSelect').value;
+
+        let safeExpenses = allExpenses.filter(i => i !== null && i !== undefined);
+
+        let filteredExpenses = safeExpenses.filter(i => {
+            let matchCat = (filterCategory === 'ALL' || i.category === filterCategory);
+            let matchMeth = (filterMethod === 'ALL' || i.method === filterMethod);
+            
+            let monthMatch = true;
+            let yearMatch = true;
+
+            if (i.rawDate) {
+                let parts = i.rawDate.split('-');
+                if (parts.length >= 3) {
+                    yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                }
+            } else if (i.date && i.date.includes('/')) {
+                let datePart = i.date.split(' ')[0];
+                let parts = datePart.split('/');
+                if (parts.length >= 3) {
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                    yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
+                }
+            }
+
+            return matchCat && matchMeth && monthMatch && yearMatch;
+        });
+
+        let totalFilteredExpense = 0;
+        safeExpenses.forEach(i => {
+            let monthMatch = true;
+            let yearMatch = true;
+
+            if (i.rawDate) {
+                let parts = i.rawDate.split('-');
+                if (parts.length >= 3) {
+                    yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                }
+            } else if (i.date && i.date.includes('/')) {
+                let datePart = i.date.split(' ')[0];
+                let parts = datePart.split('/');
+                if (parts.length >= 3) {
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                    yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
+                }
+            }
+
+            if (monthMatch && yearMatch) {
+                let nominal = i.nominal || 0;
+                let sisa = (i.category === 'Order Toko' && i.method === 'Tunai') ? (i.sisaSetoran || 0) : 0;
+                totalFilteredExpense += (nominal - sisa);
+            }
+        });
+
+        document.getElementById('summaryExpense').innerText = formatRp(totalFilteredExpense);
+
+        if (filteredExpenses.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #777;">Tidak ada data pengeluaran yang sesuai filter.</td></tr>`;
+            return;
+        }
+
+        filteredExpenses.sort((a, b) => b.id - a.id);
+
+        filteredExpenses.forEach(i => {
+            let detailHtml = '-';
+            let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
+                            `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
+
+            let isOrderTokoTunai = (i.category === 'Order Toko' && i.method === 'Tunai');
+
+            if (isOrderTokoTunai) {
+                actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
+            }
+
+            if (i.category === 'Material' && i.materialData) {
+                let m = i.materialData;
+                actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` + actionBtn;
+                
+                detailHtml = `<div class="vertical-details">
+                    👤 <b>Penerima:</b> ${m.receiver || '-'}<br>
+                    📌 <b>Status:</b> <span style="color: #2e7d32; font-weight: bold;">${m.statusRekap || 'Belum Direkap'}</span><br>
+                    🏗️ <b>Alokasi Lokasi Bangunan:</b><br>`;
+                if (m.shops && m.shops.length > 0) {
+                    m.shops.forEach(s => {
+                        detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`;
+                    });
+                } else {
+                    detailHtml += `&nbsp;&nbsp;<i>(Belum ada rincian lokasi)</i><br>`;
+                }
+                detailHtml += `</div>`;
+            }
+
+            let sisaSetoran = isOrderTokoTunai ? (i.sisaSetoran || 0) : 0;
+            let netNominal = i.nominal - sisaSetoran;
+            let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4; min-width: 220px;">${i.desc}</div>` : i.desc;
+
+            let sisaColumnContent = '-';
+            if (isOrderTokoTunai) {
+                sisaColumnContent = `<span style="color: #e65100; font-weight: bold;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</span>`;
+            }
+
+            tbody.innerHTML += `<tr>
+                <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
+                <td>${i.date || '-'}</td>
+                <td><b>${i.category}</b></td>
+                <td>${i.method || 'Tunai'}</td>
+                <td style="color: #555;">${formatRp(i.nominal)}</td>
+                <td>${sisaColumnContent}</td>
+                <td style="color: #c62828; font-weight: bold;">${formatRp(netNominal)}</td>
+                <td>${descDisplay}</td>
+                <td>${detailHtml}</td>
+            </tr>`;
+        });
+    }
+
+    function renderAuditLogs() {
+        let tbody = document.getElementById('auditTableBody');
+        tbody.innerHTML = '';
+
+        let safeAudit = auditLogs.filter(i => i !== null && i !== undefined);
+
+        if (safeAudit.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>`;
+            return;
+        }
+
+        safeAudit.sort((a, b) => b.id - a.id);
+
+        safeAudit.forEach(log => {
+            let badgeColor = (log.action === 'HAPUS') ? '#c62828' : '#1565c0';
+            tbody.innerHTML += `<tr>
+                <td>${log.time}</td>
+                <td><b>${log.user || 'Sistem'}</b></td>
+                <td><span style="background: ${badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">${log.action}</span></td>
+                <td>${log.details}</td>
+                <td><b>${log.reason}</b></td>
+            </tr>`;
+        });
+    }
+
+    function renderLocations() {
+        let tbody = document.getElementById('locationTableBody');
+        tbody.innerHTML = '';
+
+        let safeLoc = locations.filter(i => i !== null && i !== undefined);
+
+        if (safeLoc.length === 0) {
+            safeLoc = ['Proyek Utama'];
+        }
+
+        safeLoc.forEach((loc, idx) => {
+            tbody.innerHTML += `<tr>
+                <td><b>${loc}</b></td>
+                <td style="text-align: center;">
+                    ${safeLoc.length > 1 ? `<button class="btn-danger" onclick="deleteLocation(${idx})">Hapus</button>` : '<span style="font-size:0.75rem; color:#888;">Utama</span>'}
+                </td>
+            </tr>`;
+        });
+    }
+
+    function addLocation() {
+        let input = document.getElementById('newLocationInput');
+        let val = input.value.trim();
+        if (!val) {
+            alert('Nama lokasi tidak boleh kosong!');
+            return;
+        }
+
+        if (locations.includes(val)) {
+            alert('Lokasi tersebut sudah ada!');
+            return;
+        }
+
+        locations.push(val);
+        db.ref('operational_locations').set(locations).then(() => {
+            alert('Lokasi berhasil ditambah!');
+            input.value = '';
+        });
+    }
+
+    function deleteLocation(index) {
+        if (confirm(`Hapus lokasi "${locations[index]}"?`)) {
+            locations.splice(index, 1);
+            db.ref('operational_locations').set(locations).then(() => {
+                alert('Lokasi berhasil dihapus!');
+            });
+        }
+    }
+</script>
+</body>
+</html>
