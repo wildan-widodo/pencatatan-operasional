@@ -4,52 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="3.0.0-gudang-saldo-fix">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         * { box-sizing: border-box; font-family: Arial, sans-serif; }
         body { background: #f4f6f8; margin: 0; padding: 15px; }
-        .container { max-width: 1200px; margin: auto; display: none; }
+        .container { max-width: 1300px; margin: auto; display: none; }
         .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h2, h3 { margin-top: 0; color: #333; }
         .form-group { margin-bottom: 15px; text-align: left; }
         label { display: block; margin-bottom: 5px; color: #666; font-weight: bold; font-size: 0.9rem; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
         
-        .btn-primary { background: #1565c0; color: white; border: none; padding: 12px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem; }
-        .btn-success { background: #2e7d32; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
-        .btn-cancel { background: #9e9e9e; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; }
-        .btn-edit { background: #e0f2f1; color: #00796b; border: 1px solid #b2dfdb; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
-        .btn-delete { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+        .btn-primary { background: #2e7d32; color: white; border: none; padding: 12px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem; }
+        .btn-danger { background: #c62828; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+        .btn-edit { background: #1565c0; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
+        .btn-rekap { background: #00796b; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
+        .btn-sisa { background: #e65100; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
+        .btn-add-row { background: #00796b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; }
+        .btn-del-row { background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+
+        .sub-form-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
+        .sub-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
+        .sub-row input { flex: 2; }
+
+        .bulk-material-box { background: #e0f2f1; border: 2px dashed #00796b; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
+        .bulk-material-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #b2dfdb; }
+        .bulk-material-row input.bm-date { flex: 1.2; }
+        .bulk-material-row input.bm-receiver { flex: 1.4; }
+        .bulk-material-row input.bm-nominal { flex: 1.1; }
+        .bulk-material-row input.bm-desc { flex: 1.8; }
+        .mode-toggle-bar { display: flex; gap: 10px; margin-bottom: 15px; background: #f1f3f5; padding: 6px; border-radius: 4px; }
+        .mode-btn { flex: 1; padding: 8px; border: none; background: transparent; font-weight: bold; cursor: pointer; border-radius: 4px; color: #555; }
+        .mode-btn.active { background: #00796b; color: white; }
         
+        .summary-box { background: #ffebee; border: 2px dashed #c62828; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+        .summary-box span { font-size: 0.85rem; color: #c62828; font-weight: bold; display: block; }
+        .summary-box div { font-size: 1.6rem; font-weight: bold; color: #b71c1c; margin-top: 4px; }
+        
+        .filter-bar { display: flex; gap: 15px; margin-bottom: 15px; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; flex-wrap: wrap; align-items: flex-end; }
+        .filter-item { flex: 1; min-width: 180px; margin-bottom: 0; }
+
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; font-size: 0.85rem; white-space: nowrap; }
         th { background: #f8f9fa; }
-        .login-card { max-width: 380px; margin: 80px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
+        .vertical-details { font-size: 0.8rem; line-height: 1.4; white-space: normal; min-width: 220px; }
         
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .nav-tab { padding: 10px 15px; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: #333; }
+        .nav-tab { padding: 10px 20px; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
         .nav-tab.active { background: #1565c0; color: white; }
-
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .login-card { max-width: 380px; margin: 80px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
+        
         .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 450px; text-align: left; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-        .gudang-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 550px; text-align: left; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
 
 <!-- HALAMAN LOGIN PIN -->
 <div class="login-card" id="loginCard">
-    <h2>Login Operasional AWW</h2>
-    <p style="font-size: 0.85rem; color: #666; margin-bottom: 20px;">Masukkan PIN Akses</p>
+    <h2>Login Akses AWW</h2>
+    <p style="font-size: 0.85rem; color: #666; margin-bottom: 20px;">Masukkan PIN Akses Anda</p>
     <div class="form-group">
         <label>PIN Akses</label>
-        <input type="password" id="loginPinInput" placeholder="••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.3rem;" onkeydown="if(event.key==='Enter'){ handleLogin(); }">
+        <input type="password" id="loginPinInput" placeholder="••••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.3rem;" onkeydown="if(event.key==='Enter'){ handleLogin(); }">
     </div>
     <button type="button" class="btn-primary" onclick="handleLogin()">Masuk</button>
     <div id="loginError" style="color: #c62828; font-size: 0.85rem; margin-top: 15px;"></div>
@@ -57,112 +80,250 @@
 
 <!-- APLIKASI UTAMA -->
 <div class="container" id="appContainer">
-    <div class="card" style="display: flex; justify-content: space-between; align-items: center; background: #1565c0; color: white; flex-wrap: wrap; gap: 10px;">
+    <div class="card" style="background: #1565c0; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-            <h2 style="margin: 0; color: white;">📂 Pencatatan Pengeluaran & Operasional AWW</h2>
-            <p id="userRoleHeader" style="font-size: 0.85rem; margin: 5px 0 0 0;">Mengakses sebagai: Owner</p>
+            <h2 style="margin: 0; color: white;">🏗️ Pencatatan Pengeluaran & Operasional AWW</h2>
+            <p id="userStatusBanner" style="font-size: 0.85rem; margin: 5px 0 0 0; opacity: 0.9;">👤 Mengakses sebagai: -</p>
         </div>
-        <button class="btn-cancel" onclick="handleLogout()" style="width: auto; padding: 6px 12px; background: #c62828;">🚪 Keluar Akun</button>
+        <button onclick="handleLogout()" style="background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">🚪 Keluar Akun</button>
     </div>
 
-    <!-- NAVIGASI TAB -->
-    <div class="nav-tabs">
-        <button class="nav-tab active" onclick="switchTab('inputTab')">➕ Catat Pengeluaran</button>
+    <!-- TAB NAVIGASI -->
+    <div class="nav-tabs" id="navTabsContainer">
+        <button class="nav-tab active" onclick="switchTab('inputTab')">📝 Catat Pengeluaran</button>
         <button class="nav-tab" onclick="switchTab('historyTab')">📋 Riwayat & Rekap</button>
-        <button class="nav-tab" onclick="switchTab('auditTab')">🔍 Audit Trail Log</button>
+        <button class="nav-tab" id="auditTabBtn" onclick="switchTab('auditTab')" style="display: none;">📜 Audit Trail Log</button>
+        <button class="nav-tab" onclick="switchTab('settingTab')">⚙️ Pengaturan & Lokasi</button>
     </div>
 
-    <!-- TAB 1: CATAT PENGELUARAN -->
-    <div class="card tab-content" id="inputTab">
-        <h3>📝 Form Pencatatan Pengeluaran & Operasional</h3>
-        <form id="expenseForm" onsubmit="saveExpense(event)">
-            <div class="form-group">
-                <label>Tanggal & Waktu</label>
-                <input type="datetime-local" id="expDateInput" required>
-            </div>
-
+    <!-- TAB 1: INPUT PENGELUARAN -->
+    <div id="inputTab" class="tab-content active">
+        <div class="card">
+            <h3>Form Catat Pengeluaran Baru</h3>
+            
             <div class="form-group">
                 <label>Kategori Pengeluaran</label>
-                <select id="expCategory" onchange="handleCategoryChange()" required>
-                    <option value="">-- Pilih Kategori --</option>
-                    <option value="Operasional Toko">Operasional Toko</option>
+                <select id="expenseCategory" onchange="toggleCategoryDetail()">
                     <option value="Gudang">Gudang</option>
-                    <option value="Logistik / Pengiriman">Logistik / Pengiriman</option>
-                    <option value="Lainnya">Lainnya</option>
+                    <option value="Rumah">Rumah</option>
+                    <option value="Material">Material</option>
+                    <option value="Order Toko">Order Toko</option>
+                    <option value="Gaji Pegawai">Gaji Pegawai</option>
                 </select>
             </div>
 
-            <!-- FITUR KHUSUS SALDO / UANG POKOK GUDANG -->
-            <div class="gudang-box" id="gudangSection">
-                <h4 style="color: #2e7d32; margin-top: 0; margin-bottom: 8px;">📦 Pengaturan Saldo / Uang Pokok Gudang</h4>
-                <p style="font-size: 0.8rem; color: #555; margin-bottom: 10px;">Kelola atau perbarui jumlah uang pokok yang dipegang oleh admin/gudang saat ini.</p>
-                <div class="form-group" style="margin-bottom: 8px;">
-                    <label style="color: #2e7d32;">Total Saldo / Uang Pokok Gudang Saat Ini (Rp):</label>
-                    <input type="text" id="gudangBalanceInput" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)">
+            <!-- TOMBOL PILIH MODE KHUSUS MATERIAL (SATUAN / MASSAL) -->
+            <div id="materialModeToggleBox" style="display: none;">
+                <div class="mode-toggle-bar">
+                    <button type="button" class="mode-btn active" id="btnSingleMode" onclick="setMaterialMode('single')">Catat Satuan</button>
+                    <button type="button" class="mode-btn" id="btnBulkMode" onclick="setMaterialMode('bulk')">📦 Input Akumulasi Massal Material</button>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Metode Pembayaran</label>
-                <select id="expMethod" required>
-                    <option value="Tunai">Tunai</option>
-                    <option value="Transfer Bank">Transfer Bank</option>
-                    <option value="QRIS">QRIS</option>
-                </select>
-            </div>
+            <form onsubmit="saveExpense(event)">
+                <!-- FORM SATUAN (DEFAULT) -->
+                <div id="singleFormSection">
+                    <div class="form-group">
+                        <label>Tanggal</label>
+                        <input type="date" id="expenseDate">
+                    </div>
 
-            <div class="form-group">
-                <label>Nominal Pengeluaran (Rp)</label>
-                <input type="text" id="expAmount" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)" required>
-            </div>
+                    <!-- FORM KHUSUS DETAIL MATERIAL -->
+                    <div id="materialDetailBox" class="sub-form-box">
+                        <h4 style="margin-top: 0; color: #2e7d32;">🧱 Detail Penyerahan Dana Material</h4>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Nama Penerima Uang / Petugas:</label>
+                            <input type="text" id="materialReceiver" placeholder="Contoh: Mas Aprin">
+                        </div>
+                    </div>
 
-            <div class="form-group">
-                <label>Keterangan / Keperluan</label>
-                <textarea id="expNote" rows="3" placeholder="Contoh: Pembelian alat kebersihan gudang..." required></textarea>
-            </div>
+                    <div class="form-group">
+                        <label>Metode Transaksi</label>
+                        <select id="expenseMethod">
+                            <option value="Tunai">Tunai</option>
+                            <option value="Transfer">Transfer</option>
+                        </select>
+                    </div>
 
-            <button type="submit" class="btn-primary">💾 Simpan Pengeluaran</button>
-        </form>
-    </div>
+                    <div class="form-group">
+                        <label>Nominal Total (Rp)</label>
+                        <input type="text" id="expenseNominal" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)">
+                    </div>
 
-    <!-- TAB 2: RIWAYAT & REKAP -->
-    <div class="card tab-content" id="historyTab" style="display: none;">
-        <h3>📋 Riwayat Pengeluaran</h3>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Aksi</th>
-                        <th>Tanggal & Waktu</th>
-                        <th>Kategori</th>
-                        <th>Metode</th>
-                        <th>Nominal</th>
-                        <th>Keterangan</th>
-                    </tr>
-                </thead>
-                <tbody id="historyTableBody">
-                    <tr><td colspan="6" style="text-align: center; color: #777;">Memuat data...</td></tr>
-                </tbody>
-            </table>
+                    <div class="form-group">
+                        <label>Keterangan / Keperluan</label>
+                        <input type="text" id="expenseDesc" placeholder="Contoh: Pembayaran operasional">
+                    </div>
+                </div>
+
+                <!-- FORM INPUT MASSAL KHUSUS MATERIAL -->
+                <div id="bulkMaterialSection" class="bulk-material-box">
+                    <h4 style="margin-top: 0; color: #00796b;">📦 Akumulasi Pemberian Dana ke Petugas (Beberapa Hari)</h4>
+                    <p style="font-size: 0.8rem; color: #555; margin-bottom: 10px;">Catat beberapa kali pemberian dana dari admin ke petugas secara bertahap lengkap dengan tanggalnya masing-masing.</p>
+                    
+                    <div style="display: flex; font-size: 0.75rem; color: #444; font-weight: bold; margin-bottom: 4px; gap: 8px;">
+                        <span style="flex: 1.2;">Tanggal Pemberian</span>
+                        <span style="flex: 1.4;">Nama Penerima</span>
+                        <span style="flex: 1.1;">Nominal (Rp)</span>
+                        <span style="flex: 1.8;">Keterangan / Catatan</span>
+                        <span style="width: 35px;"></span>
+                    </div>
+
+                    <div id="bulkMaterialRowsContainer">
+                        <div class="bulk-material-row">
+                            <input type="date" class="bm-date" required>
+                            <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
+                            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
+                            <input type="text" class="bm-desc" placeholder="Keterangan" required>
+                            <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-add-row" onclick="addBulkMaterialRow()" style="background:#00796b; margin-top: 8px;">+ Tambah Riwayat Pemberian Lain</button>
+                    
+                    <div style="display: flex; gap: 15px; margin-top: 15px;">
+                        <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                            <label>Metode Transaksi Akumulasi:</label>
+                            <select id="bulkMaterialMethod">
+                                <option value="Tunai">Tunai</option>
+                                <option value="Transfer">Transfer</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1; margin-bottom: 0; display: flex; align-items: flex-end;">
+                            <button type="button" class="btn-primary" onclick="openBulkRekapSetupModal()" style="background: #00796b;">🧾 Lanjut Rincian Nota & Cek Selisih</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="submitExpenseBtn">Simpan Pengeluaran</button>
+            </form>
         </div>
     </div>
 
-    <!-- TAB 3: AUDIT TRAIL LOG -->
-    <div class="card tab-content" id="auditTab" style="display: none;">
-        <h3>🔍 Audit Trail Log Aktivitas</h3>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Waktu Aktivitas</th>
-                        <th>Aksi</th>
-                        <th>Detail Perubahan</th>
-                    </tr>
-                </thead>
-                <tbody id="auditTableBody">
-                    <tr><td colspan="3" style="text-align: center; color: #777;">Belum ada log aktivitas.</td></tr>
-                </tbody>
-            </table>
+    <!-- TAB 2: RIWAYAT & REKAP -->
+    <div id="historyTab" class="tab-content">
+        <!-- BANNER TOTAL PENGELUARAN DENGAN FILTER BULAN & TAHUN -->
+        <div class="card" style="border-top: 4px solid #c62828;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0; color: #c62828; font-size: 1.1rem;">📊 Rekapitulasi Pengeluaran Operasional</h3>
+                <div style="display: flex; gap: 8px;">
+                    <select id="recapMonthSelect" onchange="renderExpenses()" style="padding: 6px; font-size: 0.85rem;">
+                        <option value="ALL">Semua Bulan</option>
+                        <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option>
+                        <option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option>
+                        <option value="07">Juli</option><option value="08">Agustus</option><option value="09">September</option>
+                        <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                    </select>
+                    <select id="recapYearSelect" onchange="renderExpenses()" style="padding: 6px; font-size: 0.85rem;">
+                        <option value="ALL">Semua Tahun</option>
+                        <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="summary-box" style="margin-bottom: 0;">
+                <span>TOTAL KESELURUHAN PENGELUARAN OPERASIONAL</span>
+                <div id="summaryExpense">Rp 0</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Riwayat Pengeluaran</h3>
+            
+            <!-- FILTER PILAH KATEGORI & METODE -->
+            <div class="filter-bar">
+                <div class="form-group filter-item">
+                    <label>🔍 Pilah Kategori:</label>
+                    <select id="filterCategory" onchange="renderExpenses()">
+                        <option value="ALL">Semua Kategori</option>
+                        <option value="Gudang">Gudang</option>
+                        <option value="Rumah">Rumah</option>
+                        <option value="Material">Material</option>
+                        <option value="Order Toko">Order Toko</option>
+                        <option value="Gaji Pegawai">Gaji Pegawai</option>
+                    </select>
+                </div>
+                <div class="form-group filter-item">
+                    <label>🔍 Pilah Metode Transaksi:</label>
+                    <select id="filterMethod" onchange="renderExpenses()">
+                        <option value="ALL">Semua Metode</option>
+                        <option value="Tunai">Tunai</option>
+                        <option value="Transfer">Transfer</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aksi</th>
+                            <th>Tanggal & Waktu</th>
+                            <th>Kategori</th>
+                            <th>Metode</th>
+                            <th>Nominal Bruto</th>
+                            <th>Sisa Setoran (Pribadi Owner)</th>
+                            <th>Nominal Bersih (Pengeluaran)</th>
+                            <th>Keterangan</th>
+                            <th>Detail Material & Alokasi Lokasi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody">
+                        <tr><td colspan="9" style="text-align: center; color: #777;">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: AUDIT TRAIL LOG (KHUSUS OWNER) -->
+    <div id="auditTab" class="tab-content">
+        <div class="card">
+            <h3>📜 Audit Trail Log (Riwayat Edit & Hapus)</h3>
+            <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Catatan transparansi seluruh aktivitas perubahan dan penghapusan data transaksi (Khusus Owner).</p>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Waktu Aktivitas</th>
+                            <th>Pengguna</th>
+                            <th>Aksi</th>
+                            <th>Detail Perubahan / Data Terhapus</th>
+                            <th>Alasan Wajib</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTableBody">
+                        <tr><td colspan="5" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: PENGATURAN & LOKASI -->
+    <div id="settingTab" class="tab-content">
+        <div class="card">
+            <h3>⚙️ Kelola Lokasi Bangunan / Proyek</h3>
+            <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Tambahkan atau hapus lokasi bangunan yang tersedia untuk rincian rekap nota material.</p>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="newLocationInput" placeholder="Nama Lokasi Baru (Contoh: Proyek Cabang Baru)">
+                <button type="button" class="btn-primary" onclick="addLocation()" style="width: 150px;">Tambah Lokasi</button>
+            </div>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nama Lokasi Bangunan</th>
+                            <th style="width: 100px; text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="locationTableBody">
+                        <tr><td colspan="2" style="text-align: center; color: #777;">Memuat lokasi...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -170,19 +331,156 @@
 <!-- MODAL EDIT PENGELUARAN -->
 <div class="modal" id="editModal">
     <div class="modal-content">
-        <h3>✏️ Edit Pengeluaran</h3>
-        <input type="hidden" id="editId">
+        <h3 style="color: #1565c0;">✏️ Edit Data Pengeluaran</h3>
+        <input type="hidden" id="editRecordId">
+        
         <div class="form-group">
-            <label>Nominal (Rp)</label>
-            <input type="text" id="editAmount" inputmode="numeric" oninput="formatInputNumber(this)" required>
+            <label>Kategori Pengeluaran</label>
+            <select id="editCategory">
+                <option value="Gudang">Gudang</option>
+                <option value="Rumah">Rumah</option>
+                <option value="Material">Material</option>
+                <option value="Order Toko">Order Toko</option>
+                <option value="Gaji Pegawai">Gaji Pegawai</option>
+            </select>
         </div>
+
         <div class="form-group">
-            <label>Keterangan</label>
-            <textarea id="editNote" rows="3" required></textarea>
+            <label>Metode Transaksi</label>
+            <select id="editMethod">
+                <option value="Tunai">Tunai</option>
+                <option value="Transfer">Transfer</option>
+            </select>
         </div>
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button class="btn-cancel" onclick="document.getElementById('editModal').style.display='none'">Batal</button>
-            <button class="btn-primary" onclick="submitEditExpense()">Simpan Perubahan</button>
+
+        <div class="form-group">
+            <label>Nominal Total (Rp)</label>
+            <input type="text" id="editNominal" inputmode="numeric" oninput="formatInputNumber(this)">
+        </div>
+
+        <div class="form-group">
+            <label>Keterangan / Keperluan</label>
+            <input type="text" id="editDesc">
+        </div>
+
+        <div class="form-group" style="background: #fff3e0; padding: 10px; border-radius: 4px; border: 1px solid #ffe0b2;">
+            <label style="color: #e65100;">⚠️ Alasan Edit Data (Wajib Diisi):</label>
+            <input type="text" id="editReason" placeholder="Contoh: Salah input nominal transaksi" style="background: #fff;">
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="submitEditExpense()" style="background:#1565c0;">Simpan Perubahan</button>
+            <button class="btn-danger" onclick="document.getElementById('editModal').style.display='none'" style="width: 120px;">Batal</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL INPUT SISA SETORAN ORDER TOKO -->
+<div class="modal" id="sisaModal">
+    <div class="modal-content">
+        <h3 style="color: #e65100;">💰 Input Sisa Setoran Bank (Masuk Rekening Pribadi Owner)</h3>
+        <input type="hidden" id="sisaRecordId">
+        
+        <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9rem; border: 1px solid #ffe0b2;">
+            <div>📦 <b>Keterangan Order:</b> <span id="modalSisaDescText">-</span></div>
+            <div>💵 <b>Nominal Bruto (Setoran):</b> <span id="modalSisaBrutoText" style="font-weight: bold;">Rp 0</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Masukkan Sisa / Selisih (Masuk Rek. Pribadi Owner):</label>
+            <input type="text" id="sisaAmountInput" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)">
+            <small style="color: #666; display: block; margin-top: 5px;">Nilai ini akan mengurangkan nominal bruto sehingga pengeluaran bersih yang tercatat tidak termasuk sisa ini.</small>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="submitSisaSetoran()" style="background:#e65100;">Simpan Sisa Setoran</button>
+            <button class="btn-danger" onclick="document.getElementById('sisaModal').style.display='none'" style="width: 120px;">Batal</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ALASAN HAPUS -->
+<div class="modal" id="deleteModal">
+    <div class="modal-content">
+        <h3 style="color: #c62828;">🗑️ Konfirmasi Penghapusan</h3>
+        <input type="hidden" id="deleteRecordId">
+        
+        <div class="form-group" style="background: #ffebee; padding: 10px; border-radius: 4px; border: 1px solid #ffcdd2;">
+            <label style="color: #c62828;">⚠️ Alasan Penghapusan Data (Wajib Diisi):</label>
+            <input type="text" id="deleteReason" placeholder="Contoh: Transaksi duplikat / batal" style="background: #fff;">
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-danger" onclick="submitDeleteExpense()">Hapus Permanen</button>
+            <button class="btn-primary" onclick="document.getElementById('deleteModal').style.display='none'" style="background: #9e9e9e; width: 120px;">Batal</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL INTERAKTIF REKAP NOTA MATERIAL -->
+<div class="modal" id="rekapModal">
+    <div class="modal-content">
+        <h3 style="color: #00796b;">🧾 Rekapitulasi Nota & Pencocokan Dana</h3>
+        <input type="hidden" id="rekapRecordId">
+        
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9rem;">
+            <div>👤 <b>Penerima:</b> <span id="modalReceiverText">-</span></div>
+            <div>💰 <b>Total Dana Diberikan:</b> <span id="modalTotalDanaText" style="color: #2e7d32; font-weight: bold;">Rp 0</span></div>
+        </div>
+
+        <div class="form-group">
+            <label>Rincian Alokasi Belanja ke Lokasi Bangunan:</label>
+            <div id="modalShoppingRows"></div>
+            <button type="button" class="btn-add-row" onclick="addModalShopRow()" style="margin-top: 5px;">+ Tambah Alokasi Lokasi Lain</button>
+        </div>
+
+        <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #c8e6c9;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 5px;">
+                <span>Total Rincian Nota:</span>
+                <b id="modalTotalNotaText">Rp 0</b>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 1rem; border-top: 1px dashed #81c784; padding-top: 5px;">
+                <span>Status Hasil Akhir:</span>
+                <b id="modalSelisihText">PAS</b>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="saveRekapNota()" style="background:#00796b;">Simpan & Perbarui Rekap</button>
+            <button class="btn-danger" onclick="document.getElementById('rekapModal').style.display='none'" style="width: 120px;">Batal</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CEK SELISIH AKUMULASI PEMBERIAN DANA -->
+<div class="modal" id="bulkRekapSetupModal">
+    <div class="modal-content" style="width: 600px;">
+        <h3 style="color: #00796b;">🧾 Cek Selisih Akumulasi Dana & Alokasi Nota</h3>
+        
+        <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #90caf9;">
+            <div style="font-size: 0.85rem; color: #0d47a1;">Total Akumulasi Pemberian Dana (Beberapa Hari):</div>
+            <div id="bulkTotalDanaSummary" style="font-size: 1.3rem; font-weight: bold; color: #1565c0; margin-top: 2px;">Rp 0</div>
+        </div>
+
+        <p style="font-size: 0.85rem; color: #555; margin-bottom: 10px;">Masukkan rincian alokasi lokasi bangunan berdasarkan nota yang diserahkan petugas:</p>
+        
+        <div id="bulkFreeShoppingRows" style="max-height: 40vh; overflow-y: auto; padding-right: 5px; margin-bottom: 10px;"></div>
+        <button type="button" class="btn-add-row" onclick="addBulkFreeShopRow()" style="margin-bottom: 15px;">+ Tambah Baris Alokasi Lokasi Nota</button>
+
+        <div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #c8e6c9;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 5px;">
+                <span>Total Rincian Alokasi Nota:</span>
+                <b id="bulkTotalNotaSummary">Rp 0</b>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 1rem; border-top: 1px dashed #81c784; padding-top: 5px;">
+                <span>Status Selisih Akhir:</span>
+                <b id="bulkSelisihSummaryText">PAS</b>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="confirmAndSaveBulkFreeRekap()" style="background:#00796b;">Simpan Akumulasi & Hasil Rekap</button>
+            <button class="btn-danger" onclick="document.getElementById('bulkRekapSetupModal').style.display='none'" style="width: 120px;">Batal</button>
         </div>
     </div>
 </div>
@@ -199,34 +497,47 @@
         measurementId: "G-X3Z7GVB39Z"
     };
 
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     let allExpenses = [];
     let auditLogs = [];
-    let gudangBalance = 0;
+    let locations = [];
+    let currentUser = "";
+    let currentMaterialMode = "single";
+    let tempBulkAccumulatedData = null;
 
-    const validPins = {
-        '123123': 'Owner',
-        '333333': 'Admin Gudang'
+    const pinUserMap = {
+        '123123': 'Mbak Ika',
+        '945336': 'Owner'
     };
 
     function handleLogin() {
         let pin = document.getElementById('loginPinInput').value.trim();
-        if (validPins.hasOwnProperty(pin)) {
+        if (pinUserMap.hasOwnProperty(pin)) {
+            currentUser = pinUserMap[pin];
             document.getElementById('loginCard').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
-            document.getElementById('userRoleHeader').innerText = `Mengakses sebagai: ${validPins[pin]}`;
+            document.getElementById('userStatusBanner').innerText = `👤 Mengakses sebagai: ${currentUser}`;
             
-            // Set default datetime to now
-            let now = new Date();
-            let tzOffset = now.getTimezoneOffset() * 60000;
-            let localISOTime = (new Date(now - tzOffset)).toISOString().slice(0, 16);
-            document.getElementById('expDateInput').value = localISOTime;
+            let auditBtn = document.getElementById('auditTabBtn');
+            if (currentUser === 'Owner') {
+                auditBtn.style.display = 'inline-block';
+            } else {
+                auditBtn.style.display = 'none';
+            }
+            
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            
+            let firstBmDate = document.querySelector('.bm-date');
+            if(firstBmDate) firstBmDate.value = new Date().toISOString().split('T')[0];
 
-            loadFirebaseData();
+            let now = new Date();
+            document.getElementById('recapMonthSelect').value = String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('recapYearSelect').value = String(now.getFullYear());
+
+            loadDataFromFirebase();
+            toggleCategoryDetail();
         } else {
             document.getElementById('loginError').innerText = 'PIN Akses Salah!';
             document.getElementById('loginPinInput').value = '';
@@ -234,15 +545,22 @@
     }
 
     function handleLogout() {
+        currentUser = "";
         document.getElementById('loginCard').style.display = 'block';
         document.getElementById('appContainer').style.display = 'none';
         document.getElementById('loginPinInput').value = '';
+        document.getElementById('loginError').innerText = '';
     }
 
     function switchTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        if (tabId === 'auditTab' && currentUser !== 'Owner') {
+            alert('Akses ditolak! Menu Audit Trail khusus untuk Owner.');
+            return;
+        }
+
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-        document.getElementById(tabId).style.display = 'block';
+        document.getElementById(tabId).classList.add('active');
         event.currentTarget.classList.add('active');
     }
 
@@ -251,190 +569,783 @@
     function formatRp(num) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num); }
     function formatInputNumber(el) { el.value = parseCleanNumber(el.value) > 0 ? formatNumber(parseCleanNumber(el.value)) : ''; }
 
-    function handleCategoryChange() {
-        let cat = document.getElementById('expCategory').value;
-        let gudangSec = document.getElementById('gudangSection');
-        if (cat === 'Gudang') {
-            gudangSec.style.display = 'block';
-            document.getElementById('gudangBalanceInput').value = formatNumber(gudangBalance);
+    function toggleCategoryDetail() {
+        let cat = document.getElementById('expenseCategory').value;
+        let modeToggleBox = document.getElementById('materialModeToggleBox');
+        let submitBtn = document.getElementById('submitExpenseBtn');
+        
+        if (cat === 'Material') {
+            modeToggleBox.style.display = 'block';
+            setMaterialMode(currentMaterialMode);
         } else {
-            gudangSec.style.display = 'none';
+            modeToggleBox.style.display = 'none';
+            document.getElementById('materialDetailBox').style.display = (cat === 'Material') ? 'block' : 'none';
+            document.getElementById('singleFormSection').style.display = 'block';
+            document.getElementById('bulkMaterialSection').style.display = 'none';
+            submitBtn.style.display = 'block';
         }
     }
 
-    function loadFirebaseData() {
+    function setMaterialMode(mode) {
+        currentMaterialMode = mode;
+        let btnSingle = document.getElementById('btnSingleMode');
+        let btnBulk = document.getElementById('btnBulkMode');
+        let singleSec = document.getElementById('singleFormSection');
+        let bulkSec = document.getElementById('bulkMaterialSection');
+        let detailBox = document.getElementById('materialDetailBox');
+        let submitBtn = document.getElementById('submitExpenseBtn');
+
+        if (mode === 'single') {
+            btnSingle.classList.add('active');
+            btnBulk.classList.remove('active');
+            singleSec.style.display = 'block';
+            bulkSec.style.display = 'none';
+            detailBox.style.display = 'block';
+            submitBtn.style.display = 'block';
+        } else {
+            btnBulk.classList.add('active');
+            btnSingle.classList.remove('active');
+            singleSec.style.display = 'none';
+            bulkSec.style.display = 'block';
+            detailBox.style.display = 'none';
+            submitBtn.style.display = 'none';
+        }
+    }
+
+    function addBulkMaterialRow() {
+        let container = document.getElementById('bulkMaterialRowsContainer');
+        let div = document.createElement('div');
+        div.className = 'bulk-material-row';
+        div.innerHTML = `
+            <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}" required>
+            <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
+            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
+            <input type="text" class="bm-desc" placeholder="Keterangan" required>
+            <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
+        `;
+        container.appendChild(div);
+        updateBulkMaterialDeleteButtons();
+    }
+
+    function removeBulkMaterialRow(btn) {
+        btn.parentElement.remove();
+        updateBulkMaterialDeleteButtons();
+    }
+
+    function updateBulkMaterialDeleteButtons() {
+        let rows = document.querySelectorAll('.bulk-material-row');
+        rows.forEach(r => {
+            let delBtn = r.querySelector('.btn-del-row');
+            delBtn.style.display = rows.length > 1 ? 'block' : 'none';
+        });
+    }
+
+    function loadDataFromFirebase() {
         db.ref('operational_expenses').on('value', snapshot => {
-            allExpenses = snapshot.val() || [];
-            renderHistory();
-        });
-
-        db.ref('audit_logs').on('value', snapshot => {
-            auditLogs = snapshot.val() || [];
-            renderAudit();
-        });
-
-        db.ref('gudang_saldo_pokok').on('value', snapshot => {
-            gudangBalance = snapshot.val() || 0;
-            if (document.getElementById('expCategory').value === 'Gudang') {
-                document.getElementById('gudangBalanceInput').value = formatNumber(gudangBalance);
+            let rawData = snapshot.val();
+            if (Array.isArray(rawData)) {
+                allExpenses = rawData.filter(item => item !== null && item !== undefined);
+            } else if (rawData && typeof rawData === 'object') {
+                allExpenses = Object.values(rawData);
+            } else {
+                allExpenses = [];
             }
+            renderExpenses();
+        });
+
+        db.ref('operational_audit_logs').on('value', snapshot => {
+            let rawData = snapshot.val();
+            if (Array.isArray(rawData)) {
+                auditLogs = rawData.filter(item => item !== null && item !== undefined);
+            } else if (rawData && typeof rawData === 'object') {
+                auditLogs = Object.values(rawData);
+            } else {
+                auditLogs = [];
+            }
+            renderAuditLogs();
+        });
+
+        db.ref('operational_locations').on('value', snapshot => {
+            let rawData = snapshot.val();
+            if (Array.isArray(rawData)) {
+                locations = rawData.filter(item => item !== null && item !== undefined);
+            } else if (rawData && typeof rawData === 'object') {
+                locations = Object.values(rawData);
+            } else {
+                locations = ['Proyek Utama'];
+            }
+            renderLocations();
+        });
+    }
+
+    function openBulkRekapSetupModal() {
+        let rows = document.querySelectorAll('.bulk-material-row');
+        let isValid = true;
+        let totalBulkSum = 0;
+        let receiversSet = new Set();
+        let detailHtmlLines = [];
+
+        rows.forEach(row => {
+            let rawDate = row.querySelector('.bm-date').value;
+            let receiver = row.querySelector('.bm-receiver').value.trim();
+            let nominal = parseCleanNumber(row.querySelector('.bm-nominal').value);
+            let desc = row.querySelector('.bm-desc').value.trim();
+
+            if (!rawDate || !receiver || nominal <= 0 || !desc) {
+                isValid = false;
+                return;
+            }
+            totalBulkSum += nominal;
+            receiversSet.add(receiver);
+
+            let p = rawDate.split('-');
+            let formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
+            detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`);
+        });
+
+        if (!isValid) {
+            alert('Mohon lengkapi seluruh kolom pada setiap baris pemberian dana dengan benar!');
+            return;
+        }
+
+        tempBulkAccumulatedData = {
+            totalSum: totalBulkSum,
+            receivers: Array.from(receiversSet).join(', '),
+            method: document.getElementById('bulkMaterialMethod').value,
+            breakdownHtml: detailHtmlLines.join('<br>')
+        };
+
+        document.getElementById('bulkTotalDanaSummary').innerText = formatRp(totalBulkSum);
+        
+        let container = document.getElementById('bulkFreeShoppingRows');
+        container.innerHTML = '';
+        addBulkFreeShopRow();
+
+        calculateBulkFreeTotal();
+        document.getElementById('bulkRekapSetupModal').style.display = 'flex';
+    }
+
+    function addBulkFreeShopRow() {
+        let container = document.getElementById('bulkFreeShoppingRows');
+        let div = document.createElement('div');
+        div.className = 'sub-row';
+        
+        let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
+        locations.forEach(loc => {
+            optionsHtml += `<option value="${loc}">${loc}</option>`;
+        });
+
+        div.innerHTML = `
+            <select class="bf-shop-name" style="flex: 2;">${optionsHtml}</select>
+            <input type="text" class="bf-shop-cost" inputmode="numeric" placeholder="Nominal Alokasi (Rp)" style="flex: 1.5;" oninput="formatInputNumber(this); calculateBulkFreeTotal();">
+            <button type="button" class="btn-del-row" onclick="this.parentElement.remove(); calculateBulkFreeTotal();">✕</button>
+        `;
+        container.appendChild(div);
+        calculateBulkFreeTotal();
+    }
+
+    function calculateBulkFreeTotal() {
+        let totalNota = 0;
+        document.querySelectorAll('.bf-shop-cost').forEach(el => {
+            totalNota += parseCleanNumber(el.value);
+        });
+
+        document.getElementById('bulkTotalNotaSummary').innerText = formatRp(totalNota);
+
+        if (!tempBulkAccumulatedData) return;
+        let totalDana = tempBulkAccumulatedData.totalSum;
+        let selisih = totalDana - totalNota;
+        let selisihEl = document.getElementById('bulkSelisihSummaryText');
+
+        if (selisih === 0) {
+            selisihEl.innerHTML = `<span style="color: #2e7d32;">PAS (Tidak ada selisih)</span>`;
+        } else if (selisih > 0) {
+            selisihEl.innerHTML = `<span style="color: #1565c0;">Sisa Uang (Lebih): ${formatRp(selisih)}</span>`;
+        } else {
+            selisihEl.innerHTML = `<span style="color: #c62828;">Kurang Uang (Minus): ${formatRp(Math.abs(selisih))}</span>`;
+        }
+    }
+
+    function confirmAndSaveBulkFreeRekap() {
+        if (!tempBulkAccumulatedData) return;
+
+        let now = new Date();
+        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        let formattedDate = now.toLocaleDateString('id-ID');
+        let dateWithTime = `${formattedDate} ${timeNow}`;
+
+        let shops = [];
+        document.querySelectorAll('.sub-row').forEach(row => {
+            let name = row.querySelector('.bf-shop-name').value.trim();
+            let cost = parseCleanNumber(row.querySelector('.bf-shop-cost').value);
+            if (name && cost > 0) {
+                shops.push({ name, cost });
+            }
+        });
+
+        let totalNota = shops.reduce((sum, s) => sum + s.cost, 0);
+        let selisih = tempBulkAccumulatedData.totalSum - totalNota;
+        
+        let statusRekap = 'Belum Direkap';
+        if (shops.length > 0) {
+            statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+        }
+
+        let materialData = {
+            receiver: tempBulkAccumulatedData.receivers,
+            shops,
+            statusRekap
+        };
+
+        let finalDescString = `Akumulasi Pemberian (${tempBulkAccumulatedData.receivers})<br><b style="color:#00796b;">Rincian Tanggal:</b><br>${tempBulkAccumulatedData.breakdownHtml}`;
+
+        let newRecord = {
+            id: Date.now(),
+            date: dateWithTime,
+            rawDate: now.toISOString().split('T')[0],
+            category: 'Material',
+            method: tempBulkAccumulatedData.method,
+            nominal: tempBulkAccumulatedData.totalSum,
+            sisaSetoran: 0,
+            desc: finalDescString,
+            isHtmlDesc: true,
+            materialData,
+            createdBy: currentUser
+        };
+
+        allExpenses.push(newRecord);
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert('Akumulasi pemberian dana material dan rekap selisih nota berhasil disimpan!');
+            document.getElementById('bulkRekapSetupModal').style.display = 'none';
+            
+            document.getElementById('bulkMaterialRowsContainer').innerHTML = `
+                <div class="bulk-material-row">
+                    <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}" required>
+                    <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
+                    <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
+                    <input type="text" class="bm-desc" placeholder="Keterangan" required>
+                    <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
+                </div>
+            `;
         });
     }
 
     function saveExpense(e) {
         e.preventDefault();
-        let rawDateTime = document.getElementById('expDateInput').value;
-        let category = document.getElementById('expCategory').value;
-        let method = document.getElementById('expMethod').value;
-        let amount = parseCleanNumber(document.getElementById('expAmount').value);
-        let note = document.getElementById('expNote').value.trim();
+        let cat = document.getElementById('expenseCategory').value;
+        let now = new Date();
+        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-        if (!rawDateTime || !category || amount <= 0 || !note) {
-            alert('Mohon lengkapi seluruh formulir dengan benar!');
+        let rawDate = document.getElementById('expenseDate').value;
+        let method = document.getElementById('expenseMethod').value;
+        let nominal = parseCleanNumber(document.getElementById('expenseNominal').value);
+        let desc = document.getElementById('expenseDesc').value.trim();
+
+        if (nominal <= 0) {
+            alert('Nominal pengeluaran harus lebih besar dari 0!');
             return;
         }
 
-        let p = rawDateTime.split('T');
-        let dateParts = p[0].split('-');
-        let formattedDateTime = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]} ${p[1]}`;
+        let formattedDate = rawDate;
+        if (rawDate) {
+            let p = rawDate.split('-');
+            formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
+        }
+        let dateWithTime = `${formattedDate} ${timeNow}`;
+
+        let materialData = null;
+        if (cat === 'Material') {
+            let receiver = document.getElementById('materialReceiver').value.trim();
+            materialData = { receiver, shops: [], statusRekap: 'Belum Direkap' };
+        }
 
         let newRecord = {
             id: Date.now(),
-            datetime: formattedDateTime,
-            category,
+            date: dateWithTime,
+            rawDate: rawDate,
+            category: cat,
             method,
-            amount,
-            note
+            nominal,
+            sisaSetoran: 0,
+            desc,
+            isHtmlDesc: false,
+            materialData,
+            createdBy: currentUser
         };
 
         allExpenses.push(newRecord);
-
-        let updates = {};
-        updates['operational_expenses'] = allExpenses;
-
-        // Jika kategori Gudang, perbarui juga saldo pokok gudang jika diubah
-        if (category === 'Gudang') {
-            let newGudangBal = parseCleanNumber(document.getElementById('gudangBalanceInput').value);
-            gudangBalance = newGudangBal;
-            updates['gudang_saldo_pokok'] = gudangBalance;
-        }
-
-        let now = new Date();
-        let logTime = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'-2})}`;
-        auditLogs.unshift({
-            timestamp: logTime,
-            action: 'Tambah Pengeluaran',
-            detail: `Menambah pengeluaran [${category}] sebesar ${formatRp(amount)}`
-        });
-        updates['audit_logs'] = auditLogs;
-
-        db.ref().update(updates).then(() => {
-            alert('Pengeluaran berhasil disimpan!');
-            document.getElementById('expenseForm').reset();
-            document.getElementById('gudangSection').style.display = 'none';
-            
-            let nowReset = new Date();
-            let tzOffset = nowReset.getTimezoneOffset() * 60000;
-            document.getElementById('expDateInput').value = (new Date(nowReset - tzOffset)).toISOString().slice(0, 16);
-        }).catch(err => {
-            alert('Gagal menyimpan ke database: ' + err.message);
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert('Pengeluaran berhasil dicatat!');
+            document.getElementById('expenseNominal').value = '';
+            document.getElementById('expenseDesc').value = '';
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('expenseCategory').value = 'Gudang';
+            document.getElementById('materialReceiver').value = '';
+            toggleCategoryDetail();
         });
     }
 
     function openEditModal(id) {
-        let item = allExpenses.find(x => x.id === id);
-        if (!item) return;
-        document.getElementById('editId').value = item.id;
-        document.getElementById('editAmount').value = formatNumber(item.amount);
-        document.getElementById('editNote').value = item.note;
+        let rec = allExpenses.find(i => i && i.id === id);
+        if (!rec) return;
+
+        document.getElementById('editRecordId').value = rec.id;
+        document.getElementById('editCategory').value = rec.category;
+        document.getElementById('editMethod').value = rec.method;
+        document.getElementById('editNominal').value = formatNumber(rec.nominal);
+        document.getElementById('editDesc').value = rec.isHtmlDesc ? rec.desc.replace(/<br>/g, '\n') : rec.desc;
+        document.getElementById('editReason').value = '';
+
         document.getElementById('editModal').style.display = 'flex';
     }
 
     function submitEditExpense() {
-        let id = parseFloat(document.getElementById('editId').value);
-        let newAmount = parseCleanNumber(document.getElementById('editAmount').value);
-        let newNote = document.getElementById('editNote').value.trim();
+        let id = parseFloat(document.getElementById('editRecordId').value);
+        let newCat = document.getElementById('editCategory').value;
+        let newMeth = document.getElementById('editMethod').value;
+        let newNom = parseCleanNumber(document.getElementById('editNominal').value);
+        let newDesc = document.getElementById('editDesc').value.trim();
+        let reason = document.getElementById('editReason').value.trim();
 
-        if (newAmount <= 0 || !newNote) {
-            alert('Nominal dan keterangan wajib diisi!');
+        if (!reason) {
+            alert('Alasan edit data wajib diisi!');
+            return;
+        }
+        if (newNom <= 0) {
+            alert('Nominal harus valid!');
             return;
         }
 
+        let oldRec = allExpenses.find(i => i && i.id === id);
+        if (!oldRec) return;
+
+        let now = new Date();
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
+
         allExpenses = allExpenses.map(item => {
-            if (item.id === id) {
-                return { ...item, amount: newAmount, note: newNote };
+            if (item && item.id === id) {
+                return {
+                    ...item,
+                    category: newCat,
+                    method: newMeth,
+                    nominal: newNom,
+                    desc: newDesc
+                };
             }
             return item;
         });
 
-        let now = new Date();
-        let logTime = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
-        auditLogs.unshift({
-            timestamp: logTime,
-            action: 'Edit Pengeluaran',
-            detail: `Mengubah data pengeluaran ID #${id}`
-        });
+        let auditEntry = {
+            id: Date.now(),
+            time: timeLog,
+            user: currentUser,
+            action: 'EDIT',
+            details: `Kategori: ${oldRec.category} ➔ ${newCat} | Nominal: ${formatRp(oldRec.nominal)} ➔ ${formatRp(newNom)}`,
+            reason: reason
+        };
+
+        auditLogs.push(auditEntry);
 
         db.ref('operational_expenses').set(allExpenses).then(() => {
-            db.ref('audit_logs').set(auditLogs).then(() => {
-                alert('Perubahan berhasil disimpan!');
+            db.ref('operational_audit_logs').set(auditLogs).then(() => {
+                alert('Data pengeluaran berhasil diperbarui!');
                 document.getElementById('editModal').style.display = 'none';
             });
         });
     }
 
-    function deleteExpense(id) {
-        if (confirm('Apakah Anda yakin ingin menghapus data pengeluaran ini?')) {
-            allExpenses = allExpenses.filter(x => x.id !== id);
-            db.ref('operational_expenses').set(allExpenses).then(() => {
-                alert('Data berhasil dihapus.');
-            });
-        }
+    function openSisaModal(id) {
+        let rec = allExpenses.find(i => i && i.id === id);
+        if (!rec) return;
+
+        document.getElementById('sisaRecordId').value = rec.id;
+        document.getElementById('modalSisaDescText').innerHTML = rec.desc;
+        document.getElementById('modalSisaBrutoText').innerText = formatRp(rec.nominal);
+        document.getElementById('sisaAmountInput').value = rec.sisaSetoran ? formatNumber(rec.sisaSetoran) : '';
+
+        document.getElementById('sisaModal').style.display = 'flex';
     }
 
-    function renderHistory() {
-        let tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = '';
-        if (allExpenses.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #777;">Belum ada catatan pengeluaran.</td></tr>`;
+    function submitSisaSetoran() {
+        let id = parseFloat(document.getElementById('sisaRecordId').value);
+        let sisaVal = parseCleanNumber(document.getElementById('sisaAmountInput').value);
+
+        let rec = allExpenses.find(i => i && i.id === id);
+        if (!rec) return;
+
+        if (sisaVal >= rec.nominal) {
+            alert('Sisa setoran tidak boleh melebihi atau sama dengan total nominal bruto!');
             return;
         }
 
-        allExpenses.sort((a, b) => b.id - a.id);
-        allExpenses.forEach(item => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>
-                        <button class="btn-edit" onclick="openEditModal(${item.id})">Edit</button>
-                        <button class="btn-delete" onclick="deleteExpense(${item.id})">Hapus</button>
-                    </td>
-                    <td>${item.datetime}</td>
-                    <td><b>${item.category}</b></td>
-                    <td>${item.method}</td>
-                    <td style="color: #c62828; font-weight: bold;">${formatRp(item.amount)}</td>
-                    <td>${item.note}</td>
-                </tr>
-            `;
+        allExpenses = allExpenses.map(item => {
+            if (item && item.id === id) {
+                return { ...item, sisaSetoran: sisaVal };
+            }
+            return item;
+        });
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert('Sisa setoran berhasil disimpan dan dikurangkan dari pengeluaran!');
+            document.getElementById('sisaModal').style.display = 'none';
         });
     }
 
-    function renderAudit() {
+    function openDeleteModal(id) {
+        document.getElementById('deleteRecordId').value = id;
+        document.getElementById('deleteReason').value = '';
+        document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function submitDeleteExpense() {
+        let id = parseFloat(document.getElementById('deleteRecordId').value);
+        let reason = document.getElementById('deleteReason').value.trim();
+
+        if (!reason) {
+            alert('Alasan penghapusan wajib diisi!');
+            return;
+        }
+
+        let targetRec = allExpenses.find(i => i && i.id === id);
+        if (!targetRec) return;
+
+        let now = new Date();
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
+
+        allExpenses = allExpenses.filter(item => item && item.id !== id);
+
+        let auditEntry = {
+            id: Date.now(),
+            time: timeLog,
+            user: currentUser,
+            action: 'HAPUS',
+            details: `Hapus [${targetRec.category}] (${formatRp(targetRec.nominal)})`,
+            reason: reason
+        };
+
+        auditLogs.push(auditEntry);
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            db.ref('operational_audit_logs').set(auditLogs).then(() => {
+                alert('Data berhasil dihapus dan tercatat di audit trail!');
+                document.getElementById('deleteModal').style.display = 'none';
+            });
+        });
+    }
+
+    function openRekapModal(id) {
+        let rec = allExpenses.find(i => i && i.id === id);
+        if (!rec || !rec.materialData) return;
+
+        document.getElementById('rekapRecordId').value = rec.id;
+        document.getElementById('modalReceiverText').innerText = rec.materialData.receiver || '-';
+        document.getElementById('modalTotalDanaText').innerText = formatRp(rec.nominal);
+
+        let container = document.getElementById('modalShoppingRows');
+        container.innerHTML = '';
+
+        if (rec.materialData.shops && rec.materialData.shops.length > 0) {
+            rec.materialData.shops.forEach(s => {
+                let div = document.createElement('div');
+                div.className = 'sub-row';
+                
+                let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
+                locations.forEach(loc => {
+                    let selected = (s.name === loc) ? 'selected' : '';
+                    optionsHtml += `<option value="${loc}" ${selected}>${loc}</option>`;
+                });
+
+                div.innerHTML = `
+                    <select class="modal-shop-name" style="flex: 2;">${optionsHtml}</select>
+                    <input type="text" class="modal-shop-cost" inputmode="numeric" value="${formatNumber(s.cost)}" placeholder="Nominal (Rp)" style="flex: 1.5;" oninput="formatInputNumber(this); calculateModalTotal();">
+                    <button type="button" class="btn-del-row" onclick="this.parentElement.remove(); calculateModalTotal();">✕</button>
+                `;
+                container.appendChild(div);
+            });
+        } else {
+            addModalShopRow();
+        }
+
+        calculateModalTotal();
+        document.getElementById('rekapModal').style.display = 'flex';
+    }
+
+    function addModalShopRow() {
+        let container = document.getElementById('modalShoppingRows');
+        let div = document.createElement('div');
+        div.className = 'sub-row';
+        
+        let optionsHtml = `<option value="">Pilih Lokasi Bangunan</option>`;
+        locations.forEach(loc => {
+            optionsHtml += `<option value="${loc}">${loc}</option>`;
+        });
+
+        div.innerHTML = `
+            <select class="modal-shop-name" style="flex: 2;">${optionsHtml}</select>
+            <input type="text" class="modal-shop-cost" inputmode="numeric" placeholder="Nominal (Rp)" style="flex: 1.5;" oninput="formatInputNumber(this); calculateModalTotal();">
+            <button type="button" class="btn-del-row" onclick="this.parentElement.remove(); calculateModalTotal();">✕</button>
+        `;
+        container.appendChild(div);
+        calculateModalTotal();
+    }
+
+    function calculateModalTotal() {
+        let totalNota = 0;
+        document.querySelectorAll('.modal-shop-cost').forEach(el => {
+            totalNota += parseCleanNumber(el.value);
+        });
+
+        document.getElementById('modalTotalNotaText').innerText = formatRp(totalNota);
+
+        let recId = parseFloat(document.getElementById('rekapRecordId').value);
+        let rec = allExpenses.find(i => i && i.id === recId);
+        if (!rec) return;
+
+        let selisih = rec.nominal - totalNota;
+        let selisihEl = document.getElementById('modalSelisihText');
+
+        if (selisih === 0) {
+            selisihEl.innerHTML = `<span style="color: #2e7d32;">PAS (Tidak ada selisih)</span>`;
+        } else if (selisih > 0) {
+            selisihEl.innerHTML = `<span style="color: #1565c0;">Sisa Uang (Lebih): ${formatRp(selisih)}</span>`;
+        } else {
+            selisihEl.innerHTML = `<span style="color: #c62828;">Kurang Uang (Minus): ${formatRp(Math.abs(selisih))}</span>`;
+        }
+    }
+
+    function saveRekapNota() {
+        let recId = parseFloat(document.getElementById('rekapRecordId').value);
+        let shops = [];
+
+        document.querySelectorAll('.sub-row').forEach(row => {
+            let name = row.querySelector('.modal-shop-name').value.trim();
+            let cost = parseCleanNumber(row.querySelector('.modal-shop-cost').value);
+            if (name && cost > 0) {
+                shops.push({ name, cost });
+            }
+        });
+
+        allExpenses = allExpenses.map(item => {
+            if (item && item.id === recId) {
+                let totalNota = shops.reduce((sum, s) => sum + s.cost, 0);
+                let selisih = item.nominal - totalNota;
+                let statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+
+                return {
+                    ...item,
+                    materialData: {
+                        ...item.materialData,
+                        shops,
+                        statusRekap
+                    }
+                };
+            }
+            return item;
+        });
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            alert('Rekapitulasi nota berhasil diperbarui!');
+            document.getElementById('rekapModal').style.display = 'none';
+        });
+    }
+
+    function renderExpenses() {
+        let tbody = document.getElementById('expenseTableBody');
+        tbody.innerHTML = '';
+
+        let filterCategory = document.getElementById('filterCategory').value;
+        let filterMethod = document.getElementById('filterMethod').value;
+        let selectedMonth = document.getElementById('recapMonthSelect').value;
+        let selectedYear = document.getElementById('recapYearSelect').value;
+
+        let safeExpenses = allExpenses.filter(i => i !== null && i !== undefined);
+
+        let filteredExpenses = safeExpenses.filter(i => {
+            let matchCat = (filterCategory === 'ALL' || i.category === filterCategory);
+            let matchMeth = (filterMethod === 'ALL' || i.method === filterMethod);
+            
+            let monthMatch = true;
+            let yearMatch = true;
+
+            if (i.rawDate) {
+                let parts = i.rawDate.split('-');
+                if (parts.length >= 3) {
+                    yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                }
+            } else if (i.date && i.date.includes('/')) {
+                let datePart = i.date.split(' ')[0];
+                let parts = datePart.split('/');
+                if (parts.length >= 3) {
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                    yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
+                }
+            }
+
+            return matchCat && matchMeth && monthMatch && yearMatch;
+        });
+
+        let totalFilteredExpense = 0;
+        safeExpenses.forEach(i => {
+            let monthMatch = true;
+            let yearMatch = true;
+
+            if (i.rawDate) {
+                let parts = i.rawDate.split('-');
+                if (parts.length >= 3) {
+                    yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                }
+            } else if (i.date && i.date.includes('/')) {
+                let datePart = i.date.split(' ')[0];
+                let parts = datePart.split('/');
+                if (parts.length >= 3) {
+                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+                    yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
+                }
+            }
+
+            if (monthMatch && yearMatch) {
+                let nominal = i.nominal || 0;
+                let sisa = (i.category === 'Order Toko' && i.method === 'Tunai') ? (i.sisaSetoran || 0) : 0;
+                totalFilteredExpense += (nominal - sisa);
+            }
+        });
+
+        document.getElementById('summaryExpense').innerText = formatRp(totalFilteredExpense);
+
+        if (filteredExpenses.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #777;">Tidak ada data pengeluaran yang sesuai filter.</td></tr>`;
+            return;
+        }
+
+        // Urutkan dari yang terbaru ke terlama berdasarkan ID (timestamp)
+        filteredExpenses.sort((a, b) => b.id - a.id);
+
+        filteredExpenses.forEach(i => {
+            let detailHtml = '-';
+            let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
+                            `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
+
+            let isOrderTokoTunai = (i.category === 'Order Toko' && i.method === 'Tunai');
+
+            if (isOrderTokoTunai) {
+                actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
+            }
+
+            if (i.category === 'Material' && i.materialData) {
+                let m = i.materialData;
+                actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` + actionBtn;
+                
+                detailHtml = `<div class="vertical-details">
+                    👤 <b>Penerima:</b> ${m.receiver || '-'}<br>
+                    📌 <b>Status:</b> <span style="color: #2e7d32; font-weight: bold;">${m.statusRekap || 'Belum Direkap'}</span><br>
+                    🏗️ <b>Alokasi Lokasi Bangunan:</b><br>`;
+                if (m.shops && m.shops.length > 0) {
+                    m.shops.forEach(s => {
+                        detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`;
+                    });
+                } else {
+                    detailHtml += `&nbsp;&nbsp;<i>(Belum ada rincian lokasi)</i><br>`;
+                }
+                detailHtml += `</div>`;
+            }
+
+            let sisaSetoran = isOrderTokoTunai ? (i.sisaSetoran || 0) : 0;
+            let netNominal = i.nominal - sisaSetoran;
+            let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4; min-width: 220px;">${i.desc}</div>` : i.desc;
+
+            let sisaColumnContent = '-';
+            if (isOrderTokoTunai) {
+                sisaColumnContent = `<span style="color: #e65100; font-weight: bold;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</span>`;
+            }
+
+            tbody.innerHTML += `<tr>
+                <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
+                <td>${i.date || '-'}</td>
+                <td><b>${i.category}</b></td>
+                <td>${i.method || 'Tunai'}</td>
+                <td style="color: #555;">${formatRp(i.nominal)}</td>
+                <td>${sisaColumnContent}</td>
+                <td style="color: #c62828; font-weight: bold;">${formatRp(netNominal)}</td>
+                <td>${descDisplay}</td>
+                <td>${detailHtml}</td>
+            </tr>`;
+        });
+    }
+
+    function renderAuditLogs() {
         let tbody = document.getElementById('auditTableBody');
         tbody.innerHTML = '';
-        if (auditLogs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #777;">Belum ada log aktivitas.</td></tr>`;
+
+        let safeAudit = auditLogs.filter(i => i !== null && i !== undefined);
+
+        if (safeAudit.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>`;
             return;
         }
 
-        auditLogs.forEach(log => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>${log.timestamp}</td>
-                    <td><b>${log.action}</b></td>
-                    <td>${log.detail}</td>
-                </tr>
-            `;
+        safeAudit.sort((a, b) => b.id - a.id);
+
+        safeAudit.forEach(log => {
+            let badgeColor = (log.action === 'HAPUS') ? '#c62828' : '#1565c0';
+            tbody.innerHTML += `<tr>
+                <td>${log.time}</td>
+                <td><b>${log.user || 'Sistem'}</b></td>
+                <td><span style="background: ${badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">${log.action}</span></td>
+                <td>${log.details}</td>
+                <td><b>${log.reason}</b></td>
+            </tr>`;
         });
+    }
+
+    function renderLocations() {
+        let tbody = document.getElementById('locationTableBody');
+        tbody.innerHTML = '';
+
+        let safeLoc = locations.filter(i => i !== null && i !== undefined);
+
+        if (safeLoc.length === 0) {
+            safeLoc = ['Proyek Utama'];
+        }
+
+        safeLoc.forEach((loc, idx) => {
+            tbody.innerHTML += `<tr>
+                <td><b>${loc}</b></td>
+                <td style="text-align: center;">
+                    ${safeLoc.length > 1 ? `<button class="btn-danger" onclick="deleteLocation(${idx})">Hapus</button>` : '<span style="font-size:0.75rem; color:#888;">Utama</span>'}
+                </td>
+            </tr>`;
+        });
+    }
+
+    function addLocation() {
+        let input = document.getElementById('newLocationInput');
+        let val = input.value.trim();
+        if (!val) {
+            alert('Nama lokasi tidak boleh kosong!');
+            return;
+        }
+
+        if (locations.includes(val)) {
+            alert('Lokasi tersebut sudah ada!');
+            return;
+        }
+
+        locations.push(val);
+        db.ref('operational_locations').set(locations).then(() => {
+            alert('Lokasi berhasil ditambah!');
+            input.value = '';
+        });
+    }
+
+    function deleteLocation(index) {
+        if (confirm(`Hapus lokasi "${locations[index]}"?`)) {
+            locations.splice(index, 1);
+            db.ref('operational_locations').set(locations).then(() => {
+                alert('Lokasi berhasil dihapus!');
+            });
+        }
     }
 </script>
 </body>
