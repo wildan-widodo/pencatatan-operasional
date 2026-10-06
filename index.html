@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="3.1.1-fix-date-parsing">
+    <meta name="app-version" content="3.1.2-fix-submit-validation">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
@@ -121,7 +121,7 @@
                 </div>
             </div>
 
-            <form onsubmit="saveExpense(event)">
+            <form id="expenseForm" onsubmit="saveExpense(event)">
                 <!-- FORM SATUAN (DEFAULT) -->
                 <div id="singleFormSection">
                     <div class="form-group">
@@ -148,12 +148,12 @@
 
                     <div class="form-group">
                         <label>Nominal Total (Rp)</label>
-                        <input type="text" id="expenseNominal" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)">
+                        <input type="text" id="expenseNominal" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)" required>
                     </div>
 
                     <div class="form-group">
                         <label>Keterangan / Keperluan</label>
-                        <input type="text" id="expenseDesc" placeholder="Contoh: Pembayaran operasional">
+                        <input type="text" id="expenseDesc" placeholder="Contoh: Pembayaran operasional" required>
                     </div>
                 </div>
 
@@ -172,10 +172,10 @@
 
                     <div id="bulkMaterialRowsContainer">
                         <div class="bulk-material-row">
-                            <input type="date" class="bm-date" required>
-                            <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
-                            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
-                            <input type="text" class="bm-desc" placeholder="Keterangan" required>
+                            <input type="date" class="bm-date">
+                            <input type="text" class="bm-receiver" placeholder="Nama Penerima">
+                            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)">
+                            <input type="text" class="bm-desc" placeholder="Keterangan">
                             <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
                         </div>
                     </div>
@@ -574,13 +574,16 @@
         let cat = document.getElementById('expenseCategory').value;
         let modeToggleBox = document.getElementById('materialModeToggleBox');
         let submitBtn = document.getElementById('submitExpenseBtn');
+        let materialReceiverInput = document.getElementById('materialReceiver');
         
         if (cat === 'Material') {
             modeToggleBox.style.display = 'block';
+            materialReceiverInput.required = true;
             setMaterialMode(currentMaterialMode);
         } else {
             modeToggleBox.style.display = 'none';
-            document.getElementById('materialDetailBox').style.display = (cat === 'Material') ? 'block' : 'none';
+            materialReceiverInput.required = false;
+            document.getElementById('materialDetailBox').style.display = 'none';
             document.getElementById('singleFormSection').style.display = 'block';
             document.getElementById('bulkMaterialSection').style.display = 'none';
             submitBtn.style.display = 'block';
@@ -595,6 +598,7 @@
         let bulkSec = document.getElementById('bulkMaterialSection');
         let detailBox = document.getElementById('materialDetailBox');
         let submitBtn = document.getElementById('submitExpenseBtn');
+        let materialReceiverInput = document.getElementById('materialReceiver');
 
         if (mode === 'single') {
             btnSingle.classList.add('active');
@@ -603,6 +607,7 @@
             bulkSec.style.display = 'none';
             detailBox.style.display = 'block';
             submitBtn.style.display = 'block';
+            materialReceiverInput.required = true;
         } else {
             btnBulk.classList.add('active');
             btnSingle.classList.remove('active');
@@ -610,6 +615,7 @@
             bulkSec.style.display = 'block';
             detailBox.style.display = 'none';
             submitBtn.style.display = 'none';
+            materialReceiverInput.required = false;
         }
     }
 
@@ -618,10 +624,10 @@
         let div = document.createElement('div');
         div.className = 'bulk-material-row';
         div.innerHTML = `
-            <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}" required>
-            <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
-            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
-            <input type="text" class="bm-desc" placeholder="Keterangan" required>
+            <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}">
+            <input type="text" class="bm-receiver" placeholder="Nama Penerima">
+            <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)">
+            <input type="text" class="bm-desc" placeholder="Keterangan">
             <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
         `;
         container.appendChild(div);
@@ -821,10 +827,10 @@
             
             document.getElementById('bulkMaterialRowsContainer').innerHTML = `
                 <div class="bulk-material-row">
-                    <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}" required>
-                    <input type="text" class="bm-receiver" placeholder="Nama Penerima" required>
-                    <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)" required>
-                    <input type="text" class="bm-desc" placeholder="Keterangan" required>
+                    <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}">
+                    <input type="text" class="bm-receiver" placeholder="Nama Penerima">
+                    <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)">
+                    <input type="text" class="bm-desc" placeholder="Keterangan">
                     <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
                 </div>
             `;
@@ -1177,185 +1183,4 @@
             let monthMatch = true;
             let yearMatch = true;
 
-            if (i.rawDate) {
-                let parts = i.rawDate.split('-');
-                if (parts.length >= 3) {
-                    yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
-                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
-                }
-            } else if (i.date && i.date.includes('/')) {
-                let datePart = i.date.split(' ')[0];
-                let parts = datePart.split('/');
-                if (parts.length >= 3) {
-                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
-                    yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
-                }
-            }
-
-            return matchCat && matchMeth && monthMatch && yearMatch;
-        });
-
-        let totalFilteredExpense = 0;
-        safeExpenses.forEach(i => {
-            let monthMatch = true;
-            let yearMatch = true;
-
-            if (i.rawDate) {
-                let parts = i.rawDate.split('-');
-                if (parts.length >= 3) {
-                    yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
-                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
-                }
-            } else if (i.date && i.date.includes('/')) {
-                let datePart = i.date.split(' ')[0];
-                let parts = datePart.split('/');
-                if (parts.length >= 3) {
-                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
-                    yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
-                }
-            }
-
-            if (monthMatch && yearMatch) {
-                let nominal = i.nominal || 0;
-                let sisa = (i.category === 'Order Toko' && i.method === 'Tunai') ? (i.sisaSetoran || 0) : 0;
-                totalFilteredExpense += (nominal - sisa);
-            }
-        });
-
-        document.getElementById('summaryExpense').innerText = formatRp(totalFilteredExpense);
-
-        if (filteredExpenses.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #777;">Tidak ada data pengeluaran yang sesuai filter.</td></tr>`;
-            return;
-        }
-
-        filteredExpenses.sort((a, b) => b.id - a.id);
-
-        filteredExpenses.forEach(i => {
-            let detailHtml = '-';
-            let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
-                            `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
-
-            let isOrderTokoTunai = (i.category === 'Order Toko' && i.method === 'Tunai');
-
-            if (isOrderTokoTunai) {
-                actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
-            }
-
-            if (i.category === 'Material' && i.materialData) {
-                let m = i.materialData;
-                actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` + actionBtn;
-                
-                detailHtml = `<div class="vertical-details">
-                    👤 <b>Penerima:</b> ${m.receiver || '-'}<br>
-                    📌 <b>Status:</b> <span style="color: #2e7d32; font-weight: bold;">${m.statusRekap || 'Belum Direkap'}</span><br>
-                    🏗️ <b>Alokasi Lokasi Bangunan:</b><br>`;
-                if (m.shops && m.shops.length > 0) {
-                    m.shops.forEach(s => {
-                        detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`;
-                    });
-                } else {
-                    detailHtml += `&nbsp;&nbsp;<i>(Belum ada rincian lokasi)</i><br>`;
-                }
-                detailHtml += `</div>`;
-            }
-
-            let sisaSetoran = isOrderTokoTunai ? (i.sisaSetoran || 0) : 0;
-            let netNominal = i.nominal - sisaSetoran;
-            let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4; min-width: 220px;">${i.desc}</div>` : i.desc;
-
-            let sisaColumnContent = '-';
-            if (isOrderTokoTunai) {
-                sisaColumnContent = `<span style="color: #e65100; font-weight: bold;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</span>`;
-            }
-
-            tbody.innerHTML += `<tr>
-                <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
-                <td>${i.date || '-'}</td>
-                <td><b>${i.category}</b></td>
-                <td>${i.method || 'Tunai'}</td>
-                <td style="color: #555;">${formatRp(i.nominal)}</td>
-                <td>${sisaColumnContent}</td>
-                <td style="color: #c62828; font-weight: bold;">${formatRp(netNominal)}</td>
-                <td>${descDisplay}</td>
-                <td>${detailHtml}</td>
-            </tr>`;
-        });
-    }
-
-    function renderAuditLogs() {
-        let tbody = document.getElementById('auditTableBody');
-        tbody.innerHTML = '';
-
-        let safeAudit = auditLogs.filter(i => i !== null && i !== undefined);
-
-        if (safeAudit.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777;">Belum ada log audit.</td></tr>`;
-            return;
-        }
-
-        safeAudit.sort((a, b) => b.id - a.id);
-
-        safeAudit.forEach(log => {
-            let badgeColor = (log.action === 'HAPUS') ? '#c62828' : '#1565c0';
-            tbody.innerHTML += `<tr>
-                <td>${log.time}</td>
-                <td><b>${log.user || 'Sistem'}</b></td>
-                <td><span style="background: ${badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">${log.action}</span></td>
-                <td>${log.details}</td>
-                <td><b>${log.reason}</b></td>
-            </tr>`;
-        });
-    }
-
-    function renderLocations() {
-        let tbody = document.getElementById('locationTableBody');
-        tbody.innerHTML = '';
-
-        let safeLoc = locations.filter(i => i !== null && i !== undefined);
-
-        if (safeLoc.length === 0) {
-            safeLoc = ['Proyek Utama'];
-        }
-
-        safeLoc.forEach((loc, idx) => {
-            tbody.innerHTML += `<tr>
-                <td><b>${loc}</b></td>
-                <td style="text-align: center;">
-                    ${safeLoc.length > 1 ? `<button class="btn-danger" onclick="deleteLocation(${idx})">Hapus</button>` : '<span style="font-size:0.75rem; color:#888;">Utama</span>'}
-                </td>
-            </tr>`;
-        });
-    }
-
-    function addLocation() {
-        let input = document.getElementById('newLocationInput');
-        let val = input.value.trim();
-        if (!val) {
-            alert('Nama lokasi tidak boleh kosong!');
-            return;
-        }
-
-        if (locations.includes(val)) {
-            alert('Lokasi tersebut sudah ada!');
-            return;
-        }
-
-        locations.push(val);
-        db.ref('operational_locations').set(locations).then(() => {
-            alert('Lokasi berhasil ditambah!');
-            input.value = '';
-        });
-    }
-
-    function deleteLocation(index) {
-        if (confirm(`Hapus lokasi "${locations[index]}"?`)) {
-            locations.splice(index, 1);
-            db.ref('operational_locations').set(locations).then(() => {
-                alert('Lokasi berhasil dihapus!');
-            });
-        }
-    }
-</script>
-</body>
-</html>
+            if (i.rawDate
