@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="3.1.6-fixed">
+    <meta name="app-version" content="3.1.7-fixed-edit">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
@@ -15,7 +15,7 @@
         h2, h3 { margin-top: 0; color: #333; }
         .form-group { margin-bottom: 15px; text-align: left; }
         label { display: block; margin-bottom: 5px; color: #666; font-weight: bold; font-size: 0.9rem; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
         
         .btn-primary { background: #2e7d32; color: white; border: none; padding: 12px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem; }
         .btn-danger { background: #c62828; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
@@ -329,7 +329,7 @@
     </div>
 </div>
 
-<!-- MODAL EDIT PENGELUARAN -->
+<!-- MODAL EDIT PENGELUARAN (DIPERBARUI: TANGGAL, WAKTU, KETERANGAN) -->
 <div class="modal" id="editModal">
     <div class="modal-content">
         <h3 style="color: #1565c0;">✏️ Edit Data Pengeluaran</h3>
@@ -355,18 +355,28 @@
         </div>
 
         <div class="form-group">
+            <label>Tanggal Transaksi</label>
+            <input type="date" id="editDate">
+        </div>
+
+        <div class="form-group">
+            <label>Waktu Transaksi (HH:MM)</label>
+            <input type="time" id="editTime">
+        </div>
+
+        <div class="form-group">
             <label>Nominal Total (Rp)</label>
             <input type="text" id="editNominal" inputmode="numeric" oninput="formatInputNumber(this)">
         </div>
 
         <div class="form-group">
             <label>Keterangan / Keperluan</label>
-            <input type="text" id="editDesc">
+            <textarea id="editDesc" rows="3" placeholder="Masukkan keterangan pengeluaran..."></textarea>
         </div>
 
         <div class="form-group" style="background: #fff3e0; padding: 10px; border-radius: 4px; border: 1px solid #ffe0b2;">
             <label style="color: #e65100;">⚠️ Alasan Edit Data (Wajib Diisi):</label>
-            <input type="text" id="editReason" placeholder="Contoh: Salah input nominal transaksi" style="background: #fff;">
+            <input type="text" id="editReason" placeholder="Contoh: Ralat tanggal dan keterangan" style="background: #fff;">
         </div>
 
         <div style="display: flex; gap: 10px;">
@@ -922,7 +932,37 @@
         document.getElementById('editCategory').value = rec.category;
         document.getElementById('editMethod').value = rec.method;
         document.getElementById('editNominal').value = formatNumber(rec.nominal);
-        document.getElementById('editDesc').value = rec.isHtmlDesc ? rec.desc.replace(/<br>/g, '\n') : rec.desc;
+        
+        // Mengisi tanggal (YYYY-MM-DD)
+        if (rec.rawDate) {
+            document.getElementById('editDate').value = rec.rawDate;
+        } else if (rec.date && rec.date.includes('/')) {
+            let parts = rec.date.split(' ')[0].split('/');
+            if (parts.length === 3) {
+                document.getElementById('editDate').value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+        } else {
+            document.getElementById('editDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        // Mengisi waktu (HH:MM)
+        if (rec.date && rec.date.includes(' ')) {
+            let timePart = rec.date.split(' ')[1];
+            if (timePart) {
+                let tParts = timePart.split(':');
+                document.getElementById('editTime').value = `${tParts[0] || '00'}:${tParts[1] || '00'}`;
+            }
+        } else {
+            let now = new Date();
+            document.getElementById('editTime').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        }
+
+        // Mengisi keterangan / keperluan secara bersih tanpa tag HTML jika ada
+        let descText = rec.desc || '';
+        if (rec.isHtmlDesc) {
+            descText = descText.replace(/<br>/g, '\n').replace(/<\/?[^>]+(>|$)/g, "");
+        }
+        document.getElementById('editDesc').value = descText;
         document.getElementById('editReason').value = '';
 
         document.getElementById('editModal').style.display = 'flex';
@@ -933,6 +973,8 @@
         let newCat = document.getElementById('editCategory').value;
         let newMeth = document.getElementById('editMethod').value;
         let newNom = parseCleanNumber(document.getElementById('editNominal').value);
+        let rawDate = document.getElementById('editDate').value;
+        let timeVal = document.getElementById('editTime').value;
         let newDesc = document.getElementById('editDesc').value.trim();
         let reason = document.getElementById('editReason').value.trim();
 
@@ -944,9 +986,17 @@
             alert('Nominal harus valid!');
             return;
         }
+        if (!rawDate || !timeVal) {
+            alert('Tanggal dan waktu wajib diisi!');
+            return;
+        }
 
         let oldRec = allExpenses.find(i => i && i.id === id);
         if (!oldRec) return;
+
+        let p = rawDate.split('-');
+        let formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
+        let dateWithTime = `${formattedDate} ${timeVal}`;
 
         let now = new Date();
         let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
@@ -958,7 +1008,10 @@
                     category: newCat,
                     method: newMeth,
                     nominal: newNom,
-                    desc: newDesc
+                    date: dateWithTime,
+                    rawDate: rawDate,
+                    desc: newDesc,
+                    isHtmlDesc: false // Memastikan keterangan yang disimpan berupa teks bersih
                 };
             }
             return item;
@@ -969,7 +1022,7 @@
             time: timeLog,
             user: currentUser,
             action: 'EDIT',
-            details: `Kategori: ${oldRec.category} ➔ ${newCat} | Nominal: ${formatRp(oldRec.nominal)} ➔ ${formatRp(newNom)}`,
+            details: `Kategori: ${oldRec.category} ➔ ${newCat} | Nominal: ${formatRp(oldRec.nominal)} ➔ ${formatRp(newNom)} | Tanggal: ${oldRec.date} ➔ ${dateWithTime}`,
             reason: reason
         };
 
