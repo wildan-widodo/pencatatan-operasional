@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="3.1.7-fixed-edit">
+    <meta name="app-version" content="3.2.0-enhanced">
+    <!-- Library Ekspor Excel & PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
@@ -24,6 +29,14 @@
         .btn-sisa { background: #e65100; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
         .btn-add-row { background: #00796b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; }
         .btn-del-row { background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+
+        /* Styling Tombol Ekspor & Visual */
+        .btn-excel { background: #1b5e20; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+        .btn-pdf-export { background: #b71c1c; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+        .category-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        .cat-stat-card { background: #f8f9fa; border: 1px solid #ddd; padding: 10px 12px; border-radius: 6px; border-left: 4px solid #1565c0; }
+        .cat-stat-card label { font-size: 0.75rem; color: #555; margin-bottom: 2px; }
+        .cat-stat-card div { font-size: 1.05rem; font-weight: bold; color: #333; }
 
         .sub-form-box { background: #e8f5e9; border: 2px dashed #2e7d32; padding: 15px; border-radius: 6px; margin-bottom: 15px; display: none; }
         .sub-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
@@ -207,7 +220,7 @@
         <div class="card" style="border-top: 4px solid #c62828;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="margin: 0; color: #c62828; font-size: 1.1rem;">📊 Rekapitulasi Pengeluaran Operasional</h3>
-                <div style="display: flex; gap: 8px;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <select id="recapMonthSelect" onchange="renderExpenses()" style="padding: 6px; font-size: 0.85rem;">
                         <option value="ALL">Semua Bulan</option>
                         <option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option>
@@ -222,17 +235,30 @@
                 </div>
             </div>
 
+            <!-- FITUR BARU: KARTU STATISTIK / RINGKASAN VISUAL PER KATEGORI -->
+            <div id="categoryStatsGrid" class="category-stats-grid"></div>
+
             <div class="summary-box" style="margin-bottom: 0;">
                 <span>TOTAL KESELURUHAN PENGELUARAN OPERASIONAL</span>
                 <div id="summaryExpense">Rp 0</div>
+            </div>
+
+            <!-- TOMBOL EKSPOR LAPORAN BARU -->
+            <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: flex-end;">
+                <button type="button" class="btn-excel" onclick="exportToExcel()">📥 Ekspor ke Excel (.xlsx)</button>
+                <button type="button" class="btn-pdf-export" onclick="exportToPDF()">📄 Cetak / Ekspor PDF</button>
             </div>
         </div>
 
         <div class="card">
             <h3>Riwayat Pengeluaran</h3>
             
-            <!-- FILTER PILAH KATEGORI & METODE -->
+            <!-- FILTER PILAH KATEGORI, METODE, PENCARIAN & RENTANG TANGGAL -->
             <div class="filter-bar">
+                <div class="form-group filter-item">
+                    <label>🔍 Cari Keterangan / Penerima:</label>
+                    <input type="text" id="searchKeyword" placeholder="Ketik kata kunci..." oninput="renderExpenses()">
+                </div>
                 <div class="form-group filter-item">
                     <label>🔍 Pilah Kategori:</label>
                     <select id="filterCategory" onchange="renderExpenses()">
@@ -245,12 +271,20 @@
                     </select>
                 </div>
                 <div class="form-group filter-item">
-                    <label>🔍 Pilah Metode Transaksi:</label>
+                    <label>🔍 Pilah Metode:</label>
                     <select id="filterMethod" onchange="renderExpenses()">
                         <option value="ALL">Semua Metode</option>
                         <option value="Tunai">Tunai</option>
                         <option value="Transfer">Transfer</option>
                     </select>
+                </div>
+                <div class="form-group filter-item" style="min-width: 140px;">
+                    <label>📅 Dari Tanggal:</label>
+                    <input type="date" id="filterStartDate" onchange="renderExpenses()">
+                </div>
+                <div class="form-group filter-item" style="min-width: 140px;">
+                    <label>📅 Sampai Tanggal:</label>
+                    <input type="date" id="filterEndDate" onchange="renderExpenses()">
                 </div>
             </div>
 
@@ -329,7 +363,7 @@
     </div>
 </div>
 
-<!-- MODAL EDIT PENGELUARAN (DIPERBARUI: TANGGAL, WAKTU, KETERANGAN) -->
+<!-- MODAL EDIT PENGELUARAN -->
 <div class="modal" id="editModal">
     <div class="modal-content">
         <h3 style="color: #1565c0;">✏️ Edit Data Pengeluaran</h3>
@@ -933,7 +967,6 @@
         document.getElementById('editMethod').value = rec.method;
         document.getElementById('editNominal').value = formatNumber(rec.nominal);
         
-        // Mengisi tanggal (YYYY-MM-DD)
         if (rec.rawDate) {
             document.getElementById('editDate').value = rec.rawDate;
         } else if (rec.date && rec.date.includes('/')) {
@@ -945,7 +978,6 @@
             document.getElementById('editDate').value = new Date().toISOString().split('T')[0];
         }
 
-        // Mengisi waktu (HH:MM)
         if (rec.date && rec.date.includes(' ')) {
             let timePart = rec.date.split(' ')[1];
             if (timePart) {
@@ -957,7 +989,6 @@
             document.getElementById('editTime').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         }
 
-        // Mengisi keterangan / keperluan secara bersih tanpa tag HTML jika ada
         let descText = rec.desc || '';
         if (rec.isHtmlDesc) {
             descText = descText.replace(/<br>/g, '\n').replace(/<\/?[^>]+(>|$)/g, "");
@@ -1011,7 +1042,7 @@
                     date: dateWithTime,
                     rawDate: rawDate,
                     desc: newDesc,
-                    isHtmlDesc: false // Memastikan keterangan yang disimpan berupa teks bersih
+                    isHtmlDesc: false
                 };
             }
             return item;
@@ -1231,24 +1262,34 @@
         });
     }
 
+    // FUNGSI UTAMA RENDER DENGAN FITUR BARU (FILTER TANGGAL, PENCARIAN & KATEGORI STATS)
     function renderExpenses() {
         let tbody = document.getElementById('expenseTableBody');
         if(!tbody) return;
         tbody.innerHTML = '';
 
+        let searchKeyword = document.getElementById('searchKeyword').value.toLowerCase().trim();
         let filterCategory = document.getElementById('filterCategory').value;
         let filterMethod = document.getElementById('filterMethod').value;
         let selectedMonth = document.getElementById('recapMonthSelect').value;
         let selectedYear = document.getElementById('recapYearSelect').value;
+        let startDate = document.getElementById('filterStartDate').value;
+        let endDate = document.getElementById('filterEndDate').value;
 
         let safeExpenses = allExpenses.filter(i => i !== null && i !== undefined);
 
         let filteredExpenses = safeExpenses.filter(i => {
+            // Pencarian kata kunci
+            let descPlain = (i.desc || '').toLowerCase();
+            let receiverPlain = (i.materialData && i.materialData.receiver) ? i.materialData.receiver.toLowerCase() : '';
+            let matchSearch = (!searchKeyword || descPlain.includes(searchKeyword) || receiverPlain.includes(searchKeyword));
+
             let matchCat = (filterCategory === 'ALL' || i.category === filterCategory);
             let matchMeth = (filterMethod === 'ALL' || i.method === filterMethod);
             
             let monthMatch = true;
             let yearMatch = true;
+            let dateRangeMatch = true;
 
             if (i.rawDate) {
                 let parts = i.rawDate.split('-');
@@ -1256,22 +1297,30 @@
                     yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
                     monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
                 }
+                if (startDate && i.rawDate < startDate) dateRangeMatch = false;
+                if (endDate && i.rawDate > endDate) dateRangeMatch = false;
             } else if (i.date && i.date.includes('/')) {
                 let datePart = i.date.split(' ')[0];
                 let parts = datePart.split('/');
                 if (parts.length >= 3) {
                     monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
                     yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
+                    let isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    if (startDate && isoDate < startDate) dateRangeMatch = false;
+                    if (endDate && isoDate > endDate) dateRangeMatch = false;
                 }
             }
 
-            return matchCat && matchMeth && monthMatch && yearMatch;
+            return matchSearch && matchCat && matchMeth && monthMatch && yearMatch && dateRangeMatch;
         });
 
         let totalFilteredExpense = 0;
+        let categoryTotals = { 'Gudang': 0, 'Rumah': 0, 'Material': 0, 'Order Toko': 0, 'Gaji Pegawai': 0 };
+
         safeExpenses.forEach(i => {
             let monthMatch = true;
             let yearMatch = true;
+            let dateRangeMatch = true;
 
             if (i.rawDate) {
                 let parts = i.rawDate.split('-');
@@ -1279,23 +1328,46 @@
                     yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
                     monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
                 }
+                if (startDate && i.rawDate < startDate) dateRangeMatch = false;
+                if (endDate && i.rawDate > endDate) dateRangeMatch = false;
             } else if (i.date && i.date.includes('/')) {
                 let datePart = i.date.split(' ')[0];
                 let parts = datePart.split('/');
                 if (parts.length >= 3) {
                     monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
                     yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
+                    let isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    if (startDate && isoDate < startDate) dateRangeMatch = false;
+                    if (endDate && isoDate > endDate) dateRangeMatch = false;
                 }
             }
 
-            if (monthMatch && yearMatch) {
+            if (monthMatch && yearMatch && dateRangeMatch) {
                 let nominal = i.nominal || 0;
                 let sisa = (i.category === 'Order Toko' && i.method === 'Tunai') ? (i.sisaSetoran || 0) : 0;
-                totalFilteredExpense += (nominal - sisa);
+                let net = nominal - sisa;
+                totalFilteredExpense += net;
+
+                if (categoryTotals.hasOwnProperty(i.category)) {
+                    categoryTotals[i.category] += net;
+                }
             }
         });
 
         document.getElementById('summaryExpense').innerText = formatRp(totalFilteredExpense);
+
+        // Render Kartu Statistik / Persentase Kategori
+        let statsContainer = document.getElementById('categoryStatsGrid');
+        statsContainer.innerHTML = '';
+        for (let cat in categoryTotals) {
+            let catTotal = categoryTotals[cat];
+            let percentage = totalFilteredExpense > 0 ? ((catTotal / totalFilteredExpense) * 100).toFixed(1) : 0;
+            statsContainer.innerHTML += `
+                <div class="cat-stat-card">
+                    <label>${cat} (${percentage}%)</label>
+                    <div>${formatRp(catTotal)}</div>
+                </div>`;
+        }
 
         if (filteredExpenses.length === 0) {
             tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #777;">Tidak ada data pengeluaran yang sesuai filter.</td></tr>`;
@@ -1319,9 +1391,13 @@
                 let m = i.materialData;
                 actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` + actionBtn;
                 
+                let statusBadgeColor = '#2e7d32';
+                if (m.statusRekap && m.statusRekap.includes('Kurang')) statusBadgeColor = '#c62828';
+                else if (!m.statusRekap || m.statusRekap === 'Belum Direkap') statusBadgeColor = '#e65100';
+
                 detailHtml = `<div class="vertical-details">
                     👤 <b>Penerima:</b> ${m.receiver || '-'}<br>
-                    📌 <b>Status:</b> <span style="color: #2e7d32; font-weight: bold;">${m.statusRekap || 'Belum Direkap'}</span><br>
+                    📌 <b>Status:</b> <span style="color: ${statusBadgeColor}; font-weight: bold;">${m.statusRekap || 'Belum Direkap'}</span><br>
                     🏗️ <b>Alokasi Lokasi Bangunan:</b><br>`;
                 if (m.shops && m.shops.length > 0) {
                     m.shops.forEach(s => {
@@ -1354,6 +1430,88 @@
                 <td>${detailHtml}</td>
             </tr>`;
         });
+    }
+
+    // FITUR BARU: EKSPOR LAPORAN KE EXCEL (.XLSX)
+    function exportToExcel() {
+        let safeExpenses = allExpenses.filter(i => i !== null && i !== undefined);
+        if (safeExpenses.length === 0) {
+            alert('Tidak ada data untuk diekspor!');
+            return;
+        }
+
+        let exportData = safeExpenses.map((i, index) => {
+            let sisaSetoran = (i.category === 'Order Toko' && i.method === 'Tunai') ? (i.sisaSetoran || 0) : 0;
+            let netNominal = i.nominal - sisaSetoran;
+            let plainDesc = i.isHtmlDesc ? i.desc.replace(/<br>/g, ' | ').replace(/<\/?[^>]+(>|$)/g, "") : i.desc;
+            let materialInfo = '-';
+            if (i.category === 'Material' && i.materialData) {
+                let shopsStr = (i.materialData.shops || []).map(s => `${s.name}: ${s.cost}`).join(', ');
+                materialInfo = `Penerima: ${i.materialData.receiver || '-'} | Status: ${i.materialData.statusRekap || '-'} | Alokasi: [${shopsStr}]`;
+            }
+
+            return {
+                "No": index + 1,
+                "Tanggal & Waktu": i.date || '-',
+                "Kategori": i.category,
+                "Metode": i.method || 'Tunai',
+                "Nominal Bruto": i.nominal,
+                "Sisa Setoran": sisaSetoran,
+                "Nominal Bersih": netNominal,
+                "Keterangan": plainDesc,
+                "Detail Material": materialInfo,
+                "Dibuat Oleh": i.createdBy || '-'
+            };
+        });
+
+        let worksheet = XLSX.utils.json_to_sheet(exportData);
+        let workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Pengeluaran AWW");
+        XLSX.writeFile(workbook, `Laporan_Pengeluaran_AWW_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+
+    // FITUR BARU: EKSPOR LAPORAN KE PDF
+    function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        let doc = new jsPDF('l', 'mm', 'a4');
+
+        doc.setFontSize(16);
+        doc.setTextColor(21, 101, 192);
+        doc.text("Laporan Pengeluaran & Operasional AWW", 14, 15);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Dicetak pada: ${new Date().toLocaleDateString('id-ID')} | Oleh: ${currentUser}`, 14, 22);
+
+        let safeExpenses = allExpenses.filter(i => i !== null && i !== undefined);
+        let tableRows = [];
+
+        safeExpenses.forEach((i, index) => {
+            let sisaSetoran = (i.category === 'Order Toko' && i.method === 'Tunai') ? (i.sisaSetoran || 0) : 0;
+            let netNominal = i.nominal - sisaSetoran;
+            let plainDesc = i.isHtmlDesc ? i.desc.replace(/<br>/g, '\n').replace(/<\/?[^>]+(>|$)/g, "") : i.desc;
+
+            tableRows.push([
+                index + 1,
+                i.date || '-',
+                i.category,
+                i.method || 'Tunai',
+                formatRp(i.nominal),
+                formatRp(netNominal),
+                plainDesc
+            ]);
+        });
+
+        doc.autoTable({
+            startY: 28,
+            head: [['No', 'Tanggal', 'Kategori', 'Metode', 'Nominal Bruto', 'Nominal Bersih', 'Keterangan']],
+            body: tableRows,
+            theme: 'grid',
+            headStyles: { fillColor: [21, 101, 192] },
+            styles: { fontSize: 8 }
+        });
+
+        doc.save(`Laporan_Pengeluaran_AWW_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 
     function renderAuditLogs() {
