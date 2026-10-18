@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Operasional AWW</title>
-    <meta name="app-version" content="3.3.0-cashbox">
+    <meta name="app-version" content="3.4.0-cashbox-restricted">
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -33,7 +33,7 @@
         .btn-excel { background: #1b5e20; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
         .btn-pdf-export { background: #b71c1c; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
         
-        /* Banner Saldo Kas Admin */
+        /* Banner Saldo Kas Gudang & Material Admin */
         .cashbox-banner { background: linear-gradient(135deg, #00796b, #004d40); color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
         .cashbox-banner .saldo-val { font-size: 1.8rem; font-weight: bold; color: #ffeb3b; margin-top: 4px; }
 
@@ -106,14 +106,14 @@
         <button onclick="handleLogout()" style="background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">🚪 Keluar Akun</button>
     </div>
 
-    <!-- BANNER SALDO KAS ADMIN YANG DIPEGANG (CASH ON HAND) -->
+    <!-- BANNER SALDO KAS GUDANG & MATERIAL DI ADMIN -->
     <div class="cashbox-banner">
         <div>
-            <span style="font-size: 0.85rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">Sisa Saldo Kas / Uang Gudang di Admin:</span>
+            <span style="font-size: 0.85rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">Sisa Saldo Kas Gudang & Material di Admin:</span>
             <div id="adminCashBalance" class="saldo-val">Rp 0</div>
         </div>
         <div>
-            <button type="button" onclick="openReceiveCashModal()" style="background: #ffeb3b; color: #004d40; border: none; padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem;">+ Minta / Terima Dana Brankas</button>
+            <button type="button" onclick="openReceiveCashModal()" style="background: #ffeb3b; color: #004d40; border: none; padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem;">+ Minta / Terima Dana (Gudang & Material)</button>
         </div>
     </div>
 
@@ -169,8 +169,8 @@
                     <div class="form-group">
                         <label>Metode Transaksi Pembelanjaan</label>
                         <select id="expenseMethod">
-                            <option value="Tunai">Tunai (Potong Kas Admin)</option>
-                            <option value="Transfer">Transfer</option>
+                            <option value="Tunai">Tunai (Potong Kas Gudang/Material)</option>
+                            <option value="Transfer">Transfer (Langsung Brankas)</option>
                         </select>
                     </div>
 
@@ -214,8 +214,8 @@
                         <div class="form-group" style="flex: 1; margin-bottom: 0;">
                             <label>Metode Pembelanjaan Akumulasi:</label>
                             <select id="bulkMaterialMethod">
-                                <option value="Tunai">Tunai (Potong Kas Admin)</option>
-                                <option value="Transfer">Transfer</option>
+                                <option value="Tunai">Tunai (Potong Kas Gudang/Material)</option>
+                                <option value="Transfer">Transfer (Langsung Brankas)</option>
                             </select>
                         </div>
                         <div class="form-group" style="flex: 1; margin-bottom: 0; display: flex; align-items: flex-end;">
@@ -278,7 +278,7 @@
                     <label>🔍 Pilah Kategori:</label>
                     <select id="filterCategory" onchange="renderExpenses()">
                         <option value="ALL">Semua Kategori</option>
-                        <option value="TERIMA_DANA">📥 (Penerimaan Kas Brankas)</option>
+                        <option value="TERIMA_DANA">📥 (Penerimaan Kas Gudang/Material)</option>
                         <option value="Gudang">Gudang</option>
                         <option value="Rumah">Rumah</option>
                         <option value="Material">Material</option>
@@ -379,12 +379,20 @@
     </div>
 </div>
 
-<!-- MODAL TERIMA / MINTA DANA DARI BRANKAS -->
+<!-- MODAL TERIMA / MINTA DANA KHUSUS GUDANG & MATERIAL -->
 <div class="modal" id="receiveCashModal">
     <div class="modal-content">
-        <h3 style="color: #00796b;">📥 Catat Penerimaan Dana dari Brankas</h3>
-        <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Catat konfirmasi permintaan dana kas (misal: Rp10.000.000) yang diserahkan dari brankas ke admin.</p>
+        <h3 style="color: #00796b;">📥 Catat Penerimaan Dana (Gudang & Material)</h3>
+        <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Catat konfirmasi permintaan dana kas khusus untuk kategori <b>Gudang</b> atau <b>Material</b> dari brankas.</p>
         
+        <div class="form-group">
+            <label>Pilih Kategori Peruntukan:</label>
+            <select id="rcvCategory">
+                <option value="Gudang">Gudang</option>
+                <option value="Material">Material</option>
+            </select>
+        </div>
+
         <div class="form-group">
             <label>Tanggal Diterima</label>
             <input type="date" id="rcvDate">
@@ -407,7 +415,7 @@
 
         <div class="form-group">
             <label>Keterangan Tambahan</label>
-            <textarea id="rcvDesc" rows="2" placeholder="Contoh: Permintaan dana operasional mingguan"></textarea>
+            <textarea id="rcvDesc" rows="2" placeholder="Contoh: Permintaan dana operasional gudang/material"></textarea>
         </div>
 
         <div style="display: flex; gap: 10px;">
@@ -800,17 +808,19 @@
         });
     }
 
-    // FUNGSI MODAL TERIMA KAS DARI BRANKAS
+    // FUNGSI MODAL TERIMA KAS KHUSUS GUDANG & MATERIAL
     function openReceiveCashModal() {
+        document.getElementById('rcvCategory').value = 'Gudang';
         document.getElementById('rcvDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('rcvNominal').value = '';
         document.getElementById('rcvSender').value = 'Brankas Gudang';
         document.getElementById('rcvReceiver').value = currentUser;
-        document.getElementById('rcvDesc').value = 'Permintaan dana kas operasional';
+        document.getElementById('rcvDesc').value = 'Permintaan dana kas';
         document.getElementById('receiveCashModal').style.display = 'flex';
     }
 
     function submitReceiveCash() {
+        let rcvCat = document.getElementById('rcvCategory').value;
         let rawDate = document.getElementById('rcvDate').value;
         let nominal = parseCleanNumber(document.getElementById('rcvNominal').value);
         let sender = document.getElementById('rcvSender').value.trim();
@@ -833,10 +843,11 @@
             date: dateWithTime,
             rawDate: rawDate,
             category: 'TERIMA_DANA',
+            targetCategory: rcvCat, // Gudang atau Material
             method: 'Tunai',
             nominal: nominal,
             sisaSetoran: 0,
-            desc: `Konfirmasi Penerimaan: Penyerah [${sender}] ➔ Penerima [${receiver}] | Keterangan: ${desc}`,
+            desc: `Konfirmasi Penerimaan (${rcvCat}): Penyerah [${sender}] ➔ Penerima [${receiver}] | Keterangan: ${desc}`,
             isHtmlDesc: false,
             materialData: null,
             createdBy: currentUser
@@ -844,13 +855,13 @@
 
         allExpenses.push(newRecord);
         db.ref('operational_expenses').set(allExpenses).then(() => {
-            alert('Penerimaan dana kas dari brankas berhasil dicatat!');
+            alert('Penerimaan dana kas berhasil dicatat!');
             document.getElementById('receiveCashModal').style.display = 'none';
         });
     }
 
-    // HITUNG SALDO KAS ADMIN (CASH ON HAND)
-    // Total Terima Dana - Total Pengeluaran Tunai
+    // HITUNG SALDO KAS ADMIN KHUSUS GUDANG & MATERIAL
+    // Total Terima Dana Gudang/Material - Total Pengeluaran Tunai Gudang/Material
     function updateAdminCashBalance() {
         let totalTerima = 0;
         let totalKeluarTunai = 0;
@@ -859,9 +870,8 @@
             if (!i) return;
             if (i.category === 'TERIMA_DANA') {
                 totalTerima += (i.nominal || 0);
-            } else if (i.method === 'Tunai') {
-                let sisa = (i.category === 'Order Toko') ? (i.sisaSetoran || 0) : 0;
-                totalKeluarTunai += ((i.nominal || 0) - sisa);
+            } else if (i.method === 'Tunai' && (i.category === 'Gudang' || i.category === 'Material')) {
+                totalKeluarTunai += (i.nominal || 0);
             }
         });
 
@@ -1724,7 +1734,7 @@
         if (confirm(`Hapus lokasi "${locations[index]}"?`)) {
             locations.splice(index, 1);
             db.ref('operational_locations').set(locations).then(() => {
-                alert('Lokasi berhasil masuk!');
+                alert('Lokasi berhasil dihapus!');
             });
         }
     }
