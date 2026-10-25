@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pencatatan Pengeluaran & Saldo Gudang AWW</title>
-    <meta name="app-version" content="3.5.0-integrated-warehouse-operational">
+    <title>Pencatatan Pengeluaran & Operasional AWW</title>
+    <meta name="app-version" content="3.2.0-enhanced">
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -23,8 +23,6 @@
         input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
         
         .btn-primary { background: #2e7d32; color: white; border: none; padding: 12px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem; }
-        .btn-secondary { background: #1565c0; color: white; border: none; padding: 12px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem; }
-        .btn-warehouse { background: #e65100; color: white; border: none; padding: 12px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1.1rem; }
         .btn-danger { background: #c62828; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
         .btn-edit { background: #1565c0; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
         .btn-rekap { background: #00796b; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-right: 4px; }
@@ -98,7 +96,7 @@
 <div class="container" id="appContainer">
     <div class="card" style="background: #1565c0; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-            <h2 style="margin: 0; color: white;">🏗️ Pencatatan Pengeluaran & Saldo Gudang AWW</h2>
+            <h2 style="margin: 0; color: white;">🏗️ Pencatatan Pengeluaran & Operasional AWW</h2>
             <p id="userStatusBanner" style="font-size: 0.85rem; margin: 5px 0 0 0; opacity: 0.9;">👤 Mengakses sebagai: -</p>
         </div>
         <button onclick="handleLogout()" style="background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">🚪 Keluar Akun</button>
@@ -108,7 +106,6 @@
     <div class="nav-tabs" id="navTabsContainer">
         <button class="nav-tab active" onclick="switchTab('inputTab')">📝 Catat Pengeluaran</button>
         <button class="nav-tab" onclick="switchTab('historyTab')">📋 Riwayat & Rekap</button>
-        <button class="nav-tab" onclick="switchTab('warehouseTab')">📦 Saldo Gudang (Mbak Ika)</button>
         <button class="nav-tab" id="auditTabBtn" onclick="switchTab('auditTab')" style="display: none;">📜 Audit Trail Log</button>
         <button class="nav-tab" onclick="switchTab('settingTab')">⚙️ Pengaturan & Lokasi</button>
     </div>
@@ -238,7 +235,7 @@
                 </div>
             </div>
 
-            <!-- KARTU STATISTIK / RINGKASAN VISUAL PER KATEGORI -->
+            <!-- FITUR BARU: KARTU STATISTIK / RINGKASAN VISUAL PER KATEGORI -->
             <div id="categoryStatsGrid" class="category-stats-grid"></div>
 
             <div class="summary-box" style="margin-bottom: 0;">
@@ -246,7 +243,7 @@
                 <div id="summaryExpense">Rp 0</div>
             </div>
 
-            <!-- TOMBOL EKSPOR LAPORAN -->
+            <!-- TOMBOL EKSPOR LAPORAN BARU -->
             <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: flex-end;">
                 <button type="button" class="btn-excel" onclick="exportToExcel()">📥 Ekspor ke Excel (.xlsx)</button>
                 <button type="button" class="btn-pdf-export" onclick="exportToPDF()">📄 Cetak / Ekspor PDF</button>
@@ -314,139 +311,7 @@
         </div>
     </div>
 
-    <!-- TAB 3: SALDO GUDANG (MBAK IKA & MAS APRIN) -->
-    <div id="warehouseTab" class="tab-content">
-        <!-- WIDGET SISA SALDO GUDANG -->
-        <div class="card" style="background: #fffde7; border-left: 5px solid #fbc02d;">
-            <h3 style="color: #f57c00; margin-bottom: 5px;">💰 Sisa Saldo Operasional Gudang (Mbak Ika)</h3>
-            <div style="font-size: 2.2rem; font-weight: bold; color: #e65100;" id="currentWarehouseBalanceDisplay">Rp 0</div>
-            <p style="font-size: 0.8rem; color: #666; margin: 5px 0 0 0;">Akumulasi dana dari Owner minus pengeluaran Gudang/Material Tunai (plus/minus sisa belanja Mas Aprin).</p>
-        </div>
-
-        <!-- FORM 1: PENYERAHAN DANA DARI OWNER KE MBAK IKA -->
-        <div class="card">
-            <h3 style="color: #1565c0;">📥 Form Penyerahan Uang Operasional (Dari Owner ke Mbak Ika)</h3>
-            <form onsubmit="saveWarehouseFundReceived(event)">
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <div class="form-group" style="flex: 1; min-width: 200px;">
-                        <label>Tanggal Penyerahan</label>
-                        <input type="date" id="whFundDateInput" required>
-                    </div>
-                    <div class="form-group" style="flex: 1; min-width: 200px;">
-                        <label>Waktu Penyerahan (Jam:Menit)</label>
-                        <input type="time" id="whFundTimeInput" required>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <div class="form-group" style="flex: 1; min-width: 200px;">
-                        <label>Pemberi Uang</label>
-                        <input type="text" id="whFundSenderInput" value="Owner" required>
-                    </div>
-                    <div class="form-group" style="flex: 1; min-width: 200px;">
-                        <label>Penerima Uang</label>
-                        <input type="text" id="whFundReceiverInput" value="Mbak Ika" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Nominal Uang Diberikan (Rp)</label>
-                    <input type="text" id="whFundAmountInput" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)" required>
-                </div>
-                <div class="form-group">
-                    <label>Keterangan Penyerahan</label>
-                    <input type="text" id="whFundDescInput" value="Permintaan dana operasional gudang dari Owner" required>
-                </div>
-                <button type="submit" class="btn-secondary">📥 Simpan Penyerahan Dana</button>
-            </form>
-        </div>
-
-        <!-- FORM 2: INPUT PENGELUARAN OPERASIONAL & MATERIAL GUDANG -->
-        <div class="card">
-            <h3 style="color: #e65100;">💸 Form Input Pengeluaran & Material Gudang (Mbak Ika / Mas Aprin)</h3>
-            <form onsubmit="saveWarehouseOperationalExpense(event)">
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <div class="form-group" style="flex: 1; min-width: 200px;">
-                        <label>Tanggal Pengeluaran</label>
-                        <input type="date" id="whExpDateInput" required>
-                    </div>
-                    <div class="form-group" style="flex: 1; min-width: 200px;">
-                        <label>Waktu Pengeluaran</label>
-                        <input type="time" id="whExpTimeInput" required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Kategori Pengeluaran</label>
-                    <select id="whExpCategorySelect" onchange="handleWarehouseCategoryChange()" required>
-                        <option value="Gudang">Gudang</option>
-                        <option value="Material">Material</option>
-                        <option value="Lainnya">Lainnya</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Metode Pembayaran</label>
-                    <select id="whExpMethodSelect" onchange="handleWarehouseCategoryChange()" required>
-                        <option value="Tunai">Tunai</option>
-                        <option value="Transfer">Transfer</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Keterangan Keperluan / Nama Barang</label>
-                    <input type="text" id="whExpDescInput" placeholder="Contoh: Beli lakban / Pembelian Semen" required>
-                </div>
-
-                <!-- BAGIAN KHUSUS MATERIAL TUNAI (DIBERIKAN KE MAS APRIN) -->
-                <div id="whMaterialSection" style="display: none; background: #fff8e1; padding: 15px; border-radius: 6px; border: 1px dashed #fbc02d; margin-bottom: 15px;">
-                    <label style="color: #d84315; font-weight: bold; margin-bottom: 10px; display: block;">🛠️ Rincian Belanja Material oleh Mas Aprin (Sisa / Kurang)</label>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <div class="form-group" style="flex: 1; min-width: 180px;">
-                            <label>Uang Diberikan Mbak Ika ke Mas Aprin (Rp)</label>
-                            <input type="text" id="whMatGivenInput" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this); calculateWarehouseMaterialDiff();">
-                        </div>
-                        <div class="form-group" style="flex: 1; min-width: 180px;">
-                            <label>Total Belanja Riil Mas Aprin (Rp)</label>
-                            <input type="text" id="whMatActualInput" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this); calculateWarehouseMaterialDiff();">
-                        </div>
-                    </div>
-                    <div style="font-size: 0.9rem; font-weight: bold; margin-top: 5px;" id="whMatDiffDisplay">Selisih: Rp 0</div>
-                </div>
-
-                <div class="form-group" id="whNominalGroup">
-                    <label>Nominal Pengeluaran (Rp)</label>
-                    <input type="text" id="whExpAmountInput" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)">
-                </div>
-
-                <button type="submit" class="btn-warehouse">💾 Simpan Pengeluaran Operasional Gudang</button>
-            </form>
-        </div>
-
-        <!-- TABEL RIWAYAT TRANSAKSI GUDANG -->
-        <div class="card">
-            <h3>📋 Riwayat Transaksi & Sisa Saldo Gudang</h3>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Aksi</th>
-                            <th>Tanggal & Waktu</th>
-                            <th>Kategori</th>
-                            <th>Dana Masuk</th>
-                            <th>Keterangan</th>
-                            <th>Detail Material</th>
-                            <th>Dana Keluar</th>
-                            <th>Sisa Saldo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="warehouseHistoryTableBody">
-                        <tr><td colspan="8" style="text-align: center; color: #777;">Memuat riwayat saldo gudang...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- TAB 4: AUDIT TRAIL LOG (KHUSUS OWNER) -->
+    <!-- TAB 3: AUDIT TRAIL LOG (KHUSUS OWNER) -->
     <div id="auditTab" class="tab-content">
         <div class="card">
             <h3>📜 Audit Trail Log (Riwayat Edit & Hapus)</h3>
@@ -470,7 +335,7 @@
         </div>
     </div>
 
-    <!-- TAB 5: PENGATURAN & LOKASI -->
+    <!-- TAB 4: PENGATURAN & LOKASI -->
     <div id="settingTab" class="tab-content">
         <div class="card">
             <h3>⚙️ Kelola Lokasi Bangunan / Proyek</h3>
@@ -683,7 +548,6 @@
     const db = firebase.database();
 
     let allExpenses = [];
-    let warehouseTransactions = [];
     let auditLogs = [];
     let locations = [];
     let currentUser = "";
@@ -719,22 +583,11 @@
             let firstBmDate = document.querySelector('.bm-date');
             if(firstBmDate) firstBmDate.value = new Date().toISOString().split('T')[0];
 
-            let whDateEl = document.getElementById('whFundDateInput');
-            let whTimeEl = document.getElementById('whFundTimeInput');
-            let whExpDateEl = document.getElementById('whExpDateInput');
-            let whExpTimeEl = document.getElementById('whExpTimeInput');
-            let nowIsoDate = new Date().toISOString().split('T')[0];
-            let nowTimeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-            
-            if(whDateEl) whDateEl.value = nowIsoDate;
-            if(whTimeEl) whTimeEl.value = nowTimeStr;
-            if(whExpDateEl) whExpDateEl.value = nowIsoDate;
-            if(whExpTimeEl) whExpTimeEl.value = nowTimeStr;
-
+            let now = new Date();
             let recapMonth = document.getElementById('recapMonthSelect');
             let recapYear = document.getElementById('recapYearSelect');
-            if(recapMonth) recapMonth.value = String(new Date().getMonth() + 1).padStart(2, '0');
-            if(recapYear) recapYear.value = String(new Date().getFullYear());
+            if(recapMonth) recapMonth.value = String(now.getMonth() + 1).padStart(2, '0');
+            if(recapYear) recapYear.value = String(now.getFullYear());
 
             loadDataFromFirebase();
             toggleCategoryDetail();
@@ -864,18 +717,6 @@
             renderExpenses();
         });
 
-        db.ref('warehouse_transactions').on('value', snapshot => {
-            let rawData = snapshot.val();
-            if (Array.isArray(rawData)) {
-                warehouseTransactions = rawData.filter(item => item !== null && item !== undefined);
-            } else if (rawData && typeof rawData === 'object') {
-                warehouseTransactions = Object.values(rawData);
-            } else {
-                warehouseTransactions = [];
-            }
-            renderWarehouseData();
-        });
-
         db.ref('operational_audit_logs').on('value', snapshot => {
             let rawData = snapshot.val();
             if (Array.isArray(rawData)) {
@@ -900,212 +741,6 @@
             renderLocations();
         });
     }
-
-    // --- FUNGSI MANAJEMEN SALDO GUDANG (MBAK IKA & MAS APRIN) ---
-    function getCurrentWarehouseBalance() {
-        let balance = 0;
-        warehouseTransactions.forEach(tx => {
-            balance += (tx.danaMasuk || 0) - (tx.danaKeluar || 0);
-        });
-        return balance;
-    }
-
-    function renderWarehouseData() {
-        let currentBalance = getCurrentWarehouseBalance();
-        let disp = document.getElementById('currentWarehouseBalanceDisplay');
-        if (disp) {
-            disp.innerText = formatRp(currentBalance);
-            disp.style.color = currentBalance >= 0 ? '#e65100' : '#c62828';
-        }
-
-        let tbody = document.getElementById('warehouseHistoryTableBody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-
-        if (warehouseTransactions.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #777;">Belum ada riwayat saldo gudang.</td></tr>`;
-            return;
-        }
-
-        let sortedList = [...warehouseTransactions].sort((a, b) => (b.id || 0) - (a.id || 0));
-
-        sortedList.forEach(tx => {
-            let masukStr = tx.danaMasuk > 0 ? `<span style="color:#2e7d32; font-weight:bold;">+${formatRp(tx.danaMasuk)}</span>` : '-';
-            let keluarStr = tx.danaKeluar > 0 ? `<span style="color:#c62828; font-weight:bold;">-${formatRp(tx.danaKeluar)}</span>` : '-';
-            let sisaStr = `<b style="color:#1565c0;">${formatRp(tx.sisaSaldo || 0)}</b>`;
-
-            tbody.innerHTML += `<tr>
-                <td><button class="btn-danger" onclick="deleteWarehouseTx(${tx.id})">🗑️ Hapus</button></td>
-                <td>${tx.dateTime || '-'}</td>
-                <td><b>${tx.category || '-'}</b></td>
-                <td>${masukStr}</td>
-                <td>${tx.description || '-'}</td>
-                <td>${tx.detailMaterial || '-'}</td>
-                <td>${keluarStr}</td>
-                <td>${sisaStr}</td>
-            </tr>`;
-        });
-    }
-
-    function saveWarehouseFundReceived(e) {
-        e.preventDefault();
-        let dateVal = document.getElementById('whFundDateInput').value;
-        let timeVal = document.getElementById('whFundTimeInput').value;
-        let sender = document.getElementById('whFundSenderInput').value.trim();
-        let receiver = document.getElementById('whFundReceiverInput').value.trim();
-        let amount = parseCleanNumber(document.getElementById('whFundAmountInput').value);
-        let desc = document.getElementById('whFundDescInput').value.trim();
-
-        if (amount <= 0) { alert('Nominal dana harus lebih besar dari 0!'); return; }
-
-        let p = dateVal.split('-');
-        let formattedDate = `${p[2]}/${p[1]}/${p[0]} ${timeVal}`;
-        let currentBalance = getCurrentWarehouseBalance();
-        let newBalance = currentBalance + amount;
-
-        let newTx = {
-            id: Date.now(),
-            dateTime: formattedDate,
-            category: 'Penyerahan Dana',
-            danaMasuk: amount,
-            danaKeluar: 0,
-            description: `${desc} (Pemberi: ${sender}, Penerima: ${receiver})`,
-            detailMaterial: '-',
-            sisaSaldo: newBalance
-        };
-
-        warehouseTransactions.push(newTx);
-        saveAndRecalculateWarehouse();
-        document.getElementById('whFundAmountInput').value = '';
-        alert('Penyerahan dana operasional gudang berhasil dicatat!');
-    }
-
-    function handleWarehouseCategoryChange() {
-        let cat = document.getElementById('whExpCategorySelect').value;
-        let method = document.getElementById('whExpMethodSelect').value;
-        let isMatTunai = (cat === 'Material' && method === 'Tunai');
-
-        document.getElementById('whMaterialSection').style.display = isMatTunai ? 'block' : 'none';
-        document.getElementById('whNominalGroup').style.display = isMatTunai ? 'none' : 'block';
-    }
-
-    function calculateWarehouseMaterialDiff() {
-        let given = parseCleanNumber(document.getElementById('whMatGivenInput').value);
-        let actual = parseCleanNumber(document.getElementById('whMatActualInput').value);
-        let diff = given - actual;
-        let lbl = document.getElementById('whMatDiffDisplay');
-
-        if (given > 0 && actual > 0) {
-            if (diff > 0) {
-                lbl.innerHTML = `Sisa Uang (Otomatis Masuk Saldo Gudang Mbak Ika): <span style="color:#2e7d32;">+${formatRp(diff)}</span>`;
-            } else if (diff < 0) {
-                lbl.innerHTML = `Kekurangan Belanja (Dipotong dari Saldo Gudang Mbak Ika): <span style="color:#c62828;">-${formatRp(Math.abs(diff))}</span>`;
-            } else {
-                lbl.innerHTML = `Selisih: Rp 0 (Pas)`;
-            }
-        } else {
-            lbl.innerHTML = `Selisih: Rp 0`;
-        }
-    }
-
-    function saveWarehouseOperationalExpense(e) {
-        e.preventDefault();
-        let dateVal = document.getElementById('whExpDateInput').value;
-        let timeVal = document.getElementById('whExpTimeInput').value;
-        let cat = document.getElementById('whExpCategorySelect').value;
-        let method = document.getElementById('whExpMethodSelect').value;
-        let desc = document.getElementById('whExpDescInput').value.trim();
-
-        let p = dateVal.split('-');
-        let formattedDate = `${p[2]}/${p[1]}/${p[0]} ${timeVal}`;
-
-        if (cat === 'Material' && method === 'Tunai') {
-            let given = parseCleanNumber(document.getElementById('whMatGivenInput').value);
-            let actual = parseCleanNumber(document.getElementById('whMatActualInput').value);
-            let diff = given - actual;
-
-            if (given <= 0 || actual <= 0) {
-                alert('Mohon isi nominal uang yang diberikan ke Mas Aprin dan total belanja riil material!');
-                return;
-            }
-
-            let detailMatText = `Diberikan ke Mas Aprin: ${formatRp(given)}, Belanja Riil: ${formatRp(actual)}`;
-            
-            warehouseTransactions.push({
-                id: Date.now(),
-                dateTime: formattedDate,
-                category: `Material (Tunai)`,
-                danaMasuk: 0,
-                danaKeluar: actual,
-                description: `${desc} (Oleh Mas Aprin)`,
-                detailMaterial: detailMatText
-            });
-
-            if (diff > 0) {
-                warehouseTransactions.push({
-                    id: Date.now() + 1,
-                    dateTime: formattedDate,
-                    category: `Sisa Material`,
-                    danaMasuk: diff,
-                    danaKeluar: 0,
-                    description: `Sisa kembalian belanja material dari Mas Aprin: ${desc}`,
-                    detailMaterial: `Sisa: +${formatRp(diff)}`
-                });
-            } else if (diff < 0) {
-                warehouseTransactions.push({
-                    id: Date.now() + 1,
-                    dateTime: formattedDate,
-                    category: `Talangan Material`,
-                    danaMasuk: 0,
-                    danaKeluar: Math.abs(diff),
-                    description: `Talangan kekurangan belanja material Mas Aprin: ${desc}`,
-                    detailMaterial: `Kurang: -${formatRp(Math.abs(diff))}`
-                });
-            }
-        } else {
-            let amount = parseCleanNumber(document.getElementById('whExpAmountInput').value);
-            if (amount <= 0) { alert('Nominal pengeluaran wajib diisi!'); return; }
-
-            let isTunaiGudang = (cat === 'Gudang' && method === 'Tunai');
-
-            warehouseTransactions.push({
-                id: Date.now(),
-                dateTime: formattedDate,
-                category: `${cat} (${method})`,
-                danaMasuk: 0,
-                danaKeluar: isTunaiGudang ? amount : 0,
-                description: `${desc} ${!isTunaiGudang ? '(Non-Saldo Gudang)' : ''}`,
-                detailMaterial: '-'
-            });
-        }
-
-        saveAndRecalculateWarehouse();
-        document.getElementById('whExpDescInput').value = '';
-        document.getElementById('whExpAmountInput').value = '';
-        document.getElementById('whMatGivenInput').value = '';
-        document.getElementById('whMatActualInput').value = '';
-        alert('Pengeluaran operasional gudang berhasil dicatat!');
-    }
-
-    function saveAndRecalculateWarehouse() {
-        let runningBal = 0;
-        warehouseTransactions.sort((a, b) => (a.id || 0) - (b.id || 0)).forEach(tx => {
-            runningBal += (tx.danaMasuk || 0) - (tx.danaKeluar || 0);
-            tx.sisaSaldo = runningBal;
-        });
-
-        db.ref('warehouse_transactions').set(warehouseTransactions).then(() => {
-            renderWarehouseData();
-        });
-    }
-
-    function deleteWarehouseTx(id) {
-        if (confirm('⚠️ Hapus catatan transaksi gudang ini? Sisa saldo akan dihitung ulang.')) {
-            warehouseTransactions = warehouseTransactions.filter(t => t.id !== id);
-            saveAndRecalculateWarehouse();
-        }
-    }
-    // --- AKHIR FUNGSI SALDO GUDANG ---
 
     function openBulkRekapSetupModal() {
         let rows = document.querySelectorAll('.bulk-material-row');
@@ -1627,6 +1262,7 @@
         });
     }
 
+    // FUNGSI UTAMA RENDER DENGAN FITUR BARU (FILTER TANGGAL, PENCARIAN & KATEGORI STATS)
     function renderExpenses() {
         let tbody = document.getElementById('expenseTableBody');
         if(!tbody) return;
@@ -1643,6 +1279,7 @@
         let safeExpenses = allExpenses.filter(i => i !== null && i !== undefined);
 
         let filteredExpenses = safeExpenses.filter(i => {
+            // Pencarian kata kunci
             let descPlain = (i.desc || '').toLowerCase();
             let receiverPlain = (i.materialData && i.materialData.receiver) ? i.materialData.receiver.toLowerCase() : '';
             let matchSearch = (!searchKeyword || descPlain.includes(searchKeyword) || receiverPlain.includes(searchKeyword));
@@ -1719,6 +1356,7 @@
 
         document.getElementById('summaryExpense').innerText = formatRp(totalFilteredExpense);
 
+        // Render Kartu Statistik / Persentase Kategori
         let statsContainer = document.getElementById('categoryStatsGrid');
         statsContainer.innerHTML = '';
         for (let cat in categoryTotals) {
@@ -1794,6 +1432,7 @@
         });
     }
 
+    // FITUR BARU: EKSPOR LAPORAN KE EXCEL (.XLSX)
     function exportToExcel() {
         let safeExpenses = allExpenses.filter(i => i !== null && i !== undefined);
         if (safeExpenses.length === 0) {
@@ -1831,6 +1470,7 @@
         XLSX.writeFile(workbook, `Laporan_Pengeluaran_AWW_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
+    // FITUR BARU: EKSPOR LAPORAN KE PDF
     function exportToPDF() {
         const { jsPDF } = window.jspdf;
         let doc = new jsPDF('l', 'mm', 'a4');
