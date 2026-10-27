@@ -414,7 +414,7 @@
             </div>
             <div class="form-group">
                 <label>Pemberi Dana:</label>
-                <input type="text" id="tuSenderInput" value="Owner" placeholder="Contoh: Owner" required>
+                <input type="text" id="tuSenderInput" value="Wildan" placeholder="Contoh: Pak Bos" required>
             </div>
             <div class="form-group">
                 <label>Nominal Dana Tunai (Rp):</label>
@@ -834,30 +834,39 @@
     }
 
     // --- KALKULASI DANA TUNAI GUDANG OTOMATIS ---
-    function calculateWarehouseCashBalance() {
+        function calculateWarehouseCashBalance() {
         let totalTopUp = 0;
         warehouseTopUps.forEach(tu => {
             totalTopUp += (tu.amount || 0);
         });
 
         let totalKeluarTunaiGudangMaterial = 0;
-        let totalSelisihRekap = 0; // Positif = kurang (mengambil dana), Negatif = lebih (masuk dana)
+        let totalSelisihRekap = 0;
+
+        // Tentukan batas tanggal efektif (Cut-off tanggal 1 bulan depan / 1 November 2026 atau sesuai rencana Anda)
+        // Contoh format: '2026-11-01'. Transaksi sebelum tanggal ini tidak akan mengurangi Dana Tunai Gudang.
+        let cutoffDate = '2026-11-01'; 
 
         allExpenses.forEach(i => {
             if (!i) return;
-            // Pengeluaran Gudang & Material metode Tunai
-            if ((i.category === 'Gudang' || i.category === 'Material') && i.method === 'Tunai') {
-                totalKeluarTunaiGudangMaterial += (i.nominal || 0);
-            }
 
-            // Hitung selisih rekap nota material
-            if (i.category === 'Material' && i.materialData && i.materialData.shops && i.materialData.shops.length > 0) {
-                let totalNota = i.materialData.shops.reduce((sum, s) => sum + s.cost, 0);
-                let selisih = i.nominal - totalNota; // > 0 berarti sisa lebih (masuk kas), < 0 berarti kurang (ambil kas)
-                if (selisih > 0) {
-                    totalSelisihRekap += selisih; // Sisa lebih uang masuk ke dana tunai gudang
-                } else if (selisih < 0) {
-                    totalSelisihRekap -= Math.abs(selisih); // Kurang uang mengambil dari dana tunai gudang
+            // Hanya hitung pengeluaran dari tanggal cut-off ke depan
+            let itemDate = i.rawDate || '';
+            if (itemDate && itemDate >= cutoffDate) {
+                // Pengeluaran Gudang & Material metode Tunai
+                if ((i.category === 'Gudang' || i.category === 'Material') && i.method === 'Tunai') {
+                    totalKeluarTunaiGudangMaterial += (i.nominal || 0);
+                }
+
+                // Hitung selisih rekap nota material mulai tanggal efektif
+                if (i.category === 'Material' && i.materialData && i.materialData.shops && i.materialData.shops.length > 0) {
+                    let totalNota = i.materialData.shops.reduce((sum, s) => sum + s.cost, 0);
+                    let selisih = i.nominal - totalNota;
+                    if (selisih > 0) {
+                        totalSelisihRekap += selisih; // Sisa lebih masuk kas
+                    } else if (selisih < 0) {
+                        totalSelisihRekap -= Math.abs(selisih); // Kurang ambil dari kas
+                    }
                 }
             }
         });
