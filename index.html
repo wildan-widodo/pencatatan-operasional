@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="3.8.0-fresh-modern-ui">
+    <meta name="app-version" content="3.8.1-fresh-modern-ui">
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -143,7 +143,7 @@
 <!-- HALAMAN LOGIN PIN -->
 <div class="login-card" id="loginCard">
     <div style="font-size: 2.5rem; margin-bottom: 10px;">🔐</div>
-        <h2>Akses Keamanan AWW</h2>
+    <h2>Akses Keamanan AWW</h2>
     <p style="font-size: 0.875rem; color: #64748b; margin-bottom: 24px;">Masukkan 6 digit PIN Akses Anda</p>
     <div class="form-group">
         <input type="password" id="loginPinInput" placeholder="••••••" maxlength="6" style="text-align: center; letter-spacing: 8px; font-size: 1.5rem; font-weight: bold;" autocomplete="current-password">
@@ -177,7 +177,7 @@
             <div>
                 <span style="font-size: 0.85rem; color: #b45309; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">💰 Penampil Sisa Dana Tunai Gudang</span>
                 <div class="amount" id="dashboardWarehouseCashDisplay">Rp 0</div>
-                <small style="color: #78350f; font-weight: 500;">Berkurang otomatis untuk kategori Gudang & Material (Metode Tunai) mulai 01/11/2026, serta penyesuaian selisih rekap nota.</small>
+                <small id="warehouseCutoffInfoLabel" style="color: #78350f; font-weight: 500;">Berkurang otomatis untuk kategori Gudang & Material (Metode Tunai) mulai hari ini, serta penyesuaian selisih rekap nota.</small>
             </div>
             <div>
                 <button type="button" class="btn-primary" onclick="openTopUpWarehouseModal()" style="background: #ea580c; font-size: 0.95rem; padding: 12px 18px; width: auto; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);">➕ Top-Up Dana Tunai Gudang</button>
@@ -870,6 +870,13 @@
         if (logoutBtn) {
             logoutBtn.addEventListener('click', handleLogout);
         }
+
+        // Update otomatis teks label keterangan cutoff date sesuai tanggal hari ini
+        let cutoffInfoLabel = document.getElementById('warehouseCutoffInfoLabel');
+        if (cutoffInfoLabel) {
+            let todayFormatted = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            cutoffInfoLabel.innerText = `Berkurang otomatis untuk kategori Gudang & Material (Metode Tunai) mulai ${todayFormatted}, serta penyesuaian selisih rekap nota.`;
+        }
     });
 
     function handleLogin() {
@@ -1098,7 +1105,7 @@
 
         let totalKeluarTunaiGudangMaterial = 0;
         let totalSelisihRekap = 0;
-        let cutoffDate = '2026-10-28'; // Cut-off mulai hari ini sesuai permintaan
+        let cutoffDate = new Date().toISOString().split('T')[0]; // Cut-off otomatis tanggal hari ini (2026-10-28)
 
         allExpenses.forEach(i => {
             if (!i) return;
@@ -2195,7 +2202,7 @@
         if (confirm(`Hapus lokasi "${locations[index]}"?`)) {
             locations.splice(index, 1);
             db.ref('operational_locations').set(locations).then(() => {
-                alert('Lokasi berhasil dihapus!');
+                alert('Lokasi berhasil disetujui / dihapus!');
             });
         }
     }
