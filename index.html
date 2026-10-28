@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="3.4.0-dana-tunai-gudang">
+    <meta name="app-version" content="3.6.2-fixed-login-modular">
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -68,9 +68,14 @@
         th { background: #f8f9fa; }
         .vertical-details { font-size: 0.8rem; line-height: 1.4; white-space: normal; min-width: 220px; }
         
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .nav-tab { padding: 10px 20px; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
-        .nav-tab.active { background: #1565c0; color: white; }
+        .nav-tabs, .sub-category-tabs { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .nav-tab, .sub-cat-tab { padding: 10px 20px; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+        .nav-tab.active, .sub-cat-tab.active { background: #1565c0; color: white; }
+        .sub-cat-tab { padding: 8px 14px; font-size: 0.82rem; background: #cfd8dc; color: #333; }
+        .sub-cat-tab.active { background: #00796b; color: white; }
+
+        .sub-cat-content { display: none; }
+        .sub-cat-content.active { display: block; }
         
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -89,9 +94,9 @@
     <p style="font-size: 0.85rem; color: #666; margin-bottom: 20px;">Masukkan PIN Akses Anda</p>
     <div class="form-group">
         <label>PIN Akses</label>
-        <input type="password" id="loginPinInput" placeholder="••••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.3rem;" onkeydown="if(event.key==='Enter'){ handleLogin(); }">
+        <input type="password" id="loginPinInput" placeholder="••••••" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 1.3rem;" autocomplete="current-password">
     </div>
-    <button type="button" class="btn-primary" onclick="handleLogin()">Masuk</button>
+    <button type="button" class="btn-primary" id="loginSubmitBtn">Masuk</button>
     <div id="loginError" style="color: #c62828; font-size: 0.85rem; margin-top: 15px;"></div>
 </div>
 
@@ -102,7 +107,7 @@
             <h2 style="margin: 0; color: white;">🏗️ Pencatatan Pengeluaran & Operasional AWW</h2>
             <p id="userStatusBanner" style="font-size: 0.85rem; margin: 5px 0 0 0; opacity: 0.9;">👤 Mengakses sebagai: -</p>
         </div>
-        <button onclick="handleLogout()" style="background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">🚪 Keluar Akun</button>
+        <button id="logoutBtn" style="background: #c62828; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">🚪 Keluar Akun</button>
     </div>
 
     <!-- TAB NAVIGASI -->
@@ -120,7 +125,7 @@
             <div>
                 <span style="font-size: 0.85rem; color: #795548; font-weight: bold; text-transform: uppercase;">💰 Penampil Sisa Dana Tunai Gudang</span>
                 <div class="amount" id="dashboardWarehouseCashDisplay">Rp 0</div>
-                <small style="color: #555;">Berkurang otomatis untuk kategori Gudang & Material (Metode Tunai), serta penyesuaian selisih rekap nota.</small>
+                <small style="color: #555;">Berkurang otomatis untuk kategori Gudang & Material (Metode Tunai) mulai 01/11/2026, serta penyesuaian selisih rekap nota.</small>
             </div>
             <div>
                 <button type="button" class="btn-primary" onclick="openTopUpWarehouseModal()" style="background: #f57c00; font-size: 0.95rem; padding: 10px 15px;">➕ Top-Up Dana Tunai Gudang</button>
@@ -287,33 +292,12 @@
             </div>
         </div>
 
+        <!-- KONTROL PENCARIAN & RENTANG TANGGAL UTAMA -->
         <div class="card">
-            <h3>Riwayat Pengeluaran</h3>
-            
-            <!-- FILTER PILAH KATEGORI, METODE, PENCARIAN & RENTANG TANGGAL -->
-            <div class="filter-bar">
+            <div class="filter-bar" style="margin-bottom: 0;">
                 <div class="form-group filter-item">
                     <label>🔍 Cari Keterangan / Penerima:</label>
                     <input type="text" id="searchKeyword" placeholder="Ketik kata kunci..." oninput="renderExpenses()">
-                </div>
-                <div class="form-group filter-item">
-                    <label>🔍 Pilah Kategori:</label>
-                    <select id="filterCategory" onchange="renderExpenses()">
-                        <option value="ALL">Semua Kategori</option>
-                        <option value="Gudang">Gudang</option>
-                        <option value="Rumah">Rumah</option>
-                        <option value="Material">Material</option>
-                        <option value="Order Toko">Order Toko</option>
-                        <option value="Gaji Pegawai">Gaji Pegawai</option>
-                    </select>
-                </div>
-                <div class="form-group filter-item">
-                    <label>🔍 Pilah Metode:</label>
-                    <select id="filterMethod" onchange="renderExpenses()">
-                        <option value="ALL">Semua Metode</option>
-                        <option value="Tunai">Tunai</option>
-                        <option value="Transfer">Transfer</option>
-                    </select>
                 </div>
                 <div class="form-group filter-item" style="min-width: 140px;">
                     <label>📅 Dari Tanggal:</label>
@@ -324,27 +308,178 @@
                     <input type="date" id="filterEndDate" onchange="renderExpenses()">
                 </div>
             </div>
+        </div>
 
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Aksi</th>
-                            <th>Tanggal & Waktu</th>
-                            <th>Kategori</th>
-                            <th>Metode</th>
-                            <th>Nominal Bruto</th>
-                            <th>Sisa Setoran (Pribadi Owner)</th>
-                            <th>Nominal Bersih (Pengeluaran)</th>
-                            <th>Keterangan</th>
-                            <th>Detail Material & Alokasi Lokasi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="expenseTableBody">
-                        <tr><td colspan="9" style="text-align: center; color: #777;">Memuat data...</td></tr>
-                    </tbody>
-                </table>
+        <!-- SUB-TAB PEMILIH TAMPILAN TABEL (TERPADU & PER KATEGORI) -->
+        <div class="card">
+            <h3>📋 Riwayat Pengeluaran</h3>
+            
+            <div class="sub-category-tabs">
+                <button class="sub-cat-tab active" onclick="switchSubTab('allTableSection')">🌐 Tabel Terpadu (Semua)</button>
+                <button class="sub-cat-tab" onclick="switchSubTab('gudangTunaiSection')">📦 Gudang (Tunai)</button>
+                <button class="sub-cat-tab" onclick="switchSubTab('gudangTransferSection')">📦 Gudang (Transfer)</button>
+                <button class="sub-cat-tab" onclick="switchSubTab('rumahSection')">🏠 Rumah (Tunai & Transfer)</button>
+                <button class="sub-cat-tab" onclick="switchSubTab('materialSection')">🧱 Material (Tunai & Transfer)</button>
+                <button class="sub-cat-tab" onclick="switchSubTab('orderTokoTunaiSection')">🛒 Order Toko (Tunai)</button>
+                <button class="sub-cat-tab" onclick="switchSubTab('orderTokoTransferSection')">🛒 Order Toko (Transfer)</button>
+                <button class="sub-cat-tab" onclick="switchSubTab('gajiSection')">👥 Gaji Pegawai (Tunai & Transfer)</button>
             </div>
+
+            <!-- 1. TABEL TERPADU (SEMUA KATEGORI) -->
+            <div id="allTableSection" class="sub-cat-content active">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aksi</th>
+                                <th>Tanggal & Waktu</th>
+                                <th>Kategori</th>
+                                <th>Metode Pembayaran</th>
+                                <th>Nominal Bruto</th>
+                                <th>Sisa Setoran (Pribadi Owner)</th>
+                                <th>Nominal Bersih (Pengeluaran)</th>
+                                <th>Keterangan / Sumber Kas</th>
+                                <th>Detail Material & Alokasi Lokasi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenseTableBody">
+                            <tr><td colspan="9" style="text-align: center; color: #777;">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2. GUDANG (TUNAI) -->
+            <div id="gudangTunaiSection" class="sub-cat-content">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aksi</th>
+                                <th>Tanggal & Waktu</th>
+                                <th>Metode</th>
+                                <th>Nominal</th>
+                                <th>Keterangan</th>
+                                <th>Sisa Dana</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gudangTunaiBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 3. GUDANG (TRANSFER) -->
+            <div id="gudangTransferSection" class="sub-cat-content">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aksi</th>
+                                <th>Tanggal & Waktu</th>
+                                <th>Metode</th>
+                                <th>Nominal</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gudangTransferBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 4. RUMAH (TUNAI & TRANSFER) -->
+            <div id="rumahSection" class="sub-cat-content">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aksi</th>
+                                <th>Tanggal & Waktu</th>
+                                <th>Metode</th>
+                                <th>Nominal</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rumahBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. MATERIAL (TUNAI & TRANSFER) -->
+            <div id="materialSection" class="sub-cat-content">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aksi</th>
+                                <th>Tanggal & Waktu</th>
+                                <th>Metode</th>
+                                <th>Nominal</th>
+                                <th>Penerima</th>
+                                <th>Keterangan</th>
+                                <th>Detail & Alokasi Material</th>
+                            </tr>
+                        </thead>
+                        <tbody id="materialBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 6. ORDER TOKO (TUNAI) -->
+            <div id="orderTokoTunaiSection" class="sub-cat-content">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aksi</th>
+                                <th>Tanggal & Waktu</th>
+                                <th>Metode</th>
+                                <th>Nominal Bruto</th>
+                                <th>Sisa Setor (Ke Norek Pakbos)</th>
+                                <th>Nominal Bersih</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTokoTunaiBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 7. ORDER TOKO (TRANSFER) -->
+            <div id="orderTokoTransferSection" class="sub-cat-content">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aksi</th>
+                                <th>Tanggal & Waktu</th>
+                                <th>Metode</th>
+                                <th>Nominal</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTokoTransferBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 8. GAJI PEGAWAI (TUNAI & TRANSFER) -->
+            <div id="gajiSection" class="sub-cat-content">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aksi</th>
+                                <th>Tanggal & Waktu</th>
+                                <th>Metode</th>
+                                <th>Nominal</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gajiBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -414,7 +549,7 @@
             </div>
             <div class="form-group">
                 <label>Pemberi Dana:</label>
-                <input type="text" id="tuSenderInput" value="Wildan" placeholder="Contoh: Pak Bos" required>
+                <input type="text" id="tuSenderInput" value="Owner" placeholder="Contoh: Owner" required>
             </div>
             <div class="form-group">
                 <label>Nominal Dana Tunai (Rp):</label>
@@ -629,6 +764,27 @@
         '945336': 'Owner'
     };
 
+    // Inisialisasi event listener setelah DOM siap untuk tombol login agar tidak stuck
+    document.addEventListener('DOMContentLoaded', () => {
+        let loginBtn = document.getElementById('loginSubmitBtn');
+        let loginInput = document.getElementById('loginPinInput');
+        let logoutBtn = document.getElementById('logoutBtn');
+
+        if (loginBtn) {
+            loginBtn.addEventListener('click', handleLogin);
+        }
+        if (loginInput) {
+            loginInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            });
+        }
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', handleLogout);
+        }
+    });
+
     function handleLogin() {
         let pinInput = document.getElementById('loginPinInput');
         if (!pinInput) return;
@@ -672,6 +828,7 @@
             let errorEl = document.getElementById('loginError');
             if(errorEl) errorEl.innerText = 'PIN Akses Salah!';
             pinInput.value = '';
+            pinInput.focus();
         }
     }
 
@@ -681,7 +838,10 @@
         document.getElementById('appContainer').style.display = 'none';
         let pinInput = document.getElementById('loginPinInput');
         let errorEl = document.getElementById('loginError');
-        if(pinInput) pinInput.value = '';
+        if(pinInput) {
+            pinInput.value = '';
+            pinInput.focus();
+        }
         if(errorEl) errorEl.innerText = '';
     }
 
@@ -694,6 +854,15 @@
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
+        if (event && event.currentTarget) {
+            event.currentTarget.classList.add('active');
+        }
+    }
+
+    function switchSubTab(sectionId) {
+        document.querySelectorAll('.sub-cat-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.sub-cat-tab').forEach(el => el.classList.remove('active'));
+        document.getElementById(sectionId).classList.add('active');
         if (event && event.currentTarget) {
             event.currentTarget.classList.add('active');
         }
@@ -834,7 +1003,7 @@
     }
 
     // --- KALKULASI DANA TUNAI GUDANG OTOMATIS ---
-        function calculateWarehouseCashBalance() {
+    function calculateWarehouseCashBalance() {
         let totalTopUp = 0;
         warehouseTopUps.forEach(tu => {
             totalTopUp += (tu.amount || 0);
@@ -842,30 +1011,23 @@
 
         let totalKeluarTunaiGudangMaterial = 0;
         let totalSelisihRekap = 0;
-
-        // Tentukan batas tanggal efektif (Cut-off tanggal 1 bulan depan / 1 November 2026 atau sesuai rencana Anda)
-        // Contoh format: '2026-11-01'. Transaksi sebelum tanggal ini tidak akan mengurangi Dana Tunai Gudang.
         let cutoffDate = '2026-11-01'; 
 
         allExpenses.forEach(i => {
             if (!i) return;
-
-            // Hanya hitung pengeluaran dari tanggal cut-off ke depan
             let itemDate = i.rawDate || '';
             if (itemDate && itemDate >= cutoffDate) {
-                // Pengeluaran Gudang & Material metode Tunai
                 if ((i.category === 'Gudang' || i.category === 'Material') && i.method === 'Tunai') {
                     totalKeluarTunaiGudangMaterial += (i.nominal || 0);
                 }
 
-                // Hitung selisih rekap nota material mulai tanggal efektif
                 if (i.category === 'Material' && i.materialData && i.materialData.shops && i.materialData.shops.length > 0) {
                     let totalNota = i.materialData.shops.reduce((sum, s) => sum + s.cost, 0);
                     let selisih = i.nominal - totalNota;
                     if (selisih > 0) {
-                        totalSelisihRekap += selisih; // Sisa lebih masuk kas
+                        totalSelisihRekap += selisih;
                     } else if (selisih < 0) {
-                        totalSelisihRekap -= Math.abs(selisih); // Kurang ambil dari kas
+                        totalSelisihRekap -= Math.abs(selisih);
                     }
                 }
             }
@@ -951,7 +1113,6 @@
             </tr>`;
         });
     }
-    // --- AKHIR FUNGSI DANA TUNAI GUDANG ---
 
     function openBulkRekapSetupModal() {
         let rows = document.querySelectorAll('.bulk-material-row');
@@ -1473,14 +1634,9 @@
         });
     }
 
+    // --- RENDER SEMUA TABEL TERPADU & MODULAR ---
     function renderExpenses() {
-        let tbody = document.getElementById('expenseTableBody');
-        if(!tbody) return;
-        tbody.innerHTML = '';
-
         let searchKeyword = document.getElementById('searchKeyword').value.toLowerCase().trim();
-        let filterCategory = document.getElementById('filterCategory').value;
-        let filterMethod = document.getElementById('filterMethod').value;
         let selectedMonth = document.getElementById('recapMonthSelect').value;
         let selectedYear = document.getElementById('recapYearSelect').value;
         let startDate = document.getElementById('filterStartDate').value;
@@ -1492,9 +1648,6 @@
             let descPlain = (i.desc || '').toLowerCase();
             let receiverPlain = (i.materialData && i.materialData.receiver) ? i.materialData.receiver.toLowerCase() : '';
             let matchSearch = (!searchKeyword || descPlain.includes(searchKeyword) || receiverPlain.includes(searchKeyword));
-
-            let matchCat = (filterCategory === 'ALL' || i.category === filterCategory);
-            let matchMeth = (filterMethod === 'ALL' || i.method === filterMethod);
             
             let monthMatch = true;
             let yearMatch = true;
@@ -1520,7 +1673,7 @@
                 }
             }
 
-            return matchSearch && matchCat && matchMeth && monthMatch && yearMatch && dateRangeMatch;
+            return matchSearch && monthMatch && yearMatch && dateRangeMatch;
         });
 
         let totalFilteredExpense = 0;
@@ -1577,66 +1730,136 @@
                 </div>`;
         }
 
+        filteredExpenses.sort((a, b) => b.id - a.id);
+
+        // Render Tabel Terpadu
+        let tbodyAll = document.getElementById('expenseTableBody');
+        tbodyAll.innerHTML = '';
         if (filteredExpenses.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #777;">Tidak ada data pengeluaran yang sesuai filter.</td></tr>`;
+            tbodyAll.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #777;">Tidak ada data pengeluaran.</td></tr>`;
+        } else {
+            filteredExpenses.forEach(i => {
+                let detailHtml = '-';
+                let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
+                                `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
+
+                let isOrderTokoTunai = (i.category === 'Order Toko' && i.method === 'Tunai');
+                if (isOrderTokoTunai) {
+                    actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
+                }
+                if (i.category === 'Material' && i.materialData) {
+                    actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` + actionBtn;
+                    let m = i.materialData;
+                    detailHtml = `<div class="vertical-details">👤 <b>Penerima:</b> ${m.receiver || '-'}<br>🏗️ <b>Alokasi:</b><br>`;
+                    (m.shops || []).forEach(s => { detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`; });
+                    detailHtml += `</div>`;
+                }
+
+                let sisaSetoran = isOrderTokoTunai ? (i.sisaSetoran || 0) : 0;
+                let netNominal = i.nominal - sisaSetoran;
+                let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4; min-width: 220px;">${i.desc}</div>` : i.desc;
+                let methodBadgeColor = i.method === 'Tunai' ? '#e65100' : '#1565c0';
+                let methodDisplay = `<span style="background: ${methodBadgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">${i.method || 'Tunai'}</span>`;
+                if ((i.category === 'Gudang' || i.category === 'Material') && i.method === 'Tunai') {
+                    methodDisplay += `<br><small style="color: #b71c1c; font-weight: bold;">(Potong Kas Gudang)</small>`;
+                }
+                let sisaColumnContent = isOrderTokoTunai ? `<span style="color: #e65100; font-weight: bold;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</span>` : '-';
+
+                tbodyAll.innerHTML += `<tr>
+                    <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
+                    <td>${i.date || '-'}</td>
+                    <td><b>${i.category}</b></td>
+                    <td style="text-align: center;">${methodDisplay}</td>
+                    <td style="color: #555;">${formatRp(i.nominal)}</td>
+                    <td>${sisaColumnContent}</td>
+                    <td style="color: #c62828; font-weight: bold;">${formatRp(netNominal)}</td>
+                    <td>${descDisplay}</td>
+                    <td>${detailHtml}</td>
+                </tr>`;
+            });
+        }
+
+        // Render Sub-Tabel Spesifik Per Kategori & Metode
+        renderSpecificTable('gudangTunaiBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Tunai'), 'gudang-tunai');
+        renderSpecificTable('gudangTransferBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Transfer'), 'gudang-transfer');
+        renderSpecificTable('rumahBody', filteredExpenses.filter(i => i.category === 'Rumah'), 'rumah');
+        renderSpecificTable('materialBody', filteredExpenses.filter(i => i.category === 'Material'), 'material');
+        renderSpecificTable('orderTokoTunaiBody', filteredExpenses.filter(i => i.category === 'Order Toko' && i.method === 'Tunai'), 'order-toko-tunai');
+        renderSpecificTable('orderTokoTransferBody', filteredExpenses.filter(i => i.category === 'Order Toko' && i.method === 'Transfer'), 'order-toko-transfer');
+        renderSpecificTable('gajiBody', filteredExpenses.filter(i => i.category === 'Gaji Pegawai'), 'gaji');
+    }
+
+    function renderSpecificTable(tbodyId, dataList, type) {
+        let tbody = document.getElementById(tbodyId);
+        if(!tbody) return;
+        tbody.innerHTML = '';
+
+        if (dataList.length === 0) {
+            let colSpan = 7;
+            if (type === 'gudang-tunai') colSpan = 6;
+            else if (type === 'gudang-transfer' || type === 'rumah' || type === 'order-toko-transfer' || type === 'gaji') colSpan = 5;
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; color: #777;">Tidak ada data untuk kategori ini.</td></tr>`;
             return;
         }
 
-        filteredExpenses.sort((a, b) => b.id - a.id);
-
-        filteredExpenses.forEach(i => {
-            let detailHtml = '-';
+        dataList.forEach(i => {
             let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
                             `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
 
-            let isOrderTokoTunai = (i.category === 'Order Toko' && i.method === 'Tunai');
-
-            if (isOrderTokoTunai) {
+            if (type === 'order-toko-tunai') {
                 actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
-            }
-
-            if (i.category === 'Material' && i.materialData) {
-                let m = i.materialData;
+            } else if (type === 'material') {
                 actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` + actionBtn;
-                
-                let statusBadgeColor = '#2e7d32';
-                if (m.statusRekap && m.statusRekap.includes('Kurang')) statusBadgeColor = '#c62828';
-                else if (!m.statusRekap || m.statusRekap === 'Belum Direkap') statusBadgeColor = '#e65100';
+            }
 
-                detailHtml = `<div class="vertical-details">
-                    👤 <b>Penerima:</b> ${m.receiver || '-'}<br>
-                    📌 <b>Status:</b> <span style="color: ${statusBadgeColor}; font-weight: bold;">${m.statusRekap || 'Belum Direkap'}</span><br>
-                    🏗️ <b>Alokasi Lokasi Bangunan:</b><br>`;
-                if (m.shops && m.shops.length > 0) {
-                    m.shops.forEach(s => {
-                        detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`;
-                    });
-                } else {
-                    detailHtml += `&nbsp;&nbsp;<i>(Belum ada rincian lokasi)</i><br>`;
-                }
+            let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4;">${i.desc}</div>` : i.desc;
+
+            if (type === 'gudang-tunai') {
+                let runningSisaDana = '-';
+                tbody.innerHTML += `<tr>
+                    <td style="text-align: center;">${actionBtn}</td>
+                    <td>${i.date || '-'}</td>
+                    <td><b>${i.method}</b> <small style="color:#b71c1c;">(Kas Gudang)</small></td>
+                    <td style="color: #c62828; font-weight: bold;">${formatRp(i.nominal)}</td>
+                    <td>${descDisplay}</td>
+                    <td>${runningSisaDana}</td>
+                </tr>`;
+            } else if (type === 'gudang-transfer' || type === 'rumah' || type === 'order-toko-transfer' || type === 'gaji') {
+                tbody.innerHTML += `<tr>
+                    <td style="text-align: center;">${actionBtn}</td>
+                    <td>${i.date || '-'}</td>
+                    <td><b>${i.method}</b></td>
+                    <td style="color: #c62828; font-weight: bold;">${formatRp(i.nominal)}</td>
+                    <td>${descDisplay}</td>
+                </tr>`;
+            } else if (type === 'material') {
+                let m = i.materialData || {};
+                let detailHtml = `<div class="vertical-details">🏗️ <b>Alokasi:</b><br>`;
+                (m.shops || []).forEach(s => { detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`; });
                 detailHtml += `</div>`;
+
+                tbody.innerHTML += `<tr>
+                    <td style="text-align: center;">${actionBtn}</td>
+                    <td>${i.date || '-'}</td>
+                    <td><b>${i.method}</b></td>
+                    <td style="color: #c62828; font-weight: bold;">${formatRp(i.nominal)}</td>
+                    <td><b>${m.receiver || '-'}</b></td>
+                    <td>${descDisplay}</td>
+                    <td>${detailHtml}</td>
+                </tr>`;
+            } else if (type === 'order-toko-tunai') {
+                let sisaSetoran = i.sisaSetoran || 0;
+                let netNominal = i.nominal - sisaSetoran;
+                tbody.innerHTML += `<tr>
+                    <td style="text-align: center;">${actionBtn}</td>
+                    <td>${i.date || '-'}</td>
+                    <td><b>${i.method}</b></td>
+                    <td style="color: #555;">${formatRp(i.nominal)}</td>
+                    <td style="color: #e65100; font-weight: bold;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</td>
+                    <td style="color: #c62828; font-weight: bold;">${formatRp(netNominal)}</td>
+                    <td>${descDisplay}</td>
+                </tr>`;
             }
-
-            let sisaSetoran = isOrderTokoTunai ? (i.sisaSetoran || 0) : 0;
-            let netNominal = i.nominal - sisaSetoran;
-            let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4; min-width: 220px;">${i.desc}</div>` : i.desc;
-
-            let sisaColumnContent = '-';
-            if (isOrderTokoTunai) {
-                sisaColumnContent = `<span style="color: #e65100; font-weight: bold;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</span>`;
-            }
-
-            tbody.innerHTML += `<tr>
-                <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
-                <td>${i.date || '-'}</td>
-                <td><b>${i.category}</b></td>
-                <td>${i.method || 'Tunai'}</td>
-                <td style="color: #555;">${formatRp(i.nominal)}</td>
-                <td>${sisaColumnContent}</td>
-                <td style="color: #c62828; font-weight: bold;">${formatRp(netNominal)}</td>
-                <td>${descDisplay}</td>
-                <td>${detailHtml}</td>
-            </tr>`;
         });
     }
 
