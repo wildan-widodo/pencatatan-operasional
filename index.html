@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="3.8.2-fresh-modern-ui">
+    <meta name="app-version" content="3.8.3-fresh-modern-ui">
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -177,7 +177,7 @@
             <div>
                 <span style="font-size: 0.85rem; color: #b45309; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">💰 Penampil Sisa Dana Tunai Gudang</span>
                 <div class="amount" id="dashboardWarehouseCashDisplay">Rp 0</div>
-                <small id="warehouseCutoffInfoLabel" style="color: #78350f; font-weight: 500;">Fitur pemotongan Dana Tunai Gudang mulai berfungsi efektif sejak 28 Oktober 2026.</small>
+                <small id="warehouseCutoffInfoLabel" style="color: #78350f; font-weight: 500;">Fitur Dana Gudang mulai berfungsi pada tanggal 1 November 2026.</small>
             </div>
             <div>
                 <button type="button" class="btn-primary" onclick="openTopUpWarehouseModal()" style="background: #ea580c; font-size: 0.95rem; padding: 12px 18px; width: auto; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);">➕ Top-Up Dana Tunai Gudang</button>
@@ -1089,7 +1089,42 @@
         });
     }
 
-    // --- KALKULASI DANA TUNAI GUDANG OTOMATIS (CUT-OFF TERKUNCI) ---
+    // FUNGSI MENGHITUNG SISA SALDO GUDANG PADA TITIK WAKTU TERTENTU
+    function getWarehouseBalanceAt(targetId) {
+        let totalTopUp = 0;
+        warehouseTopUps.forEach(tu => {
+            if (tu.id <= targetId) {
+                totalTopUp += (tu.amount || 0);
+            }
+        });
+
+        let totalKeluarTunai = 0;
+        let totalSelisihRekap = 0;
+        
+        // TANGGAL CUT-OFF PATEN DIKUNCI 1 NOVEMBER 2026
+        let cutoffDate = '2026-11-01'; 
+
+        allExpenses.forEach(i => {
+            if (i && i.id <= targetId) {
+                let itemDate = i.rawDate || '';
+                if (itemDate && itemDate >= cutoffDate) {
+                    if ((i.category === 'Gudang' || i.category === 'Material') && i.method === 'Tunai') {
+                        totalKeluarTunai += (i.nominal || 0);
+                    }
+                    if (i.category === 'Material' && i.materialData && i.materialData.shops && i.materialData.shops.length > 0) {
+                        let totalNota = i.materialData.shops.reduce((sum, s) => sum + s.cost, 0);
+                        let selisih = i.nominal - totalNota;
+                        if (selisih > 0) totalSelisihRekap += selisih;
+                        else if (selisih < 0) totalSelisihRekap -= Math.abs(selisih);
+                    }
+                }
+            }
+        });
+
+        return totalTopUp - totalKeluarTunai + totalSelisihRekap;
+    }
+
+    // FUNGSI KALKULASI DANA TUNAI GUDANG (WIDGET ATAS)
     function calculateWarehouseCashBalance() {
         let totalTopUp = 0;
         warehouseTopUps.forEach(tu => {
@@ -1099,8 +1134,8 @@
         let totalKeluarTunaiGudangMaterial = 0;
         let totalSelisihRekap = 0;
         
-        // Tanggal cut-off paten dikunci di 28 Oktober 2026. Transaksi sebelum ini diabaikan oleh kalkulator saldo tunai gudang.
-        let cutoffDate = '2026-10-28'; 
+        // TANGGAL CUT-OFF PATEN DIKUNCI 1 NOVEMBER 2026
+        let cutoffDate = '2026-11-01'; 
 
         allExpenses.forEach(i => {
             if (!i) return;
@@ -1997,7 +2032,11 @@
             let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4;">${i.desc}</div>` : i.desc;
 
             if (type === 'gudang-tunai') {
-                let runningSisaDana = '-';
+                // MENGHITUNG SISA DANA BERJALAN KHUSUS BARIS INI
+                let currentBalance = getWarehouseBalanceAt(i.id);
+                let balanceColor = currentBalance >= 0 ? '#059669' : '#dc2626'; 
+                let runningSisaDana = `<span style="color: ${balanceColor}; font-weight: 700;">${formatRp(currentBalance)}</span>`;
+                
                 tbody.innerHTML += `<tr>
                     <td style="text-align: center;">${actionBtn}</td>
                     <td>${i.date || '-'}</td>
