@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="3.8.1-fresh-modern-ui">
+    <meta name="app-version" content="3.8.2-fresh-modern-ui">
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -177,7 +177,7 @@
             <div>
                 <span style="font-size: 0.85rem; color: #b45309; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">💰 Penampil Sisa Dana Tunai Gudang</span>
                 <div class="amount" id="dashboardWarehouseCashDisplay">Rp 0</div>
-                <small id="warehouseCutoffInfoLabel" style="color: #78350f; font-weight: 500;">Berkurang otomatis untuk kategori Gudang & Material (Metode Tunai) mulai hari ini, serta penyesuaian selisih rekap nota.</small>
+                <small id="warehouseCutoffInfoLabel" style="color: #78350f; font-weight: 500;">Fitur pemotongan Dana Tunai Gudang mulai berfungsi efektif sejak 28 Oktober 2026.</small>
             </div>
             <div>
                 <button type="button" class="btn-primary" onclick="openTopUpWarehouseModal()" style="background: #ea580c; font-size: 0.95rem; padding: 12px 18px; width: auto; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);">➕ Top-Up Dana Tunai Gudang</button>
@@ -870,13 +870,6 @@
         if (logoutBtn) {
             logoutBtn.addEventListener('click', handleLogout);
         }
-
-        // Update otomatis teks label keterangan cutoff date sesuai tanggal hari ini
-        let cutoffInfoLabel = document.getElementById('warehouseCutoffInfoLabel');
-        if (cutoffInfoLabel) {
-            let todayFormatted = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            cutoffInfoLabel.innerText = `Berkurang otomatis untuk kategori Gudang & Material (Metode Tunai) mulai ${todayFormatted}, serta penyesuaian selisih rekap nota.`;
-        }
     });
 
     function handleLogin() {
@@ -1096,7 +1089,7 @@
         });
     }
 
-    // --- KALKULASI DANA TUNAI GUDANG OTOMATIS (CUT-OFF HARI INI) ---
+    // --- KALKULASI DANA TUNAI GUDANG OTOMATIS (CUT-OFF TERKUNCI) ---
     function calculateWarehouseCashBalance() {
         let totalTopUp = 0;
         warehouseTopUps.forEach(tu => {
@@ -1105,7 +1098,9 @@
 
         let totalKeluarTunaiGudangMaterial = 0;
         let totalSelisihRekap = 0;
-        let cutoffDate = '2026-10-28'; // Dikunci paten pada tanggal 28 Oktober 2026
+        
+        // Tanggal cut-off paten dikunci di 28 Oktober 2026. Transaksi sebelum ini diabaikan oleh kalkulator saldo tunai gudang.
+        let cutoffDate = '2026-10-28'; 
 
         allExpenses.forEach(i => {
             if (!i) return;
