@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="3.8.3-fresh-modern-ui">
+    <meta name="app-version" content="3.8.4-fresh-modern-ui">
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -293,7 +293,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 80px; text-align: center;">Aksi</th>
+                            <th style="width: 130px; text-align: center;">Aksi</th>
                             <th>Tanggal & Jam</th>
                             <th>Pemberi Dana</th>
                             <th>Nominal Masuk</th>
@@ -649,8 +649,26 @@
             <input type="text" id="editTuReason" placeholder="Contoh: Ralat nominal dan tanggal top-up" style="background: #fff;" required>
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button type="button" class="btn-primary" onclick="submitEditWarehouseTopUp()" style="background:#ea580c;">Simpan Perubahan Top-Up</button>
+            <button type="button" class="btn-primary" onclick="submitEditWarehouseTopUp()" style="background:#ea580c;">Simpan Perubahan</button>
             <button type="button" class="btn-danger" onclick="document.getElementById('editTopUpModal').style.display='none'" style="width: 120px;">Batal</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ALASAN HAPUS TOP-UP DANA GUDANG -->
+<div class="modal" id="deleteTopUpModal">
+    <div class="modal-content">
+        <h3 style="color: var(--danger);">🗑️ Konfirmasi Hapus Top-Up Gudang</h3>
+        <input type="hidden" id="deleteTuId">
+        
+        <div class="form-group" style="background: #fef2f2; padding: 12px; border-radius: 8px; border: 1px solid #fecaca;">
+            <label style="color: var(--danger);">⚠️ Alasan Penghapusan (Wajib Diisi):</label>
+            <input type="text" id="deleteTuReason" placeholder="Contoh: Kesalahan input double" style="background: #fff;">
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn-danger" onclick="submitDeleteTopUp()">Hapus Permanen</button>
+            <button class="btn-primary" onclick="document.getElementById('deleteTopUpModal').style.display='none'" style="background: #64748b; width: 120px;">Batal</button>
         </div>
     </div>
 </div>
@@ -736,7 +754,7 @@
     </div>
 </div>
 
-<!-- MODAL ALASAN HAPUS -->
+<!-- MODAL ALASAN HAPUS PENGELUARAN -->
 <div class="modal" id="deleteModal">
     <div class="modal-content">
         <h3 style="color: var(--danger);">🗑️ Konfirmasi Penghapusan</h3>
@@ -1100,8 +1118,6 @@
 
         let totalKeluarTunai = 0;
         let totalSelisihRekap = 0;
-        
-        // TANGGAL CUT-OFF PATEN DIKUNCI 1 NOVEMBER 2026
         let cutoffDate = '2026-11-01'; 
 
         allExpenses.forEach(i => {
@@ -1133,8 +1149,6 @@
 
         let totalKeluarTunaiGudangMaterial = 0;
         let totalSelisihRekap = 0;
-        
-        // TANGGAL CUT-OFF PATEN DIKUNCI 1 NOVEMBER 2026
         let cutoffDate = '2026-11-01'; 
 
         allExpenses.forEach(i => {
@@ -1309,6 +1323,52 @@
         });
     }
 
+    // FITUR BARU: BUKA MODAL HAPUS TOP-UP DANA GUDANG
+    function openDeleteTopUpModal(id) {
+        document.getElementById('deleteTuId').value = id;
+        document.getElementById('deleteTuReason').value = '';
+        document.getElementById('deleteTopUpModal').style.display = 'flex';
+    }
+
+    // FITUR BARU: PROSES HAPUS TOP-UP DANA GUDANG + LOG AUDIT TRAIL
+    function submitDeleteTopUp() {
+        let id = parseFloat(document.getElementById('deleteTuId').value);
+        let reason = document.getElementById('deleteTuReason').value.trim();
+
+        if (!reason) {
+            alert('Alasan penghapusan wajib diisi!');
+            return;
+        }
+
+        let targetTu = warehouseTopUps.find(i => i && i.id === id);
+        if (!targetTu) return;
+
+        let now = new Date();
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
+
+        warehouseTopUps = warehouseTopUps.filter(item => item && item.id !== id);
+
+        let auditEntry = {
+            id: Date.now(),
+            time: timeLog,
+            user: currentUser,
+            action: 'HAPUS TOP-UP',
+            details: `Hapus Top-Up Gudang dari [${targetTu.sender}] (${formatRp(targetTu.amount)})`,
+            reason: reason
+        };
+
+        auditLogs.push(auditEntry);
+
+        db.ref('warehouse_topups').set(warehouseTopUps).then(() => {
+            db.ref('operational_audit_logs').set(auditLogs).then(() => {
+                alert('Data Top-Up Gudang berhasil dihapus dan tercatat di audit trail!');
+                document.getElementById('deleteTopUpModal').style.display = 'none';
+                renderWarehouseTopUps();
+                calculateWarehouseCashBalance();
+            });
+        });
+    }
+
     function renderWarehouseTopUps() {
         let tbody = document.getElementById('topupWarehouseTableBody');
         if (!tbody) return;
@@ -1321,8 +1381,12 @@
 
         let sorted = [...warehouseTopUps].sort((a, b) => b.id - a.id);
         sorted.forEach(tu => {
+            // TOMBOL EDIT & HAPUS SUDAH AKTIF DI TABEL TOP-UP
             tbody.innerHTML += `<tr>
-                <td style="text-align: center;"><button class="btn-edit" onclick="openEditTopUpModal(${tu.id})">Edit</button></td>
+                <td style="text-align: center; white-space: nowrap;">
+                    <button class="btn-edit" onclick="openEditTopUpModal(${tu.id})">Edit</button>
+                    <button class="btn-danger" onclick="openDeleteTopUpModal(${tu.id})">Hapus</button>
+                </td>
                 <td>${tu.dateTime || '-'}</td>
                 <td><b>${tu.sender || '-'}</b></td>
                 <td style="color: var(--success); font-weight: bold;">+${formatRp(tu.amount)}</td>
@@ -1693,6 +1757,7 @@
         });
     }
 
+    // FUNGSI PROSES HAPUS TRANSAKSI PENGELUARAN (SUDAH ADA DARI AWAL)
     function openDeleteModal(id) {
         document.getElementById('deleteRecordId').value = id;
         document.getElementById('deleteReason').value = '';
@@ -1851,7 +1916,6 @@
         });
     }
 
-    // --- RENDER SEMUA TABEL TERPADU & MODULAR ---
     function renderExpenses() {
         let searchKeyword = document.getElementById('searchKeyword').value.toLowerCase().trim();
         let selectedMonth = document.getElementById('recapMonthSelect').value;
@@ -1949,7 +2013,6 @@
 
         filteredExpenses.sort((a, b) => b.id - a.id);
 
-        // Render Tabel Terpadu
         let tbodyAll = document.getElementById('expenseTableBody');
         tbodyAll.innerHTML = '';
         if (filteredExpenses.length === 0) {
@@ -1957,6 +2020,7 @@
         } else {
             filteredExpenses.forEach(i => {
                 let detailHtml = '-';
+                // KEDUA TOMBOL EDIT DAN HAPUS MUNCUL
                 let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
                                 `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
 
@@ -1996,7 +2060,6 @@
             });
         }
 
-        // Render Sub-Tabel Spesifik Per Kategori & Metode
         renderSpecificTable('gudangTunaiBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Tunai'), 'gudang-tunai');
         renderSpecificTable('gudangTransferBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Transfer'), 'gudang-transfer');
         renderSpecificTable('rumahBody', filteredExpenses.filter(i => i.category === 'Rumah'), 'rumah');
@@ -2020,6 +2083,7 @@
         }
 
         dataList.forEach(i => {
+            // KEDUA TOMBOL MUNCUL DI SUB-TABEL JUGA
             let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
                             `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
 
@@ -2032,13 +2096,12 @@
             let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4;">${i.desc}</div>` : i.desc;
 
             if (type === 'gudang-tunai') {
-                // MENGHITUNG SISA DANA BERJALAN KHUSUS BARIS INI
                 let currentBalance = getWarehouseBalanceAt(i.id);
                 let balanceColor = currentBalance >= 0 ? '#059669' : '#dc2626'; 
                 let runningSisaDana = `<span style="color: ${balanceColor}; font-weight: 700;">${formatRp(currentBalance)}</span>`;
                 
                 tbody.innerHTML += `<tr>
-                    <td style="text-align: center;">${actionBtn}</td>
+                    <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
                     <td>${i.date || '-'}</td>
                     <td><b>${i.method}</b> <small style="color:#b91c1c;">(Kas Gudang)</small></td>
                     <td style="color: var(--danger); font-weight: 700;">${formatRp(i.nominal)}</td>
@@ -2047,7 +2110,7 @@
                 </tr>`;
             } else if (type === 'gudang-transfer' || type === 'rumah' || type === 'order-toko-transfer' || type === 'gaji') {
                 tbody.innerHTML += `<tr>
-                    <td style="text-align: center;">${actionBtn}</td>
+                    <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
                     <td>${i.date || '-'}</td>
                     <td><b>${i.method}</b></td>
                     <td style="color: var(--danger); font-weight: 700;">${formatRp(i.nominal)}</td>
@@ -2060,7 +2123,7 @@
                 detailHtml += `</div>`;
 
                 tbody.innerHTML += `<tr>
-                    <td style="text-align: center;">${actionBtn}</td>
+                    <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
                     <td>${i.date || '-'}</td>
                     <td><b>${i.method}</b></td>
                     <td style="color: var(--danger); font-weight: 700;">${formatRp(i.nominal)}</td>
@@ -2072,7 +2135,7 @@
                 let sisaSetoran = i.sisaSetoran || 0;
                 let netNominal = i.nominal - sisaSetoran;
                 tbody.innerHTML += `<tr>
-                    <td style="text-align: center;">${actionBtn}</td>
+                    <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
                     <td>${i.date || '-'}</td>
                     <td><b>${i.method}</b></td>
                     <td style="color: #475569;">${formatRp(i.nominal)}</td>
@@ -2179,8 +2242,8 @@
         safeAudit.sort((a, b) => b.id - a.id);
 
         safeAudit.forEach(log => {
-            let badgeColor = (log.action === 'HAPUS') ? 'var(--danger)' : 'var(--primary)';
-            if (log.action.includes('TOP-UP')) badgeColor = '#ea580c';
+            let badgeColor = (log.action.includes('HAPUS')) ? 'var(--danger)' : 'var(--primary)';
+            if (log.action === 'EDIT TOP-UP') badgeColor = '#ea580c';
             tbody.innerHTML += `<tr>
                 <td>${log.time}</td>
                 <td><b>${log.user || 'Sistem'}</b></td>
