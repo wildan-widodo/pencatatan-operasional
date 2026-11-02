@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="3.8.4-fresh-modern-ui">
+    <meta name="app-version" content="3.9.0-chart-analytics">
+    
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Library Chart.js untuk Grafik -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -125,6 +130,9 @@
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); justify-content: center; align-items: center; padding: 15px; }
         .modal-content { background: white; padding: 28px; border-radius: 12px; width: 100%; max-width: 580px; text-align: left; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
 
+        /* WIDGET CHART MATERIAL */
+        .chart-container { background: white; padding: 16px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+
         /* KHUSUS TAMPILAN HP (MOBILE OPTIMIZATION) */
         @media (max-width: 768px) {
             body { padding: 8px; }
@@ -135,6 +143,7 @@
             .nav-tab { padding: 10px 14px; font-size: 0.85rem; flex: 1; text-align: center; }
             .sub-cat-tab { padding: 8px 12px; font-size: 0.78rem; }
             .filter-bar { padding: 12px; gap: 10px; }
+            .chart-container { padding: 10px; }
         }
     </style>
 </head>
@@ -458,6 +467,15 @@
 
             <!-- 5. MATERIAL -->
             <div id="materialSection" class="sub-cat-content">
+                
+                <!-- GRAFIK CHART ALOKASI MATERIAL -->
+                <div class="chart-container" id="materialChartContainer" style="display: none;">
+                    <h4 style="margin-top: 0; margin-bottom: 12px; color: #0d9488; text-align: center;">📊 Perbandingan Pengeluaran Material per Lokasi</h4>
+                    <div style="position: relative; height: 280px; width: 100%;">
+                        <canvas id="materialLocationChart"></canvas>
+                    </div>
+                </div>
+
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -864,6 +882,7 @@
     let currentUser = "";
     let currentMaterialMode = "single";
     let tempBulkAccumulatedData = null;
+    let materialChartInstance = null; // Variabel Global untuk Chart Material
 
     const pinUserMap = {
         '123123': 'Mbak Ika',
@@ -1323,14 +1342,12 @@
         });
     }
 
-    // FITUR BARU: BUKA MODAL HAPUS TOP-UP DANA GUDANG
     function openDeleteTopUpModal(id) {
         document.getElementById('deleteTuId').value = id;
         document.getElementById('deleteTuReason').value = '';
         document.getElementById('deleteTopUpModal').style.display = 'flex';
     }
 
-    // FITUR BARU: PROSES HAPUS TOP-UP DANA GUDANG + LOG AUDIT TRAIL
     function submitDeleteTopUp() {
         let id = parseFloat(document.getElementById('deleteTuId').value);
         let reason = document.getElementById('deleteTuReason').value.trim();
@@ -1381,7 +1398,6 @@
 
         let sorted = [...warehouseTopUps].sort((a, b) => b.id - a.id);
         sorted.forEach(tu => {
-            // TOMBOL EDIT & HAPUS SUDAH AKTIF DI TABEL TOP-UP
             tbody.innerHTML += `<tr>
                 <td style="text-align: center; white-space: nowrap;">
                     <button class="btn-edit" onclick="openEditTopUpModal(${tu.id})">Edit</button>
@@ -1757,7 +1773,6 @@
         });
     }
 
-    // FUNGSI PROSES HAPUS TRANSAKSI PENGELUARAN (SUDAH ADA DARI AWAL)
     function openDeleteModal(id) {
         document.getElementById('deleteRecordId').value = id;
         document.getElementById('deleteReason').value = '';
@@ -1916,6 +1931,87 @@
         });
     }
 
+    // FUNGSI UNTUK MENGGAMBAR CHART MATERIAL
+    function renderMaterialLocationChart(materialExpenses) {
+        let ctx = document.getElementById('materialLocationChart');
+        let chartContainer = document.getElementById('materialChartContainer');
+        
+        if (!ctx || !chartContainer) return;
+        
+        let allocationTotals = {};
+        let hasData = false;
+
+        materialExpenses.forEach(i => {
+            if (i.materialData && i.materialData.shops) {
+                i.materialData.shops.forEach(shop => {
+                    if (shop.name && shop.cost > 0) {
+                        allocationTotals[shop.name] = (allocationTotals[shop.name] || 0) + shop.cost;
+                        hasData = true;
+                    }
+                });
+            }
+        });
+
+        if (!hasData) {
+            chartContainer.style.display = 'none';
+            if (materialChartInstance) materialChartInstance.destroy();
+            return;
+        }
+
+        chartContainer.style.display = 'block';
+
+        let labels = Object.keys(allocationTotals);
+        let dataValues = Object.values(allocationTotals);
+
+        if (materialChartInstance) {
+            materialChartInstance.destroy();
+        }
+
+        // Generate Chart Batang (Bar Chart)
+        materialChartInstance = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Pengeluaran (Rp)',
+                    data: dataValues,
+                    backgroundColor: [
+                        '#0d9488', '#2563eb', '#ea580c', '#16a34a', '#9333ea', '#db2777', '#ca8a04', '#475569'
+                    ],
+                    borderRadius: 6,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (value === 0) return '0';
+                                return 'Rp ' + formatNumber(value);
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false // Sembunyikan tulisan legend karena sudah jelas dari sumbu X
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' Rp ' + formatNumber(context.raw);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     function renderExpenses() {
         let searchKeyword = document.getElementById('searchKeyword').value.toLowerCase().trim();
         let selectedMonth = document.getElementById('recapMonthSelect').value;
@@ -2020,7 +2116,6 @@
         } else {
             filteredExpenses.forEach(i => {
                 let detailHtml = '-';
-                // KEDUA TOMBOL EDIT DAN HAPUS MUNCUL
                 let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
                                 `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
 
@@ -2063,7 +2158,12 @@
         renderSpecificTable('gudangTunaiBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Tunai'), 'gudang-tunai');
         renderSpecificTable('gudangTransferBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Transfer'), 'gudang-transfer');
         renderSpecificTable('rumahBody', filteredExpenses.filter(i => i.category === 'Rumah'), 'rumah');
-        renderSpecificTable('materialBody', filteredExpenses.filter(i => i.category === 'Material'), 'material');
+        
+        let materialData = filteredExpenses.filter(i => i.category === 'Material');
+        renderSpecificTable('materialBody', materialData, 'material');
+        // RENDER CHART MATERIAL DISINI
+        renderMaterialLocationChart(materialData);
+        
         renderSpecificTable('orderTokoTunaiBody', filteredExpenses.filter(i => i.category === 'Order Toko' && i.method === 'Tunai'), 'order-toko-tunai');
         renderSpecificTable('orderTokoTransferBody', filteredExpenses.filter(i => i.category === 'Order Toko' && i.method === 'Transfer'), 'order-toko-transfer');
         renderSpecificTable('gajiBody', filteredExpenses.filter(i => i.category === 'Gaji Pegawai'), 'gaji');
@@ -2083,7 +2183,6 @@
         }
 
         dataList.forEach(i => {
-            // KEDUA TOMBOL MUNCUL DI SUB-TABEL JUGA
             let actionBtn = `<button class="btn-edit" onclick="openEditModal(${i.id})">Edit</button>` +
                             `<button class="btn-danger" onclick="openDeleteModal(${i.id})">Hapus</button>`;
 
