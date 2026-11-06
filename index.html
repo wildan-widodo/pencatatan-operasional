@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="3.9.0-chart-analytics">
+    <meta name="app-version" content="3.9.1-fixed-warehouse-balance">
     
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -483,10 +483,10 @@
                                 <th>Aksi</th>
                                 <th>Tanggal & Waktu</th>
                                 <th>Metode</th>
-                                <th>Nominal</th>
+                                <th>Nominal Bruto (Ke Petugas)</th>
                                 <th>Penerima</th>
                                 <th>Keterangan</th>
-                                <th>Detail & Alokasi Material</th>
+                                <th>Detail Nota & Alokasi Material</th>
                             </tr>
                         </thead>
                         <tbody id="materialBody"></tbody>
@@ -798,22 +798,22 @@
         
         <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; border: 1px solid var(--border);">
             <div>👤 <b>Penerima:</b> <span id="modalReceiverText">-</span></div>
-            <div>💰 <b>Total Dana Diberikan:</b> <span id="modalTotalDanaText" style="color: var(--success); font-weight: bold;">Rp 0</span></div>
+            <div>💰 <b>Total Dana Diberikan (Bruto):</b> <span id="modalTotalDanaText" style="color: var(--success); font-weight: bold;">Rp 0</span></div>
         </div>
 
         <div class="form-group">
-            <label>Rincian Alokasi Belanja ke Lokasi Bangunan:</label>
+            <label>Rincian Belanja Riil Berdasarkan Nota (Alokasi Proyek):</label>
             <div id="modalShoppingRows"></div>
             <button type="button" class="btn-add-row" onclick="addModalShopRow()" style="margin-top: 6px;">+ Tambah Alokasi Lokasi Lain</button>
         </div>
 
         <div style="background: #f0fdf4; padding: 14px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #bbf7d0;">
             <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 6px;">
-                <span>Total Rincian Nota:</span>
+                <span>Total Belanja Riil (Berdasarkan Nota):</span>
                 <b id="modalTotalNotaText">Rp 0</b>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 1rem; border-top: 1px dashed #86efac; padding-top: 6px;">
-                <span>Status Hasil Akhir:</span>
+                <span>Status Selisih dengan Uang Pemberian:</span>
                 <b id="modalSelisihText">PAS</b>
             </div>
         </div>
@@ -835,14 +835,14 @@
             <div id="bulkTotalDanaSummary" style="font-size: 1.4rem; font-weight: 800; color: #0d9488; margin-top: 2px;">Rp 0</div>
         </div>
 
-        <p style="font-size: 0.85rem; color: #475569; margin-bottom: 12px;">Masukkan rincian alokasi lokasi bangunan berdasarkan nota yang diserahkan petugas:</p>
+        <p style="font-size: 0.85rem; color: #475569; margin-bottom: 12px;">Masukkan rincian alokasi lokasi bangunan berdasarkan nota riil yang diserahkan petugas:</p>
         
         <div id="bulkFreeShoppingRows" style="max-height: 40vh; overflow-y: auto; padding-right: 5px; margin-bottom: 12px;"></div>
         <button type="button" class="btn-add-row" onclick="addBulkFreeShopRow()" style="margin-bottom: 16px;">+ Tambah Baris Alokasi Lokasi Nota</button>
 
         <div style="background: #f0fdf4; padding: 14px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #bbf7d0;">
             <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 6px;">
-                <span>Total Rincian Alokasi Nota:</span>
+                <span>Total Belanja Riil (Berdasarkan Nota):</span>
                 <b id="bulkTotalNotaSummary">Rp 0</b>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 1rem; border-top: 1px dashed #86efac; padding-top: 6px;">
@@ -882,7 +882,7 @@
     let currentUser = "";
     let currentMaterialMode = "single";
     let tempBulkAccumulatedData = null;
-    let materialChartInstance = null; // Variabel Global untuk Chart Material
+    let materialChartInstance = null; 
 
     const pinUserMap = {
         '123123': 'Mbak Ika',
@@ -1126,7 +1126,7 @@
         });
     }
 
-    // FUNGSI MENGHITUNG SISA SALDO GUDANG PADA TITIK WAKTU TERTENTU
+    // [PERBAIKAN FUNGSI 1]: MENGHITUNG SALDO GUDANG PADA WAKTU TERTENTU
     function getWarehouseBalanceAt(targetId) {
         let totalTopUp = 0;
         warehouseTopUps.forEach(tu => {
@@ -1135,62 +1135,72 @@
             }
         });
 
-        let totalKeluarTunai = 0;
-        let totalSelisihRekap = 0;
+        let totalPengeluaran = 0;
         let cutoffDate = '2026-11-01'; 
 
         allExpenses.forEach(i => {
             if (i && i.id <= targetId) {
                 let itemDate = i.rawDate || '';
                 if (itemDate && itemDate >= cutoffDate) {
-                    if ((i.category === 'Gudang' || i.category === 'Material') && i.method === 'Tunai') {
-                        totalKeluarTunai += (i.nominal || 0);
-                    }
-                    if (i.category === 'Material' && i.materialData && i.materialData.shops && i.materialData.shops.length > 0) {
-                        let totalNota = i.materialData.shops.reduce((sum, s) => sum + s.cost, 0);
-                        let selisih = i.nominal - totalNota;
-                        if (selisih > 0) totalSelisihRekap += selisih;
-                        else if (selisih < 0) totalSelisihRekap -= Math.abs(selisih);
+                    
+                    if (i.method === 'Tunai') {
+                        if (i.category === 'Gudang') {
+                            totalPengeluaran += (i.nominal || 0);
+                        } 
+                        else if (i.category === 'Material') {
+                            // JIKA SUDAH DIREKAP -> POTONG KAS HANYA SEBESAR NOTA RIIL
+                            if (i.materialData && i.materialData.statusRekap && i.materialData.statusRekap !== 'Belum Direkap') {
+                                let totalNota = (i.materialData.shops || []).reduce((sum, s) => sum + (s.cost || 0), 0);
+                                totalPengeluaran += totalNota;
+                            } 
+                            // JIKA BELUM DIREKAP -> POTONG KAS SEBESAR UANG BRUTO YANG DIBAWA PETUGAS
+                            else {
+                                totalPengeluaran += (i.nominal || 0);
+                            }
+                        }
                     }
                 }
             }
         });
 
-        return totalTopUp - totalKeluarTunai + totalSelisihRekap;
+        return totalTopUp - totalPengeluaran;
     }
 
-    // FUNGSI KALKULASI DANA TUNAI GUDANG (WIDGET ATAS)
+    // [PERBAIKAN FUNGSI 2]: KALKULASI DANA TUNAI GUDANG (WIDGET ATAS)
     function calculateWarehouseCashBalance() {
         let totalTopUp = 0;
         warehouseTopUps.forEach(tu => {
             totalTopUp += (tu.amount || 0);
         });
 
-        let totalKeluarTunaiGudangMaterial = 0;
-        let totalSelisihRekap = 0;
+        let totalPengeluaran = 0;
         let cutoffDate = '2026-11-01'; 
 
         allExpenses.forEach(i => {
             if (!i) return;
             let itemDate = i.rawDate || '';
             if (itemDate && itemDate >= cutoffDate) {
-                if ((i.category === 'Gudang' || i.category === 'Material') && i.method === 'Tunai') {
-                    totalKeluarTunaiGudangMaterial += (i.nominal || 0);
-                }
-
-                if (i.category === 'Material' && i.materialData && i.materialData.shops && i.materialData.shops.length > 0) {
-                    let totalNota = i.materialData.shops.reduce((sum, s) => sum + s.cost, 0);
-                    let selisih = i.nominal - totalNota;
-                    if (selisih > 0) {
-                        totalSelisihRekap += selisih;
-                    } else if (selisih < 0) {
-                        totalSelisihRekap -= Math.abs(selisih);
+                
+                if (i.method === 'Tunai') {
+                    if (i.category === 'Gudang') {
+                        totalPengeluaran += (i.nominal || 0);
+                    }
+                    else if (i.category === 'Material') {
+                        // JIKA SUDAH DIREKAP -> POTONG KAS HANYA SEBESAR NOTA RIIL
+                        if (i.materialData && i.materialData.statusRekap && i.materialData.statusRekap !== 'Belum Direkap') {
+                            let totalNota = (i.materialData.shops || []).reduce((sum, s) => sum + (s.cost || 0), 0);
+                            totalPengeluaran += totalNota;
+                        } 
+                        // JIKA BELUM DIREKAP -> POTONG KAS SEBESAR UANG BRUTO YANG DIBAWA PETUGAS
+                        else {
+                            totalPengeluaran += (i.nominal || 0);
+                        }
                     }
                 }
             }
         });
 
-        let currentCash = totalTopUp - totalKeluarTunaiGudangMaterial + totalSelisihRekap;
+        let currentCash = totalTopUp - totalPengeluaran;
         let displayEl = document.getElementById('dashboardWarehouseCashDisplay');
         if (displayEl) {
             displayEl.innerText = formatRp(currentCash);
@@ -1931,7 +1941,6 @@
         });
     }
 
-    // FUNGSI UNTUK MENGGAMBAR CHART MATERIAL
     function renderMaterialLocationChart(materialExpenses) {
         let ctx = document.getElementById('materialLocationChart');
         let chartContainer = document.getElementById('materialChartContainer');
@@ -1967,7 +1976,6 @@
             materialChartInstance.destroy();
         }
 
-        // Generate Chart Batang (Bar Chart)
         materialChartInstance = new Chart(ctx.getContext('2d'), {
             type: 'bar',
             data: {
@@ -1998,7 +2006,7 @@
                 },
                 plugins: {
                     legend: {
-                        display: false // Sembunyikan tulisan legend karena sudah jelas dari sumbu X
+                        display: false
                     },
                     tooltip: {
                         callbacks: {
@@ -2161,7 +2169,6 @@
         
         let materialData = filteredExpenses.filter(i => i.category === 'Material');
         renderSpecificTable('materialBody', materialData, 'material');
-        // RENDER CHART MATERIAL DISINI
         renderMaterialLocationChart(materialData);
         
         renderSpecificTable('orderTokoTunaiBody', filteredExpenses.filter(i => i.category === 'Order Toko' && i.method === 'Tunai'), 'order-toko-tunai');
