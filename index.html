@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="3.9.1-fixed-warehouse-balance">
+    <meta name="app-version" content="4.0.1-manual-warehouse-approval-clean">
     
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -69,6 +69,7 @@
         .btn-danger { background: var(--danger); color: white; padding: 7px 12px; font-size: 0.8rem; }
         .btn-edit { background: var(--primary); color: white; padding: 7px 12px; font-size: 0.8rem; margin-right: 4px; }
         .btn-rekap { background: #0d9488; color: white; padding: 7px 12px; font-size: 0.8rem; margin-right: 4px; }
+        .btn-acc { background: #16a34a; color: white; padding: 7px 12px; font-size: 0.8rem; margin-right: 4px; }
         .btn-sisa { background: var(--warning); color: white; padding: 7px 12px; font-size: 0.8rem; margin-right: 4px; }
         .btn-add-row { background: #0d9488; color: white; padding: 8px 14px; font-size: 0.85rem; margin-bottom: 12px; }
         .btn-del-row { background: var(--danger); color: white; padding: 8px 12px; }
@@ -103,6 +104,48 @@
         /* WIDGET DANA TUNAI GUDANG */
         .warehouse-cash-widget { background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%); border: 2px solid #fde047; padding: 24px; border-radius: var(--radius); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; box-shadow: 0 4px 6px -1px rgba(253, 224, 71, 0.2); }
         .warehouse-cash-widget .amount { font-size: 2.2rem; font-weight: 800; color: #c2410c; margin-top: 4px; letter-spacing: -0.5px; }
+
+        /* BANNER SINKRONISASI SISA DANA DI TAB KATEGORI */
+        .sync-balance-banner {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-left: 5px solid #ea580c;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* BANNER ANTREAN ACC ADMIN GUDANG */
+        .pending-acc-banner {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-left: 5px solid #2563eb;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .badge-status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .badge-pending { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .badge-approved { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .badge-pas { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
 
         .filter-bar { display: flex; gap: 14px; margin-bottom: 18px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; }
         .filter-item { flex: 1; min-width: 180px; margin-bottom: 0; }
@@ -191,6 +234,15 @@
             <div>
                 <button type="button" class="btn-primary" onclick="openTopUpWarehouseModal()" style="background: #ea580c; font-size: 0.95rem; padding: 12px 18px; width: auto; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);">➕ Top-Up Dana Tunai Gudang</button>
             </div>
+        </div>
+
+        <!-- NOTIFIKASI SELISIH MATERIAL YANG BELUM DI-ACC ADMIN GUDANG -->
+        <div class="pending-acc-banner" id="pendingAccDashboardBanner">
+            <div>
+                <strong style="color: #1e40af; font-size: 0.95rem;">🏭 Antrean Persetujuan Selisih Material (Admin Gudang)</strong>
+                <div id="pendingAccDashboardText" style="font-size: 0.85rem; color: #334155; margin-top: 2px;"></div>
+            </div>
+            <button type="button" class="btn-primary" onclick="goToMaterialApproval()" style="background: #2563eb; width: auto; padding: 9px 16px; font-size: 0.85rem;">🔍 Tinjau & ACC Selisih</button>
         </div>
 
         <div class="card">
@@ -376,14 +428,14 @@
             <h3>📋 Riwayat Pengeluaran</h3>
             
             <div class="sub-category-tabs">
-                <button class="sub-cat-tab active" onclick="switchSubTab('allTableSection')">🌐 Tabel Terpadu (Semua)</button>
-                <button class="sub-cat-tab" onclick="switchSubTab('gudangTunaiSection')">📦 Gudang (Tunai)</button>
-                <button class="sub-cat-tab" onclick="switchSubTab('gudangTransferSection')">📦 Gudang (Transfer)</button>
-                <button class="sub-cat-tab" onclick="switchSubTab('rumahSection')">🏠 Rumah</button>
-                <button class="sub-cat-tab" onclick="switchSubTab('materialSection')">🧱 Material</button>
-                <button class="sub-cat-tab" onclick="switchSubTab('orderTokoTunaiSection')">🛒 Order Toko (Tunai)</button>
-                <button class="sub-cat-tab" onclick="switchSubTab('orderTokoTransferSection')">🛒 Order Toko (Transfer)</button>
-                <button class="sub-cat-tab" onclick="switchSubTab('gajiSection')">👥 Gaji Pegawai</button>
+                <button class="sub-cat-tab active" data-subtab="allTableSection" onclick="switchSubTab('allTableSection')">🌐 Tabel Terpadu (Semua)</button>
+                <button class="sub-cat-tab" data-subtab="gudangTunaiSection" onclick="switchSubTab('gudangTunaiSection')">📦 Gudang (Tunai)</button>
+                <button class="sub-cat-tab" data-subtab="gudangTransferSection" onclick="switchSubTab('gudangTransferSection')">📦 Gudang (Transfer)</button>
+                <button class="sub-cat-tab" data-subtab="rumahSection" onclick="switchSubTab('rumahSection')">🏠 Rumah</button>
+                <button class="sub-cat-tab" data-subtab="materialSection" onclick="switchSubTab('materialSection')">🧱 Material</button>
+                <button class="sub-cat-tab" data-subtab="orderTokoTunaiSection" onclick="switchSubTab('orderTokoTunaiSection')">🛒 Order Toko (Tunai)</button>
+                <button class="sub-cat-tab" data-subtab="orderTokoTransferSection" onclick="switchSubTab('orderTokoTransferSection')">🛒 Order Toko (Transfer)</button>
+                <button class="sub-cat-tab" data-subtab="gajiSection" onclick="switchSubTab('gajiSection')">👥 Gaji Pegawai</button>
             </div>
 
             <!-- 1. TABEL TERPADU (SEMUA KATEGORI) -->
@@ -400,7 +452,7 @@
                                 <th>Sisa Setoran (Pribadi Owner)</th>
                                 <th>Nominal Bersih (Pengeluaran)</th>
                                 <th>Keterangan / Sumber Kas</th>
-                                <th>Detail Material & Alokasi Lokasi</th>
+                                <th>Detail Material & Status ACC Gudang</th>
                             </tr>
                         </thead>
                         <tbody id="expenseTableBody">
@@ -412,6 +464,13 @@
 
             <!-- 2. GUDANG (TUNAI) -->
             <div id="gudangTunaiSection" class="sub-cat-content">
+                <div class="sync-balance-banner">
+                    <div>
+                        <span style="font-size: 0.8rem; font-weight: 700; color: #92400e; text-transform: uppercase;">💰 Sisa Dana Tunai Gudang Terkini (Sinkron Menu Utama)</span>
+                        <div style="font-size: 0.78rem; color: #78350f;">Mencakup Top-Up, Gudang (Tunai), Material (Tunai), dan Penggenapan Manual yang sudah di-ACC Admin Gudang.</div>
+                    </div>
+                    <div id="gudangTabBalanceDisplay" style="font-size: 1.35rem; font-weight: 800; color: #c2410c;">Rp 0</div>
+                </div>
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -421,7 +480,7 @@
                                 <th>Metode</th>
                                 <th>Nominal</th>
                                 <th>Keterangan</th>
-                                <th>Sisa Dana</th>
+                                <th>Sisa Dana Berjalan</th>
                             </tr>
                         </thead>
                         <tbody id="gudangTunaiBody"></tbody>
@@ -467,7 +526,14 @@
 
             <!-- 5. MATERIAL -->
             <div id="materialSection" class="sub-cat-content">
-                
+                <div class="sync-balance-banner">
+                    <div>
+                        <span style="font-size: 0.8rem; font-weight: 700; color: #92400e; text-transform: uppercase;">💰 Sisa Dana Tunai Gudang Terkini (Sinkron Menu Utama)</span>
+                        <div style="font-size: 0.78rem; color: #78350f;">Selisih nota Material hanya menyesuaikan Sisa Dana Tunai Gudang setelah di-ACC manual oleh Admin Gudang.</div>
+                    </div>
+                    <div id="materialTabBalanceDisplay" style="font-size: 1.35rem; font-weight: 800; color: #c2410c;">Rp 0</div>
+                </div>
+
                 <!-- GRAFIK CHART ALOKASI MATERIAL -->
                 <div class="chart-container" id="materialChartContainer" style="display: none;">
                     <h4 style="margin-top: 0; margin-bottom: 12px; color: #0d9488; text-align: center;">📊 Perbandingan Pengeluaran Material per Lokasi</h4>
@@ -486,7 +552,7 @@
                                 <th>Nominal Bruto (Ke Petugas)</th>
                                 <th>Penerima</th>
                                 <th>Keterangan</th>
-                                <th>Detail Nota & Alokasi Material</th>
+                                <th>Detail Nota, Alokasi & Persetujuan Gudang</th>
                             </tr>
                         </thead>
                         <tbody id="materialBody"></tbody>
@@ -557,7 +623,7 @@
     <div id="auditTab" class="tab-content">
         <div class="card">
             <h3>📜 Audit Trail Log (Riwayat Edit & Hapus)</h3>
-            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 16px;">Catatan transparansi seluruh aktivitas perubahan dan penghapusan data transaksi (Khusus Owner).</p>
+            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 16px;">Catatan transparansi seluruh aktivitas perubahan, penghapusan, dan persetujuan penggenapan selisih (Khusus Owner).</p>
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -566,7 +632,7 @@
                             <th>Pengguna</th>
                             <th>Aksi</th>
                             <th>Detail Perubahan / Data Terhapus</th>
-                            <th>Alasan Wajib</th>
+                            <th>Alasan / Catatan</th>
                         </tr>
                     </thead>
                     <tbody id="auditTableBody">
@@ -601,6 +667,62 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <div class="card" style="border-top: 4px solid #16a34a;">
+            <h3>🔑 PIN Persetujuan Admin Gudang</h3>
+            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 16px;">PIN khusus yang digunakan Admin Gudang untuk menyetujui (ACC) penggenapan selisih material secara manual. (Default: <b>1234</b>)</p>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="warehouseAdminPinSettingInput" maxlength="6" placeholder="Masukkan PIN baru (4-6 digit)" style="flex: 1; min-width: 220px; max-width: 300px; letter-spacing: 4px; font-weight: 700;">
+                <button type="button" class="btn-primary" onclick="saveWarehouseAdminPinSetting()" style="width: auto; padding: 10px 20px; background: #16a34a;">Simpan PIN Gudang</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PERSETUJUAN & INPUT MANUAL PENGGENAPAN SELISIH MATERIAL (ADMIN GUDANG) -->
+<div class="modal" id="accMaterialSelisihModal">
+    <div class="modal-content">
+        <h3 style="color: #15803d;">🏭 Input Manual & Persetujuan Selisih Material</h3>
+        <input type="hidden" id="accMaterialRecordId">
+
+        <div style="background: #f8fafc; padding: 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.88rem; border: 1px solid var(--border); line-height: 1.6;">
+            <div>👤 <b>Petugas / Penerima:</b> <span id="accMatReceiverText">-</span></div>
+            <div>💵 <b>Dana Diberikan (Bruto):</b> <span id="accMatBrutoText" style="font-weight: 700;">Rp 0</span></div>
+            <div>🧾 <b>Total Nota Riil:</b> <span id="accMatNotaText" style="font-weight: 700;">Rp 0</span></div>
+            <div style="border-top: 1px dashed #cbd5e1; margin-top: 6px; padding-top: 6px;">
+                📊 <b>Selisih Terhitung:</b> <span id="accMatSelisihInfoText" style="font-weight: 800;">Rp 0</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Nominal Penggenapan / Selisih Manual (Rp):</label>
+            <input type="text" id="accMatManualAmount" inputmode="numeric" placeholder="0" oninput="formatInputNumber(this)" style="font-weight: 800; font-size: 1.1rem; color: #0f172a;">
+            <small style="color: #64748b; display: block; margin-top: 4px;">Admin Gudang menginput nominal penyesuaian selisih secara manual.</small>
+        </div>
+
+        <div class="form-group">
+            <label>Arah Penyesuaian Sisa Dana Tunai Gudang:</label>
+            <select id="accMatDirection">
+                <option value="masuk">🟢 Sisa Lebih / Kembalian Masuk (+) — Menambah Sisa Dana Tunai Gudang</option>
+                <option value="keluar">🔴 Kurang / Tambahan Keluar (-) — Mengurangi Sisa Dana Tunai Gudang</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Catatan Admin Gudang (Wajib):</label>
+            <input type="text" id="accMatAdminNote" placeholder="Contoh: Kembalian selisih nota semen diterima admin gudang">
+        </div>
+
+        <div class="form-group" style="background: #fef3c7; padding: 12px; border-radius: 8px; border: 1px solid #fde68a;">
+            <label style="color: #92400e;">🔑 Verifikasi PIN Admin Gudang:</label>
+            <input type="password" id="accMatWarehousePin" maxlength="6" placeholder="••••" style="text-align: center; letter-spacing: 6px; font-size: 1.25rem; font-weight: 800; background: #fff;">
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button type="button" class="btn-primary" onclick="submitMaterialWarehouseApproval()" style="background: #16a34a;">✔ Setujui & Simpan Penyesuaian</button>
+            <button type="button" class="btn-danger" onclick="document.getElementById('accMaterialSelisihModal').style.display='none'" style="width: 120px;">Batal</button>
         </div>
     </div>
 </div>
@@ -819,7 +941,7 @@
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="btn-primary" onclick="saveRekapNota()" style="background:#0d9488;">Simpan & Perbarui Rekap</button>
+            <button class="btn-primary" onclick="saveRekapNota()" style="background:#0d9488;">Simpan Rekap Nota</button>
             <button class="btn-danger" onclick="document.getElementById('rekapModal').style.display='none'" style="width: 120px;">Batal</button>
         </div>
     </div>
@@ -879,6 +1001,7 @@
     let warehouseTopUps = [];
     let auditLogs = [];
     let locations = [];
+    let warehouseAdminPin = '1234';
     let currentUser = "";
     let currentMaterialMode = "single";
     let tempBulkAccumulatedData = null;
@@ -969,7 +1092,7 @@
         if(errorEl) errorEl.innerText = '';
     }
 
-    function switchTab(tabId) {
+    function switchTab(tabId, eventObj) {
         if (tabId === 'auditTab' && currentUser !== 'Owner') {
             alert('Akses ditolak! Menu Audit Trail khusus untuk Owner.');
             return;
@@ -978,18 +1101,39 @@
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
-        if (event && event.currentTarget) {
-            event.currentTarget.classList.add('active');
+
+        const evt = eventObj || window.event;
+        if (evt && evt.currentTarget && evt.currentTarget.classList && evt.currentTarget.classList.contains('nav-tab')) {
+            evt.currentTarget.classList.add('active');
+        } else {
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tabId)) {
+                    btn.classList.add('active');
+                }
+            });
         }
     }
 
-    function switchSubTab(sectionId) {
+    function switchSubTab(sectionId, eventObj) {
         document.querySelectorAll('.sub-cat-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.sub-cat-tab').forEach(el => el.classList.remove('active'));
         document.getElementById(sectionId).classList.add('active');
-        if (event && event.currentTarget) {
-            event.currentTarget.classList.add('active');
+
+        const evt = eventObj || window.event;
+        if (evt && evt.currentTarget && evt.currentTarget.classList && evt.currentTarget.classList.contains('sub-cat-tab')) {
+            evt.currentTarget.classList.add('active');
+        } else {
+            document.querySelectorAll('.sub-cat-tab').forEach(btn => {
+                if (btn.getAttribute('data-subtab') === sectionId) {
+                    btn.classList.add('active');
+                }
+            });
         }
+    }
+
+    function goToMaterialApproval() {
+        switchTab('historyTab');
+        switchSubTab('materialSection');
     }
 
     function formatNumber(num) { return isNaN(num) ? '' : new Intl.NumberFormat('id-ID').format(num); }
@@ -1086,6 +1230,7 @@
             }
             renderExpenses();
             calculateWarehouseCashBalance();
+            updatePendingApprovalBanner();
         });
 
         db.ref('warehouse_topups').on('value', snapshot => {
@@ -1124,89 +1269,155 @@
             }
             renderLocations();
         });
+
+        db.ref('operational_settings/warehouseAdminPin').on('value', snapshot => {
+            let savedPin = snapshot.val();
+            warehouseAdminPin = savedPin ? String(savedPin) : '1234';
+            let pinInput = document.getElementById('warehouseAdminPinSettingInput');
+            if (pinInput) pinInput.value = warehouseAdminPin;
+        });
     }
 
-    // [PERBAIKAN FUNGSI 1]: MENGHITUNG SALDO GUDANG PADA WAKTU TERTENTU
-    function getWarehouseBalanceAt(targetId) {
+    function saveWarehouseAdminPinSetting() {
+        let input = document.getElementById('warehouseAdminPinSettingInput');
+        let val = input.value.trim();
+        if (!val || val.length < 4) {
+            alert('PIN Admin Gudang minimal 4 digit!');
+            return;
+        }
+        db.ref('operational_settings/warehouseAdminPin').set(val).then(() => {
+            alert('PIN Persetujuan Admin Gudang berhasil diperbarui!');
+        });
+    }
+
+    // HELPER: NORMALISASI TANGGAL UNTUK PENGURUTAN KRONOLOGIS YANG KONSISTEN
+    function getNormalizedIsoDate(item) {
+        if (!item) return '';
+        if (item.rawDate) return item.rawDate;
+        if (item.date && item.date.includes('/')) {
+            let datePart = item.date.split(' ')[0];
+            let p = datePart.split('/');
+            if (p.length === 3) {
+                return `${p[2].substring(0, 4)}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+            }
+        }
+        return '';
+    }
+
+    // HELPER: HITUNG EFEK PENGELUARAN TERHADAP DANA TUNAI GUDANG (TANPA PENGGENAPAN OTOMATIS)
+    function getWarehouseCashOutflowOfExpense(item) {
+        if (!item || item.method !== 'Tunai') return 0;
+        let cutoffDate = '2026-11-01';
+        let itemDate = getNormalizedIsoDate(item);
+        if (!itemDate || itemDate < cutoffDate) return 0;
+
+        if (item.category === 'Gudang') {
+            return Number(item.nominal) || 0;
+        }
+
+        if (item.category === 'Material') {
+            let bruto = Number(item.nominal) || 0;
+            // Selisih nota TIDAK otomatis mengurangi/menambah kas.
+            // Hanya jika Admin Gudang SUDAH melakukan input manual & ACC, penyesuaian diterapkan.
+            if (item.materialData && item.materialData.statusAccGudang === 'approved') {
+                let adj = Number(item.materialData.penggenapanManual) || 0;
+                if (item.materialData.arahSelisih === 'masuk') {
+                    return Math.max(0, bruto - adj);
+                } else if (item.materialData.arahSelisih === 'keluar') {
+                    return bruto + adj;
+                }
+            }
+            return bruto;
+        }
+
+        return 0;
+    }
+
+    // RUMUS TUNGGAL: MENGHITUNG SISA DANA TUNAI GUDANG (UNTUK MENU UTAMA & RIWAYAT KATEGORI)
+    function calculateWarehouseCashBalance() {
         let totalTopUp = 0;
         warehouseTopUps.forEach(tu => {
-            if (tu.id <= targetId) {
-                totalTopUp += (tu.amount || 0);
+            if (tu) totalTopUp += (Number(tu.amount) || 0);
+        });
+
+        let totalPengeluaran = 0;
+        allExpenses.forEach(i => {
+            totalPengeluaran += getWarehouseCashOutflowOfExpense(i);
+        });
+
+        let currentCash = totalTopUp - totalPengeluaran;
+        let colorHex = currentCash >= 0 ? '#c2410c' : '#dc2626';
+
+        // Sinkronkan penampil sisa dana di Menu Utama
+        let displayEl = document.getElementById('dashboardWarehouseCashDisplay');
+        if (displayEl) {
+            displayEl.innerText = formatRp(currentCash);
+            displayEl.style.color = colorHex;
+        }
+
+        // Sinkronkan penampil sisa dana di Tab Riwayat Kategori (Gudang Tunai & Material)
+        let gudangTabEl = document.getElementById('gudangTabBalanceDisplay');
+        if (gudangTabEl) {
+            gudangTabEl.innerText = formatRp(currentCash);
+            gudangTabEl.style.color = colorHex;
+        }
+
+        let materialTabEl = document.getElementById('materialTabBalanceDisplay');
+        if (materialTabEl) {
+            materialTabEl.innerText = formatRp(currentCash);
+            materialTabEl.style.color = colorHex;
+        }
+
+        return currentCash;
+    }
+
+    // MENGHITUNG SALDO BERJALAN KRONOLOGIS PADA SAAT TRANSAKSI TERTENTU
+    function getWarehouseBalanceAt(targetItem) {
+        if (!targetItem) return 0;
+        let targetDate = getNormalizedIsoDate(targetItem);
+        let targetId = targetItem.id || 0;
+
+        let totalTopUp = 0;
+        warehouseTopUps.forEach(tu => {
+            if (!tu) return;
+            let tuDate = getNormalizedIsoDate(tu);
+            if (tuDate < targetDate || (tuDate === targetDate && (tu.id || 0) <= targetId)) {
+                totalTopUp += (Number(tu.amount) || 0);
             }
         });
 
         let totalPengeluaran = 0;
-        let cutoffDate = '2026-11-01'; 
-
         allExpenses.forEach(i => {
-            if (i && i.id <= targetId) {
-                let itemDate = i.rawDate || '';
-                if (itemDate && itemDate >= cutoffDate) {
-                    
-                    if (i.method === 'Tunai') {
-                        if (i.category === 'Gudang') {
-                            totalPengeluaran += (i.nominal || 0);
-                        } 
-                        else if (i.category === 'Material') {
-                            // JIKA SUDAH DIREKAP -> POTONG KAS HANYA SEBESAR NOTA RIIL
-                            if (i.materialData && i.materialData.statusRekap && i.materialData.statusRekap !== 'Belum Direkap') {
-                                let totalNota = (i.materialData.shops || []).reduce((sum, s) => sum + (s.cost || 0), 0);
-                                totalPengeluaran += totalNota;
-                            } 
-                            // JIKA BELUM DIREKAP -> POTONG KAS SEBESAR UANG BRUTO YANG DIBAWA PETUGAS
-                            else {
-                                totalPengeluaran += (i.nominal || 0);
-                            }
-                        }
-                    }
-                }
+            if (!i) return;
+            let expDate = getNormalizedIsoDate(i);
+            if (expDate < targetDate || (expDate === targetDate && (i.id || 0) <= targetId)) {
+                totalPengeluaran += getWarehouseCashOutflowOfExpense(i);
             }
         });
 
         return totalTopUp - totalPengeluaran;
     }
 
-    // [PERBAIKAN FUNGSI 2]: KALKULASI DANA TUNAI GUDANG (WIDGET ATAS)
-    function calculateWarehouseCashBalance() {
-        let totalTopUp = 0;
-        warehouseTopUps.forEach(tu => {
-            totalTopUp += (tu.amount || 0);
+    function updatePendingApprovalBanner() {
+        const banner = document.getElementById('pendingAccDashboardBanner');
+        const textEl = document.getElementById('pendingAccDashboardText');
+        if (!banner || !textEl) return;
+
+        let pendingList = allExpenses.filter(i => {
+            if (!i || i.category !== 'Material' || !i.materialData) return false;
+            let shops = i.materialData.shops || [];
+            if (shops.length === 0) return false;
+            let totalNota = shops.reduce((s, x) => s + (Number(x.cost) || 0), 0);
+            let selisih = (Number(i.nominal) || 0) - totalNota;
+            return selisih !== 0 && i.materialData.statusAccGudang !== 'approved';
         });
 
-        let totalPengeluaran = 0;
-        let cutoffDate = '2026-11-01'; 
-
-        allExpenses.forEach(i => {
-            if (!i) return;
-            let itemDate = i.rawDate || '';
-            if (itemDate && itemDate >= cutoffDate) {
-                
-                if (i.method === 'Tunai') {
-                    if (i.category === 'Gudang') {
-                        totalPengeluaran += (i.nominal || 0);
-                    }
-                    else if (i.category === 'Material') {
-                        // JIKA SUDAH DIREKAP -> POTONG KAS HANYA SEBESAR NOTA RIIL
-                        if (i.materialData && i.materialData.statusRekap && i.materialData.statusRekap !== 'Belum Direkap') {
-                            let totalNota = (i.materialData.shops || []).reduce((sum, s) => sum + (s.cost || 0), 0);
-                            totalPengeluaran += totalNota;
-                        } 
-                        // JIKA BELUM DIREKAP -> POTONG KAS SEBESAR UANG BRUTO YANG DIBAWA PETUGAS
-                        else {
-                            totalPengeluaran += (i.nominal || 0);
-                        }
-                    }
-                }
-            }
-        });
-
-        let currentCash = totalTopUp - totalPengeluaran;
-        let displayEl = document.getElementById('dashboardWarehouseCashDisplay');
-        if (displayEl) {
-            displayEl.innerText = formatRp(currentCash);
-            displayEl.style.color = currentCash >= 0 ? '#c2410c' : '#dc2626';
+        if (pendingList.length > 0) {
+            banner.style.display = 'flex';
+            textEl.innerText = `Terdapat ${pendingList.length} transaksi Material yang sudah direkap notanya tetapi selisihnya belum diinput manual & disetujui Admin Gudang.`;
+        } else {
+            banner.style.display = 'none';
         }
-        return currentCash;
     }
 
     function openTopUpWarehouseModal() {
@@ -1503,9 +1714,9 @@
         if (selisih === 0) {
             selisihEl.innerHTML = `<span style="color: var(--success);">PAS (Tidak ada selisih)</span>`;
         } else if (selisih > 0) {
-            selisihEl.innerHTML = `<span style="color: var(--primary);">Sisa Uang (Lebih): ${formatRp(selisih)}</span>`;
+            selisihEl.innerHTML = `<span style="color: var(--warning);">Sisa Uang (Lebih): ${formatRp(selisih)} (Menunggu Input Manual & ACC Admin Gudang)</span>`;
         } else {
-            selisihEl.innerHTML = `<span style="color: var(--danger);">Kurang Uang (Minus): ${formatRp(Math.abs(selisih))}</span>`;
+            selisihEl.innerHTML = `<span style="color: var(--danger);">Kurang Uang (Minus): ${formatRp(Math.abs(selisih))} (Menunggu Input Manual & ACC Admin Gudang)</span>`;
         }
     }
 
@@ -1518,7 +1729,7 @@
         let dateWithTime = `${formattedDate} ${timeNow}`;
 
         let shops = [];
-        document.querySelectorAll('.sub-row').forEach(row => {
+        document.querySelectorAll('#bulkFreeShoppingRows .sub-row').forEach(row => {
             let name = row.querySelector('.bf-shop-name').value.trim();
             let cost = parseCleanNumber(row.querySelector('.bf-shop-cost').value);
             if (name && cost > 0) {
@@ -1530,14 +1741,23 @@
         let selisih = tempBulkAccumulatedData.totalSum - totalNota;
         
         let statusRekap = 'Belum Direkap';
+        let statusAccGudang = 'none';
         if (shops.length > 0) {
-            statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+            if (selisih === 0) {
+                statusRekap = 'Selesai (Pas)';
+                statusAccGudang = 'pas';
+            } else {
+                statusRekap = selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`;
+                statusAccGudang = 'pending';
+            }
         }
 
         let materialData = {
             receiver: tempBulkAccumulatedData.receivers,
             shops,
-            statusRekap
+            statusRekap,
+            statusAccGudang,
+            penggenapanManual: 0
         };
 
         let finalDescString = `Akumulasi Pemberian (${tempBulkAccumulatedData.receivers})<br><b style="color:#0f766e;">Rincian Tanggal:</b><br>${tempBulkAccumulatedData.breakdownHtml}`;
@@ -1558,7 +1778,9 @@
 
         allExpenses.push(newRecord);
         db.ref('operational_expenses').set(allExpenses).then(() => {
-            alert('Akumulasi pemberian dana material dan rekap selisih nota berhasil disimpan!');
+            alert(selisih !== 0 && shops.length > 0
+                ? 'Akumulasi tersimpan! Selisih tidak digenapkan otomatis — silakan lanjutkan Input Manual & ACC oleh Admin Gudang.'
+                : 'Akumulasi pemberian dana material dan rekap nota berhasil disimpan!');
             document.getElementById('bulkRekapSetupModal').style.display = 'none';
             
             document.getElementById('bulkMaterialRowsContainer').innerHTML = `
@@ -1606,7 +1828,13 @@
         let materialData = null;
         if (cat === 'Material') {
             let receiver = document.getElementById('materialReceiver').value.trim();
-            materialData = { receiver, shops: [], statusRekap: 'Belum Direkap' };
+            materialData = {
+                receiver,
+                shops: [],
+                statusRekap: 'Belum Direkap',
+                statusAccGudang: 'none',
+                penggenapanManual: 0
+            };
         }
 
         let newRecord = {
@@ -1883,7 +2111,7 @@
 
     function calculateModalTotal() {
         let totalNota = 0;
-        document.querySelectorAll('.modal-shop-cost').forEach(el => {
+        document.querySelectorAll('#modalShoppingRows .modal-shop-cost').forEach(el => {
             totalNota += parseCleanNumber(el.value);
         });
 
@@ -1899,17 +2127,18 @@
         if (selisih === 0) {
             selisihEl.innerHTML = `<span style="color: var(--success);">PAS (Tidak ada selisih)</span>`;
         } else if (selisih > 0) {
-            selisihEl.innerHTML = `<span style="color: var(--primary);">Sisa Uang (Lebih): ${formatRp(selisih)} (Masuk Kas Gudang)</span>`;
+            selisihEl.innerHTML = `<span style="color: var(--warning);">Sisa Uang (Lebih): ${formatRp(selisih)} (Menunggu Input Manual & ACC Admin Gudang)</span>`;
         } else {
-            selisihEl.innerHTML = `<span style="color: var(--danger);">Kurang Uang (Minus): ${formatRp(Math.abs(selisih))} (Diambil dari Kas Gudang)</span>`;
+            selisihEl.innerHTML = `<span style="color: var(--danger);">Kurang Uang (Minus): ${formatRp(Math.abs(selisih))} (Menunggu Input Manual & ACC Admin Gudang)</span>`;
         }
     }
 
+    // SIMPAN REKAP NOTA TANPA PENGGENAPAN OTOMATIS
     function saveRekapNota() {
         let recId = parseFloat(document.getElementById('rekapRecordId').value);
         let shops = [];
 
-        document.querySelectorAll('.sub-row').forEach(row => {
+        document.querySelectorAll('#modalShoppingRows .sub-row').forEach(row => {
             let name = row.querySelector('.modal-shop-name').value.trim();
             let cost = parseCleanNumber(row.querySelector('.modal-shop-cost').value);
             if (name && cost > 0) {
@@ -1917,18 +2146,34 @@
             }
         });
 
+        let hasDiff = false;
         allExpenses = allExpenses.map(item => {
             if (item && item.id === recId) {
                 let totalNota = shops.reduce((sum, s) => sum + s.cost, 0);
                 let selisih = item.nominal - totalNota;
-                let statusRekap = selisih === 0 ? 'Selesai (Pas)' : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+                let statusRekap = selisih === 0
+                    ? 'Selesai (Pas)'
+                    : (selisih > 0 ? `Sisa Lebih (${formatRp(selisih)})` : `Kurang (${formatRp(Math.abs(selisih))})`);
+
+                let statusAccGudang = 'none';
+                if (shops.length > 0) {
+                    if (selisih === 0) {
+                        statusAccGudang = 'pas';
+                    } else {
+                        hasDiff = true;
+                        statusAccGudang = (item.materialData && item.materialData.statusAccGudang === 'approved')
+                            ? 'approved'
+                            : 'pending';
+                    }
+                }
 
                 return {
                     ...item,
                     materialData: {
                         ...item.materialData,
                         shops,
-                        statusRekap
+                        statusRekap,
+                        statusAccGudang
                     }
                 };
             }
@@ -1936,8 +2181,123 @@
         });
 
         db.ref('operational_expenses').set(allExpenses).then(() => {
-            alert('Rekapitulasi nota berhasil diperbarui dan selisih kas gudang disesuaikan!');
+            alert(hasDiff
+                ? 'Rekap nota disimpan! Karena terdapat selisih, kas gudang belum diubah otomatis. Silakan klik tombol "✅ ACC Selisih" untuk input manual & persetujuan Admin Gudang.'
+                : 'Rekapitulasi nota berhasil diperbarui!');
             document.getElementById('rekapModal').style.display = 'none';
+        });
+    }
+
+    // =========================================================
+    // INPUT MANUAL & PERSETUJUAN ADMIN GUDANG (TANPA SYNC PERMEN)
+    // =========================================================
+    function openAccMaterialModal(id) {
+        let rec = allExpenses.find(i => i && i.id === id);
+        if (!rec || !rec.materialData) return;
+
+        let m = rec.materialData;
+        let totalNota = (m.shops || []).reduce((sum, s) => sum + (Number(s.cost) || 0), 0);
+        let selisih = (Number(rec.nominal) || 0) - totalNota;
+
+        document.getElementById('accMaterialRecordId').value = rec.id;
+        document.getElementById('accMatReceiverText').innerText = m.receiver || '-';
+        document.getElementById('accMatBrutoText').innerText = formatRp(rec.nominal);
+        document.getElementById('accMatNotaText').innerText = formatRp(totalNota);
+
+        let selisihInfoEl = document.getElementById('accMatSelisihInfoText');
+        if (selisih > 0) {
+            selisihInfoEl.innerHTML = `<span style="color: #059669;">Sisa Lebih / Kembalian: +${formatRp(selisih)}</span>`;
+        } else if (selisih < 0) {
+            selisihInfoEl.innerHTML = `<span style="color: #dc2626;">Kurang / Tambahan Belanja: -${formatRp(Math.abs(selisih))}</span>`;
+        } else {
+            selisihInfoEl.innerHTML = `<span style="color: #475569;">Rp 0 (Input Manual)</span>`;
+        }
+
+        let defaultAmount = m.statusAccGudang === 'approved' && m.penggenapanManual
+            ? m.penggenapanManual
+            : Math.abs(selisih);
+        document.getElementById('accMatManualAmount').value = defaultAmount > 0 ? formatNumber(defaultAmount) : '';
+
+        if (m.statusAccGudang === 'approved' && m.arahSelisih) {
+            document.getElementById('accMatDirection').value = m.arahSelisih;
+        } else {
+            document.getElementById('accMatDirection').value = selisih >= 0 ? 'masuk' : 'keluar';
+        }
+
+        document.getElementById('accMatAdminNote').value = m.accNote || '';
+        document.getElementById('accMatWarehousePin').value = '';
+
+        document.getElementById('accMaterialSelisihModal').style.display = 'flex';
+    }
+
+    function submitMaterialWarehouseApproval() {
+        let recId = parseFloat(document.getElementById('accMaterialRecordId').value);
+        let manualAmount = parseCleanNumber(document.getElementById('accMatManualAmount').value);
+        let direction = document.getElementById('accMatDirection').value; // 'masuk' atau 'keluar'
+        let adminNote = document.getElementById('accMatAdminNote').value.trim();
+        let enteredPin = document.getElementById('accMatWarehousePin').value.trim();
+
+        if (manualAmount <= 0) {
+            alert('Masukkan nominal penggenapan / selisih manual yang valid (> 0)!');
+            return;
+        }
+        if (!adminNote) {
+            alert('Catatan Admin Gudang wajib diisi agar riwayat selisih jelas!');
+            return;
+        }
+        if (!enteredPin) {
+            alert('Masukkan PIN Admin Gudang untuk menyetujui!');
+            return;
+        }
+
+        // Validasi menggunakan PIN Admin Gudang (default 1234) atau PIN Owner (945336)
+        if (enteredPin !== warehouseAdminPin && enteredPin !== '945336') {
+            alert('PIN Admin Gudang salah! Persetujuan ditolak.');
+            document.getElementById('accMatWarehousePin').value = '';
+            return;
+        }
+
+        let targetRec = allExpenses.find(i => i && i.id === recId);
+        if (!targetRec || !targetRec.materialData) return;
+
+        let now = new Date();
+        let dateStr = now.toLocaleDateString('id-ID');
+        let timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        let receiverLabel = targetRec.materialData.receiver || 'Petugas';
+
+        allExpenses = allExpenses.map(item => {
+            if (item && item.id === recId) {
+                return {
+                    ...item,
+                    materialData: {
+                        ...item.materialData,
+                        statusAccGudang: 'approved',
+                        penggenapanManual: manualAmount,
+                        arahSelisih: direction,
+                        accBy: `Admin Gudang (${currentUser})`,
+                        accTime: `${dateStr} ${timeStr}`,
+                        accNote: adminNote
+                    }
+                };
+            }
+            return item;
+        });
+
+        let dirLabel = direction === 'masuk' ? 'MASUK (+)' : 'KELUAR (-)';
+        auditLogs.push({
+            id: Date.now(),
+            time: `${dateStr} ${timeStr}`,
+            user: `Admin Gudang (${currentUser})`,
+            action: 'ACC SELISIH MATERIAL',
+            details: `Material [${receiverLabel}] | Penyesuaian Manual Kas Gudang: ${dirLabel} ${formatRp(manualAmount)}`,
+            reason: adminNote
+        });
+
+        db.ref('operational_expenses').set(allExpenses).then(() => {
+            db.ref('operational_audit_logs').set(auditLogs).then(() => {
+                document.getElementById('accMaterialSelisihModal').style.display = 'none';
+                alert(`Persetujuan Admin Gudang berhasil!\nSisa Dana Tunai Gudang telah disesuaikan sebesar ${dirLabel} ${formatRp(manualAmount)}.`);
+            });
         });
     }
 
@@ -2018,6 +2378,39 @@
                 }
             }
         });
+    }
+
+    function buildMaterialDetailHtml(i) {
+        if (!i.materialData) return '-';
+        let m = i.materialData;
+        let totalNota = (m.shops || []).reduce((sum, s) => sum + (Number(s.cost) || 0), 0);
+        let selisih = (Number(i.nominal) || 0) - totalNota;
+
+        let html = `<div class="vertical-details">`;
+        html += `👤 <b>Penerima:</b> ${m.receiver || '-'}<br>`;
+        html += `🏗️ <b>Alokasi Nota:</b><br>`;
+        if (m.shops && m.shops.length > 0) {
+            m.shops.forEach(s => {
+                html += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`;
+            });
+            html += `<div style="margin-top:4px; font-weight:700; color:#334155;">Total Nota: ${formatRp(totalNota)}</div>`;
+        } else {
+            html += `&nbsp;&nbsp;<i style="color:#64748b;">Belum ada rincian nota</i><br>`;
+        }
+
+        if (m.statusAccGudang === 'approved') {
+            let dirText = m.arahSelisih === 'masuk' ? `Masuk (+${formatRp(m.penggenapanManual)})` : `Keluar (-${formatRp(m.penggenapanManual)})`;
+            html += `<div class="badge-status badge-approved">✔ ACC Gudang: ${dirText}</div>`;
+            html += `<div style="font-size:0.75rem; color:#166534; margin-top:2px;">📝 ${m.accNote || ''} (${m.accTime || ''})</div>`;
+        } else if ((m.shops || []).length > 0 && selisih !== 0) {
+            let selLabel = selisih > 0 ? `Lebih +${formatRp(selisih)}` : `Kurang -${formatRp(Math.abs(selisih))}`;
+            html += `<div class="badge-status badge-pending">⏳ Selisih ${selLabel} (Menunggu ACC Gudang)</div>`;
+        } else if ((m.shops || []).length > 0 && selisih === 0) {
+            html += `<div class="badge-status badge-pas">✔ Nota Pas (Tidak Ada Selisih)</div>`;
+        }
+
+        html += `</div>`;
+        return html;
     }
 
     function renderExpenses() {
@@ -2132,11 +2525,11 @@
                     actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
                 }
                 if (i.category === 'Material' && i.materialData) {
-                    actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` + actionBtn;
-                    let m = i.materialData;
-                    detailHtml = `<div class="vertical-details">👤 <b>Penerima:</b> ${m.receiver || '-'}<br>🏗️ <b>Alokasi:</b><br>`;
-                    (m.shops || []).forEach(s => { detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`; });
-                    detailHtml += `</div>`;
+                    let accBtnLabel = i.materialData.statusAccGudang === 'approved' ? '✅ Edit ACC' : '✅ ACC Selisih';
+                    actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` +
+                                `<button class="btn-acc" onclick="openAccMaterialModal(${i.id})">${accBtnLabel}</button> ` +
+                                actionBtn;
+                    detailHtml = buildMaterialDetailHtml(i);
                 }
 
                 let sisaSetoran = isOrderTokoTunai ? (i.sisaSetoran || 0) : 0;
@@ -2196,13 +2589,16 @@
             if (type === 'order-toko-tunai') {
                 actionBtn = `<button class="btn-sisa" onclick="openSisaModal(${i.id})">💰 Sisa</button> ` + actionBtn;
             } else if (type === 'material') {
-                actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` + actionBtn;
+                let accBtnLabel = (i.materialData && i.materialData.statusAccGudang === 'approved') ? '✅ Edit ACC' : '✅ ACC Selisih';
+                actionBtn = `<button class="btn-rekap" onclick="openRekapModal(${i.id})">🧾 Rekap</button> ` +
+                            `<button class="btn-acc" onclick="openAccMaterialModal(${i.id})">${accBtnLabel}</button> ` +
+                            actionBtn;
             }
 
             let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4;">${i.desc}</div>` : i.desc;
 
             if (type === 'gudang-tunai') {
-                let currentBalance = getWarehouseBalanceAt(i.id);
+                let currentBalance = getWarehouseBalanceAt(i);
                 let balanceColor = currentBalance >= 0 ? '#059669' : '#dc2626'; 
                 let runningSisaDana = `<span style="color: ${balanceColor}; font-weight: 700;">${formatRp(currentBalance)}</span>`;
                 
@@ -2224,9 +2620,7 @@
                 </tr>`;
             } else if (type === 'material') {
                 let m = i.materialData || {};
-                let detailHtml = `<div class="vertical-details">🏗️ <b>Alokasi:</b><br>`;
-                (m.shops || []).forEach(s => { detailHtml += `&nbsp;&nbsp;• ${s.name}: ${formatRp(s.cost)}<br>`; });
-                detailHtml += `</div>`;
+                let detailHtml = buildMaterialDetailHtml(i);
 
                 tbody.innerHTML += `<tr>
                     <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
@@ -2267,7 +2661,10 @@
             let materialInfo = '-';
             if (i.category === 'Material' && i.materialData) {
                 let shopsStr = (i.materialData.shops || []).map(s => `${s.name}: ${s.cost}`).join(', ');
-                materialInfo = `Penerima: ${i.materialData.receiver || '-'} | Status: ${i.materialData.statusRekap || '-'} | Alokasi: [${shopsStr}]`;
+                let accStr = i.materialData.statusAccGudang === 'approved'
+                    ? `ACC Gudang (${i.materialData.arahSelisih}: ${i.materialData.penggenapanManual})`
+                    : (i.materialData.statusAccGudang || '-');
+                materialInfo = `Penerima: ${i.materialData.receiver || '-'} | Status: ${i.materialData.statusRekap || '-'} | ${accStr} | Alokasi: [${shopsStr}]`;
             }
 
             return {
@@ -2350,6 +2747,7 @@
         safeAudit.forEach(log => {
             let badgeColor = (log.action.includes('HAPUS')) ? 'var(--danger)' : 'var(--primary)';
             if (log.action === 'EDIT TOP-UP') badgeColor = '#ea580c';
+            if (log.action === 'ACC SELISIH MATERIAL') badgeColor = '#16a34a';
             tbody.innerHTML += `<tr>
                 <td>${log.time}</td>
                 <td><b>${log.user || 'Sistem'}</b></td>
