@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="4.0.1-manual-warehouse-approval-clean">
+    <meta name="app-version" content="4.0.2-chronological-warehouse-ledger">
     
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -480,7 +480,7 @@
                                 <th>Metode</th>
                                 <th>Nominal</th>
                                 <th>Keterangan</th>
-                                <th>Sisa Dana Berjalan</th>
+                                <th>Sisa Dana Berjalan (Kronologis)</th>
                             </tr>
                         </thead>
                         <tbody id="gudangTunaiBody"></tbody>
@@ -1243,6 +1243,7 @@
                 warehouseTopUps = [];
             }
             renderWarehouseTopUps();
+            renderExpenses();
             calculateWarehouseCashBalance();
         });
 
@@ -1290,18 +1291,42 @@
         });
     }
 
-    // HELPER: NORMALISASI TANGGAL UNTUK PENGURUTAN KRONOLOGIS YANG KONSISTEN
+    // HELPER: NORMALISASI TANGGAL ISO (YYYY-MM-DD)
     function getNormalizedIsoDate(item) {
         if (!item) return '';
-        if (item.rawDate) return item.rawDate;
-        if (item.date && item.date.includes('/')) {
-            let datePart = item.date.split(' ')[0];
-            let p = datePart.split('/');
-            if (p.length === 3) {
-                return `${p[2].substring(0, 4)}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+        if (item.rawDate && /^\d{4}-\d{2}-\d{2}/.test(item.rawDate)) {
+            return item.rawDate.substring(0, 10);
+        }
+        let rawStr = item.dateTime || item.date || '';
+        if (rawStr) {
+            let datePart = rawStr.split(' ')[0];
+            let sep = datePart.includes('/') ? '/' : (datePart.includes('-') ? '-' : '');
+            if (sep) {
+                let p = datePart.split(sep);
+                if (p.length === 3) {
+                    if (p[0].length === 4) {
+                        return `${p[0]}-${p[1].padStart(2, '0')}-${p[2].padStart(2, '0')}`;
+                    }
+                    return `${p[2].substring(0, 4)}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+                }
             }
         }
         return '';
+    }
+
+    // HELPER: KUNCI URUTAN KRONOLOGIS LENGKAP (YYYY-MM-DD HH:MM)
+    function getNormalizedDateTimeKey(item) {
+        let isoDate = getNormalizedIsoDate(item) || '0000-00-00';
+        let timeStr = '00:00';
+        let rawStr = (item && (item.dateTime || item.date)) ? String(item.dateTime || item.date) : '';
+        if (rawStr.includes(' ')) {
+            let tPart = rawStr.split(' ')[1].replace(/\./g, ':');
+            let tArr = tPart.split(':');
+            if (tArr.length >= 2) {
+                timeStr = `${(tArr[0] || '00').padStart(2, '0')}:${(tArr[1] || '00').padStart(2, '0')}`;
+            }
+        }
+        return `${isoDate} ${timeStr}`;
     }
 
     // HELPER: HITUNG EFEK PENGELUARAN TERHADAP DANA TUNAI GUDANG (TANPA PENGGENAPAN OTOMATIS)
@@ -1317,8 +1342,6 @@
 
         if (item.category === 'Material') {
             let bruto = Number(item.nominal) || 0;
-            // Selisih nota TIDAK otomatis mengurangi/menambah kas.
-            // Hanya jika Admin Gudang SUDAH melakukan input manual & ACC, penyesuaian diterapkan.
             if (item.materialData && item.materialData.statusAccGudang === 'approved') {
                 let adj = Number(item.materialData.penggenapanManual) || 0;
                 if (item.materialData.arahSelisih === 'masuk') {
@@ -1333,29 +1356,67 @@
         return 0;
     }
 
+    // LEDGER KRONOLOGIS TERPADU: SINKRON 100% ANTARA MENU UTAMA & SALDO BERJALAN RIWAYAT
+    function buildWarehouseCashLedger() {
+        let events = [];
+
+        warehouseTopUps.forEach(tu => {
+            if (!tu) return;
+            events.push({
+                kind: 'topup',
+                id: tu.id || 0,
+                sortKey: getNormalizedDateTimeKey(tu),
+                delta: Number(tu.amount) || 0
+            });
+        });
+
+        allExpenses.forEach(exp => {
+            if (!exp) return;
+            let outflow = getWarehouseCashOutflowOfExpense(exp);
+            if (outflow > 0) {
+                events.push({
+                    kind: 'expense',
+                    id: exp.id || 0,
+                    sortKey: getNormalizedDateTimeKey(exp),
+                    delta: -outflow
+                });
+            }
+        });
+
+        events.sort((a, b) => {
+            if (a.sortKey !== b.sortKey) return a.sortKey.localeCompare(b.sortKey);
+            if (a.kind !== b.kind) return a.kind === 'topup' ? -1 : 1;
+            return (a.id || 0) - (b.id || 0);
+        });
+
+        let runningBalance = 0;
+        let expenseBalanceMap = {};
+
+        events.forEach(ev => {
+            runningBalance += ev.delta;
+            if (ev.kind === 'expense') {
+                expenseBalanceMap[ev.id] = runningBalance;
+            }
+        });
+
+        return {
+            finalBalance: runningBalance,
+            expenseBalanceMap
+        };
+    }
+
     // RUMUS TUNGGAL: MENGHITUNG SISA DANA TUNAI GUDANG (UNTUK MENU UTAMA & RIWAYAT KATEGORI)
     function calculateWarehouseCashBalance() {
-        let totalTopUp = 0;
-        warehouseTopUps.forEach(tu => {
-            if (tu) totalTopUp += (Number(tu.amount) || 0);
-        });
-
-        let totalPengeluaran = 0;
-        allExpenses.forEach(i => {
-            totalPengeluaran += getWarehouseCashOutflowOfExpense(i);
-        });
-
-        let currentCash = totalTopUp - totalPengeluaran;
+        let ledger = buildWarehouseCashLedger();
+        let currentCash = ledger.finalBalance;
         let colorHex = currentCash >= 0 ? '#c2410c' : '#dc2626';
 
-        // Sinkronkan penampil sisa dana di Menu Utama
         let displayEl = document.getElementById('dashboardWarehouseCashDisplay');
         if (displayEl) {
             displayEl.innerText = formatRp(currentCash);
             displayEl.style.color = colorHex;
         }
 
-        // Sinkronkan penampil sisa dana di Tab Riwayat Kategori (Gudang Tunai & Material)
         let gudangTabEl = document.getElementById('gudangTabBalanceDisplay');
         if (gudangTabEl) {
             gudangTabEl.innerText = formatRp(currentCash);
@@ -1369,33 +1430,6 @@
         }
 
         return currentCash;
-    }
-
-    // MENGHITUNG SALDO BERJALAN KRONOLOGIS PADA SAAT TRANSAKSI TERTENTU
-    function getWarehouseBalanceAt(targetItem) {
-        if (!targetItem) return 0;
-        let targetDate = getNormalizedIsoDate(targetItem);
-        let targetId = targetItem.id || 0;
-
-        let totalTopUp = 0;
-        warehouseTopUps.forEach(tu => {
-            if (!tu) return;
-            let tuDate = getNormalizedIsoDate(tu);
-            if (tuDate < targetDate || (tuDate === targetDate && (tu.id || 0) <= targetId)) {
-                totalTopUp += (Number(tu.amount) || 0);
-            }
-        });
-
-        let totalPengeluaran = 0;
-        allExpenses.forEach(i => {
-            if (!i) return;
-            let expDate = getNormalizedIsoDate(i);
-            if (expDate < targetDate || (expDate === targetDate && (i.id || 0) <= targetId)) {
-                totalPengeluaran += getWarehouseCashOutflowOfExpense(i);
-            }
-        });
-
-        return totalTopUp - totalPengeluaran;
     }
 
     function updatePendingApprovalBanner() {
@@ -1558,6 +1592,7 @@
                 alert('Riwayat top-up dana gudang berhasil diperbarui dan dicatat di audit trail!');
                 document.getElementById('editTopUpModal').style.display = 'none';
                 renderWarehouseTopUps();
+                renderExpenses();
                 calculateWarehouseCashBalance();
             });
         });
@@ -1602,6 +1637,7 @@
                 alert('Data Top-Up Gudang berhasil dihapus dan tercatat di audit trail!');
                 document.getElementById('deleteTopUpModal').style.display = 'none';
                 renderWarehouseTopUps();
+                renderExpenses();
                 calculateWarehouseCashBalance();
             });
         });
@@ -1617,7 +1653,10 @@
             return;
         }
 
-        let sorted = [...warehouseTopUps].sort((a, b) => b.id - a.id);
+        let sorted = [...warehouseTopUps].sort((a, b) => {
+            let keyCmp = getNormalizedDateTimeKey(b).localeCompare(getNormalizedDateTimeKey(a));
+            return keyCmp !== 0 ? keyCmp : ((b.id || 0) - (a.id || 0));
+        });
         sorted.forEach(tu => {
             tbody.innerHTML += `<tr>
                 <td style="text-align: center; white-space: nowrap;">
@@ -2133,7 +2172,6 @@
         }
     }
 
-    // SIMPAN REKAP NOTA TANPA PENGGENAPAN OTOMATIS
     function saveRekapNota() {
         let recId = parseFloat(document.getElementById('rekapRecordId').value);
         let shops = [];
@@ -2188,9 +2226,6 @@
         });
     }
 
-    // =========================================================
-    // INPUT MANUAL & PERSETUJUAN ADMIN GUDANG (TANPA SYNC PERMEN)
-    // =========================================================
     function openAccMaterialModal(id) {
         let rec = allExpenses.find(i => i && i.id === id);
         if (!rec || !rec.materialData) return;
@@ -2233,7 +2268,7 @@
     function submitMaterialWarehouseApproval() {
         let recId = parseFloat(document.getElementById('accMaterialRecordId').value);
         let manualAmount = parseCleanNumber(document.getElementById('accMatManualAmount').value);
-        let direction = document.getElementById('accMatDirection').value; // 'masuk' atau 'keluar'
+        let direction = document.getElementById('accMatDirection').value;
         let adminNote = document.getElementById('accMatAdminNote').value.trim();
         let enteredPin = document.getElementById('accMatWarehousePin').value.trim();
 
@@ -2250,7 +2285,6 @@
             return;
         }
 
-        // Validasi menggunakan PIN Admin Gudang (default 1234) atau PIN Owner (945336)
         if (enteredPin !== warehouseAdminPin && enteredPin !== '945336') {
             alert('PIN Admin Gudang salah! Persetujuan ditolak.');
             document.getElementById('accMatWarehousePin').value = '';
@@ -2508,7 +2542,11 @@
                 </div>`;
         }
 
-        filteredExpenses.sort((a, b) => b.id - a.id);
+        // Urutkan berdasarkan Tanggal & Jam transaksi terbaru (kronologis)
+        filteredExpenses.sort((a, b) => {
+            let keyCmp = getNormalizedDateTimeKey(b).localeCompare(getNormalizedDateTimeKey(a));
+            return keyCmp !== 0 ? keyCmp : ((b.id || 0) - (a.id || 0));
+        });
 
         let tbodyAll = document.getElementById('expenseTableBody');
         tbodyAll.innerHTML = '';
@@ -2556,7 +2594,9 @@
             });
         }
 
-        renderSpecificTable('gudangTunaiBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Tunai'), 'gudang-tunai');
+        let ledger = buildWarehouseCashLedger();
+
+        renderSpecificTable('gudangTunaiBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Tunai'), 'gudang-tunai', ledger.expenseBalanceMap);
         renderSpecificTable('gudangTransferBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Transfer'), 'gudang-transfer');
         renderSpecificTable('rumahBody', filteredExpenses.filter(i => i.category === 'Rumah'), 'rumah');
         
@@ -2569,7 +2609,7 @@
         renderSpecificTable('gajiBody', filteredExpenses.filter(i => i.category === 'Gaji Pegawai'), 'gaji');
     }
 
-    function renderSpecificTable(tbodyId, dataList, type) {
+    function renderSpecificTable(tbodyId, dataList, type, expenseBalanceMap = {}) {
         let tbody = document.getElementById(tbodyId);
         if(!tbody) return;
         tbody.innerHTML = '';
@@ -2598,9 +2638,15 @@
             let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4;">${i.desc}</div>` : i.desc;
 
             if (type === 'gudang-tunai') {
-                let currentBalance = getWarehouseBalanceAt(i);
-                let balanceColor = currentBalance >= 0 ? '#059669' : '#dc2626'; 
-                let runningSisaDana = `<span style="color: ${balanceColor}; font-weight: 700;">${formatRp(currentBalance)}</span>`;
+                let isoDate = getNormalizedIsoDate(i);
+                let runningSisaDana = '';
+                if (!isoDate || isoDate < '2026-11-01') {
+                    runningSisaDana = `<span style="color: #64748b; font-size: 0.8rem;">Sebelum 1 Nov 2026</span>`;
+                } else {
+                    let currentBalance = expenseBalanceMap.hasOwnProperty(i.id) ? expenseBalanceMap[i.id] : 0;
+                    let balanceColor = currentBalance >= 0 ? '#059669' : '#dc2626';
+                    runningSisaDana = `<span style="color: ${balanceColor}; font-weight: 700;">${formatRp(currentBalance)}</span>`;
+                }
                 
                 tbody.innerHTML += `<tr>
                     <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
@@ -2803,7 +2849,7 @@
         if (confirm(`Hapus lokasi "${locations[index]}"?`)) {
             locations.splice(index, 1);
             db.ref('operational_locations').set(locations).then(() => {
-                alert('Lokasi berhasil disetujui / dihapus!');
+                alert('Lokasi berhasil dihapus!');
             });
         }
     }
