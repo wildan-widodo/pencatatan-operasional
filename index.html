@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="4.0.3-sync-warehouse-pin">
+    <meta name="app-version" content="4.0.4-material-diff-only-warehouse-cash">
     
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -467,7 +467,7 @@
                 <div class="sync-balance-banner">
                     <div>
                         <span style="font-size: 0.8rem; font-weight: 700; color: #92400e; text-transform: uppercase;">💰 Sisa Dana Tunai Gudang Terkini (Sinkron Menu Utama)</span>
-                        <div style="font-size: 0.78rem; color: #78350f;">Mencakup Top-Up, Gudang (Tunai), Material (Tunai), dan Penggenapan Manual yang sudah di-ACC Admin Gudang.</div>
+                        <div style="font-size: 0.78rem; color: #78350f;">Mencakup Top-Up, pengeluaran Gudang (Tunai), serta penyesuaian selisih nota Material yang sudah di-ACC Admin Gudang (+ masuk / - digenapi gudang).</div>
                     </div>
                     <div id="gudangTabBalanceDisplay" style="font-size: 1.35rem; font-weight: 800; color: #c2410c;">Rp 0</div>
                 </div>
@@ -529,7 +529,7 @@
                 <div class="sync-balance-banner">
                     <div>
                         <span style="font-size: 0.8rem; font-weight: 700; color: #92400e; text-transform: uppercase;">💰 Sisa Dana Tunai Gudang Terkini (Sinkron Menu Utama)</span>
-                        <div style="font-size: 0.78rem; color: #78350f;">Selisih nota Material hanya menyesuaikan Sisa Dana Tunai Gudang setelah di-ACC manual oleh Admin Gudang.</div>
+                        <div style="font-size: 0.78rem; color: #78350f;">Pengeluaran pokok Material tidak memotong Dana Tunai Gudang. Hanya selisih hasil rekap nota yang di-ACC Admin Gudang yang masuk (+) atau digenapi (-) dari Dana Tunai Gudang.</div>
                     </div>
                     <div id="materialTabBalanceDisplay" style="font-size: 1.35rem; font-weight: 800; color: #c2410c;">Rp 0</div>
                 </div>
@@ -705,8 +705,8 @@
         <div class="form-group">
             <label>Arah Penyesuaian Sisa Dana Tunai Gudang:</label>
             <select id="accMatDirection">
-                <option value="masuk">🟢 Sisa Lebih / Kembalian Masuk (+) — Menambah Sisa Dana Tunai Gudang</option>
-                <option value="keluar">🔴 Kurang / Tambahan Keluar (-) — Mengurangi Sisa Dana Tunai Gudang</option>
+                <option value="masuk">🟢 Sisa Lebih / Plus (+) — Masuk ke Sisa Dana Tunai Gudang</option>
+                <option value="keluar">🔴 Kurang / Minus (-) — Digenapi (Mengurangi) Sisa Dana Tunai Gudang</option>
             </select>
         </div>
 
@@ -1336,28 +1336,30 @@
         return `${isoDate} ${timeStr}`;
     }
 
-    // HELPER: HITUNG EFEK PENGELUARAN TERHADAP DANA TUNAI GUDANG (TANPA PENGGENAPAN OTOMATIS)
-    function getWarehouseCashOutflowOfExpense(item) {
-        if (!item || item.method !== 'Tunai') return 0;
+    // HELPER: HITUNG EFEK PENGELUARAN TERHADAP SISA DANA TUNAI GUDANG
+    // - Kategori "Gudang" metode "Tunai": langsung memotong (-) saldo dana gudang.
+    // - Kategori "Material": nominal pokok tidak memotong dana gudang; hanya selisih rekap nota
+    //   yang sudah di-ACC Admin Gudang yang masuk (+) atau digenapi (-) dari dana gudang.
+    function getWarehouseCashDeltaOfExpense(item) {
+        if (!item) return 0;
         let cutoffDate = '2026-11-01';
         let itemDate = getNormalizedIsoDate(item);
         if (!itemDate || itemDate < cutoffDate) return 0;
 
-        if (item.category === 'Gudang') {
-            return Number(item.nominal) || 0;
+        if (item.category === 'Gudang' && item.method === 'Tunai') {
+            return -(Number(item.nominal) || 0);
         }
 
         if (item.category === 'Material') {
-            let bruto = Number(item.nominal) || 0;
             if (item.materialData && item.materialData.statusAccGudang === 'approved') {
                 let adj = Number(item.materialData.penggenapanManual) || 0;
                 if (item.materialData.arahSelisih === 'masuk') {
-                    return Math.max(0, bruto - adj);
+                    return adj;
                 } else if (item.materialData.arahSelisih === 'keluar') {
-                    return bruto + adj;
+                    return -adj;
                 }
             }
-            return bruto;
+            return 0;
         }
 
         return 0;
@@ -1379,13 +1381,13 @@
 
         allExpenses.forEach(exp => {
             if (!exp) return;
-            let outflow = getWarehouseCashOutflowOfExpense(exp);
-            if (outflow > 0) {
+            let delta = getWarehouseCashDeltaOfExpense(exp);
+            if (delta !== 0) {
                 events.push({
                     kind: 'expense',
                     id: exp.id || 0,
                     sortKey: getNormalizedDateTimeKey(exp),
-                    delta: -outflow
+                    delta: delta
                 });
             }
         });
@@ -1825,7 +1827,7 @@
         allExpenses.push(newRecord);
         db.ref('operational_expenses').set(allExpenses).then(() => {
             alert(selisih !== 0 && shops.length > 0
-                ? 'Akumulasi tersimpan! Selisih tidak digenapkan otomatis — silakan lanjutkan Input Manual & ACC oleh Admin Gudang.'
+                ? 'Akumulasi tersimpan! Silakan lanjutkan Input Manual & ACC oleh Admin Gudang agar selisihnya masuk/digenapi di Dana Tunai Gudang.'
                 : 'Akumulasi pemberian dana material dan rekap nota berhasil disimpan!');
             document.getElementById('bulkRekapSetupModal').style.display = 'none';
             
@@ -2227,7 +2229,7 @@
 
         db.ref('operational_expenses').set(allExpenses).then(() => {
             alert(hasDiff
-                ? 'Rekap nota disimpan! Karena terdapat selisih, kas gudang belum diubah otomatis. Silakan klik tombol "✅ ACC Selisih" untuk input manual & persetujuan Admin Gudang.'
+                ? 'Rekap nota disimpan! Karena terdapat selisih, silakan klik tombol "✅ ACC Selisih" untuk input manual & persetujuan Admin Gudang.'
                 : 'Rekapitulasi nota berhasil diperbarui!');
             document.getElementById('rekapModal').style.display = 'none';
         });
@@ -2248,9 +2250,9 @@
 
         let selisihInfoEl = document.getElementById('accMatSelisihInfoText');
         if (selisih > 0) {
-            selisihInfoEl.innerHTML = `<span style="color: #059669;">Sisa Lebih / Kembalian: +${formatRp(selisih)}</span>`;
+            selisihInfoEl.innerHTML = `<span style="color: #059669;">Sisa Lebih / Plus: +${formatRp(selisih)} (Masuk ke Dana Gudang)</span>`;
         } else if (selisih < 0) {
-            selisihInfoEl.innerHTML = `<span style="color: #dc2626;">Kurang / Tambahan Belanja: -${formatRp(Math.abs(selisih))}</span>`;
+            selisihInfoEl.innerHTML = `<span style="color: #dc2626;">Kurang / Minus: -${formatRp(Math.abs(selisih))} (Digenapi Dana Gudang)</span>`;
         } else {
             selisihInfoEl.innerHTML = `<span style="color: #475569;">Rp 0 (Input Manual)</span>`;
         }
@@ -2324,7 +2326,7 @@
             return item;
         });
 
-        let dirLabel = direction === 'masuk' ? 'MASUK (+)' : 'KELUAR (-)';
+        let dirLabel = direction === 'masuk' ? 'MASUK (+)' : 'KELUAR / DIGENAPI (-)';
         auditLogs.push({
             id: Date.now(),
             time: `${dateStr} ${timeStr}`,
@@ -2440,7 +2442,7 @@
         }
 
         if (m.statusAccGudang === 'approved') {
-            let dirText = m.arahSelisih === 'masuk' ? `Masuk (+${formatRp(m.penggenapanManual)})` : `Keluar (-${formatRp(m.penggenapanManual)})`;
+            let dirText = m.arahSelisih === 'masuk' ? `Masuk (+${formatRp(m.penggenapanManual)})` : `Digenapi (-${formatRp(m.penggenapanManual)})`;
             html += `<div class="badge-status badge-approved">✔ ACC Gudang: ${dirText}</div>`;
             html += `<div style="font-size:0.75rem; color:#166534; margin-top:2px;">📝 ${m.accNote || ''} (${m.accTime || ''})</div>`;
         } else if ((m.shops || []).length > 0 && selisih !== 0) {
@@ -2582,8 +2584,10 @@
                 let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4; min-width: 220px;">${i.desc}</div>` : i.desc;
                 let methodBadgeColor = i.method === 'Tunai' ? '#d97706' : '#4f46e5';
                 let methodDisplay = `<span style="background: ${methodBadgeColor}; color: white; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem;">${i.method || 'Tunai'}</span>`;
-                if ((i.category === 'Gudang' || i.category === 'Material') && i.method === 'Tunai') {
+                if (i.category === 'Gudang' && i.method === 'Tunai') {
                     methodDisplay += `<br><small style="color: #b91c1c; font-weight: 700;">(Potong Kas Gudang)</small>`;
+                } else if (i.category === 'Material') {
+                    methodDisplay += `<br><small style="color: #0d9488; font-weight: 600;">(Kas Gudang: Hanya Selisih ACC)</small>`;
                 }
                 let sisaColumnContent = isOrderTokoTunai ? `<span style="color: #d97706; font-weight: 700;">${sisaSetoran > 0 ? '+ ' + formatRp(sisaSetoran) : 'Rp 0'}</span>` : '-';
 
