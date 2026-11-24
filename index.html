@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="4.0.4-material-diff-only-warehouse-cash">
+    <meta name="app-version" content="4.1.0-material-giver-sync-warehouse-ledger">
     
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -89,7 +89,7 @@
         .bulk-material-box { background: #f0fdfa; border: 2px dashed #5eead4; padding: 16px; border-radius: 8px; margin-bottom: 16px; display: none; }
         .bulk-material-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #ccfbf1; }
         .bulk-material-row input.bm-date { flex: 1.2; }
-        .bulk-material-row input.bm-receiver { flex: 1.4; }
+        .bulk-material-row input.bm-giver { flex: 1.4; }
         .bulk-material-row input.bm-nominal { flex: 1.1; }
         .bulk-material-row input.bm-desc { flex: 1.8; }
         
@@ -146,6 +146,17 @@
         .badge-pending { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
         .badge-approved { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
         .badge-pas { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        .badge-receiver-fixed {
+            display: inline-block;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
 
         .filter-bar { display: flex; gap: 14px; margin-bottom: 18px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; }
         .filter-item { flex: 1; min-width: 180px; margin-bottom: 0; }
@@ -277,10 +288,11 @@
 
                     <!-- FORM KHUSUS DETAIL MATERIAL -->
                     <div id="materialDetailBox" class="sub-form-box">
-                        <h4 style="margin-top: 0; color: #166534; font-size: 1rem;">🧱 Detail Penyerahan Dana Material</h4>
+                        <h4 style="margin-top: 0; margin-bottom: 6px; color: #166534; font-size: 1rem;">🧱 Detail Penyerahan Dana Material</h4>
+                        <div class="badge-receiver-fixed">👷 Penerima Dana Tetap: Mas Aprin</div>
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label>Nama Penerima Uang / Petugas:</label>
-                            <input type="text" id="materialReceiver" placeholder="Contoh: Mas Aprin" style="background: #fff;">
+                            <label>Nama Pemberi Dana:</label>
+                            <input type="text" id="materialGiver" placeholder="Contoh: Owner / Mbak Ika" style="background: #fff;">
                         </div>
                     </div>
 
@@ -305,12 +317,13 @@
 
                 <!-- FORM INPUT MASSAL KHUSUS MATERIAL -->
                 <div id="bulkMaterialSection" class="bulk-material-box">
-                    <h4 style="margin-top: 0; color: #0f766e; font-size: 1rem;">📦 Akumulasi Pemberian Dana ke Petugas (Beberapa Hari)</h4>
-                    <p style="font-size: 0.825rem; color: #334155; margin-bottom: 12px;">Catat beberapa kali pemberian dana dari admin ke petugas secara bertahap lengkap dengan tanggalnya masing-masing.</p>
+                    <h4 style="margin-top: 0; margin-bottom: 6px; color: #0f766e; font-size: 1rem;">📦 Akumulasi Pemberian Dana Material ke Mas Aprin (Beberapa Hari)</h4>
+                    <div class="badge-receiver-fixed">👷 Penerima Dana Tetap: Mas Aprin</div>
+                    <p style="font-size: 0.825rem; color: #334155; margin-bottom: 12px;">Catat beberapa kali pemberian dana kepada Mas Aprin secara bertahap lengkap dengan nama pemberi dan tanggalnya masing-masing.</p>
                     
                     <div style="display: flex; font-size: 0.75rem; color: #334155; font-weight: 700; margin-bottom: 6px; gap: 8px;">
                         <span style="flex: 1.2;">Tanggal Pemberian</span>
-                        <span style="flex: 1.4;">Nama Penerima</span>
+                        <span style="flex: 1.4;">Nama Pemberi</span>
                         <span style="flex: 1.1;">Nominal (Rp)</span>
                         <span style="flex: 1.8;">Keterangan / Catatan</span>
                         <span style="width: 35px;"></span>
@@ -319,7 +332,7 @@
                     <div id="bulkMaterialRowsContainer">
                         <div class="bulk-material-row">
                             <input type="date" class="bm-date">
-                            <input type="text" class="bm-receiver" placeholder="Nama Penerima">
+                            <input type="text" class="bm-giver" placeholder="Nama Pemberi">
                             <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)">
                             <input type="text" class="bm-desc" placeholder="Keterangan">
                             <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
@@ -409,7 +422,7 @@
         <div class="card">
             <div class="filter-bar" style="margin-bottom: 0;">
                 <div class="form-group filter-item">
-                    <label>🔍 Cari Keterangan / Penerima:</label>
+                    <label>🔍 Cari Keterangan / Pemberi:</label>
                     <input type="text" id="searchKeyword" placeholder="Ketik kata kunci..." oninput="renderExpenses()">
                 </div>
                 <div class="form-group filter-item" style="min-width: 140px;">
@@ -467,7 +480,7 @@
                 <div class="sync-balance-banner">
                     <div>
                         <span style="font-size: 0.8rem; font-weight: 700; color: #92400e; text-transform: uppercase;">💰 Sisa Dana Tunai Gudang Terkini (Sinkron Menu Utama)</span>
-                        <div style="font-size: 0.78rem; color: #78350f;">Mencakup Top-Up, pengeluaran Gudang (Tunai), serta penyesuaian selisih nota Material yang sudah di-ACC Admin Gudang (+ masuk / - digenapi gudang).</div>
+                        <div style="font-size: 0.78rem; color: #78350f;">Mencakup seluruh mutasi kas gudang: Top-Up (+), pengeluaran Gudang Tunai (-), serta ACC penggenapan/pengembalian selisih rekap nota Material (+ / -).</div>
                     </div>
                     <div id="gudangTabBalanceDisplay" style="font-size: 1.35rem; font-weight: 800; color: #c2410c;">Rp 0</div>
                 </div>
@@ -477,8 +490,8 @@
                             <tr>
                                 <th>Aksi</th>
                                 <th>Tanggal & Waktu</th>
-                                <th>Metode</th>
-                                <th>Nominal</th>
+                                <th>Jenis Mutasi / Metode</th>
+                                <th>Nominal Mutasi</th>
                                 <th>Keterangan</th>
                                 <th>Sisa Dana Berjalan (Kronologis)</th>
                             </tr>
@@ -529,7 +542,7 @@
                 <div class="sync-balance-banner">
                     <div>
                         <span style="font-size: 0.8rem; font-weight: 700; color: #92400e; text-transform: uppercase;">💰 Sisa Dana Tunai Gudang Terkini (Sinkron Menu Utama)</span>
-                        <div style="font-size: 0.78rem; color: #78350f;">Pengeluaran pokok Material tidak memotong Dana Tunai Gudang. Hanya selisih hasil rekap nota yang di-ACC Admin Gudang yang masuk (+) atau digenapi (-) dari Dana Tunai Gudang.</div>
+                        <div style="font-size: 0.78rem; color: #78350f;">Pengeluaran pokok Material (Penerima: Mas Aprin) tidak memotong Dana Tunai Gudang. Hanya selisih hasil rekap nota yang di-ACC Admin Gudang yang otomatis masuk (+) atau digenapi (-) di Dana Tunai Gudang.</div>
                     </div>
                     <div id="materialTabBalanceDisplay" style="font-size: 1.35rem; font-weight: 800; color: #c2410c;">Rp 0</div>
                 </div>
@@ -549,8 +562,8 @@
                                 <th>Aksi</th>
                                 <th>Tanggal & Waktu</th>
                                 <th>Metode</th>
-                                <th>Nominal Bruto (Ke Petugas)</th>
-                                <th>Penerima</th>
+                                <th>Nominal Bruto (Ke Mas Aprin)</th>
+                                <th>Nama Pemberi</th>
                                 <th>Keterangan</th>
                                 <th>Detail Nota, Alokasi & Persetujuan Gudang</th>
                             </tr>
@@ -688,7 +701,7 @@
         <input type="hidden" id="accMaterialRecordId">
 
         <div style="background: #f8fafc; padding: 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.88rem; border: 1px solid var(--border); line-height: 1.6;">
-            <div>👤 <b>Petugas / Penerima:</b> <span id="accMatReceiverText">-</span></div>
+            <div>👤 <b>Nama Pemberi:</b> <span id="accMatGiverText">-</span> <small style="color:#64748b;">(Penerima: Mas Aprin)</small></div>
             <div>💵 <b>Dana Diberikan (Bruto):</b> <span id="accMatBrutoText" style="font-weight: 700;">Rp 0</span></div>
             <div>🧾 <b>Total Nota Riil:</b> <span id="accMatNotaText" style="font-weight: 700;">Rp 0</span></div>
             <div style="border-top: 1px dashed #cbd5e1; margin-top: 6px; padding-top: 6px;">
@@ -821,13 +834,18 @@
         
         <div class="form-group">
             <label>Kategori Pengeluaran</label>
-            <select id="editCategory">
+            <select id="editCategory" onchange="toggleEditMaterialGiver()">
                 <option value="Gudang">Gudang</option>
                 <option value="Rumah">Rumah</option>
                 <option value="Material">Material</option>
                 <option value="Order Toko">Order Toko</option>
                 <option value="Gaji Pegawai">Gaji Pegawai</option>
             </select>
+        </div>
+
+        <div class="form-group" id="editMaterialGiverGroup" style="display: none;">
+            <label>Nama Pemberi Dana (Penerima: Mas Aprin)</label>
+            <input type="text" id="editMaterialGiver" placeholder="Contoh: Owner / Mbak Ika">
         </div>
 
         <div class="form-group">
@@ -919,7 +937,7 @@
         <input type="hidden" id="rekapRecordId">
         
         <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; border: 1px solid var(--border);">
-            <div>👤 <b>Penerima:</b> <span id="modalReceiverText">-</span></div>
+            <div>👤 <b>Nama Pemberi:</b> <span id="modalGiverText">-</span> <small style="color:#64748b;">(Penerima: Mas Aprin)</small></div>
             <div>💰 <b>Total Dana Diberikan (Bruto):</b> <span id="modalTotalDanaText" style="color: var(--success); font-weight: bold;">Rp 0</span></div>
         </div>
 
@@ -953,11 +971,11 @@
         <h3 style="color: #0d9488;">🧾 Cek Selisih Akumulasi Dana & Alokasi Nota</h3>
         
         <div style="background: #f0fdfa; padding: 14px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #99f6e4;">
-            <div style="font-size: 0.85rem; color: #115e59;">Total Akumulasi Pemberian Dana (Beberapa Hari):</div>
+            <div style="font-size: 0.85rem; color: #115e59;">Total Akumulasi Pemberian Dana ke Mas Aprin (Beberapa Hari):</div>
             <div id="bulkTotalDanaSummary" style="font-size: 1.4rem; font-weight: 800; color: #0d9488; margin-top: 2px;">Rp 0</div>
         </div>
 
-        <p style="font-size: 0.85rem; color: #475569; margin-bottom: 12px;">Masukkan rincian alokasi lokasi bangunan berdasarkan nota riil yang diserahkan petugas:</p>
+        <p style="font-size: 0.85rem; color: #475569; margin-bottom: 12px;">Masukkan rincian alokasi lokasi bangunan berdasarkan nota riil yang diserahkan Mas Aprin:</p>
         
         <div id="bulkFreeShoppingRows" style="max-height: 40vh; overflow-y: auto; padding-right: 5px; margin-bottom: 12px;"></div>
         <button type="button" class="btn-add-row" onclick="addBulkFreeShopRow()" style="margin-bottom: 16px;">+ Tambah Baris Alokasi Lokasi Nota</button>
@@ -1011,6 +1029,11 @@
         '123123': 'Mbak Ika',
         '945336': 'Owner'
     };
+
+    function getMaterialGiverLabel(materialData) {
+        if (!materialData) return '-';
+        return materialData.giver || materialData.receiver || '-';
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
         let loginBtn = document.getElementById('loginSubmitBtn');
@@ -1145,15 +1168,15 @@
         let cat = document.getElementById('expenseCategory').value;
         let modeToggleBox = document.getElementById('materialModeToggleBox');
         let submitBtn = document.getElementById('submitExpenseBtn');
-        let materialReceiverInput = document.getElementById('materialReceiver');
+        let materialGiverInput = document.getElementById('materialGiver');
         
         if (cat === 'Material') {
             modeToggleBox.style.display = 'block';
-            materialReceiverInput.required = true;
+            materialGiverInput.required = true;
             setMaterialMode(currentMaterialMode);
         } else {
             modeToggleBox.style.display = 'none';
-            materialReceiverInput.required = false;
+            materialGiverInput.required = false;
             document.getElementById('materialDetailBox').style.display = 'none';
             document.getElementById('singleFormSection').style.display = 'block';
             document.getElementById('bulkMaterialSection').style.display = 'none';
@@ -1169,7 +1192,7 @@
         let bulkSec = document.getElementById('bulkMaterialSection');
         let detailBox = document.getElementById('materialDetailBox');
         let submitBtn = document.getElementById('submitExpenseBtn');
-        let materialReceiverInput = document.getElementById('materialReceiver');
+        let materialGiverInput = document.getElementById('materialGiver');
 
         if (mode === 'single') {
             btnSingle.classList.add('active');
@@ -1178,7 +1201,7 @@
             bulkSec.style.display = 'none';
             detailBox.style.display = 'block';
             submitBtn.style.display = 'block';
-            materialReceiverInput.required = true;
+            materialGiverInput.required = true;
         } else {
             btnBulk.classList.add('active');
             btnSingle.classList.remove('active');
@@ -1186,7 +1209,7 @@
             bulkSec.style.display = 'block';
             detailBox.style.display = 'none';
             submitBtn.style.display = 'none';
-            materialReceiverInput.required = false;
+            materialGiverInput.required = false;
         }
     }
 
@@ -1196,7 +1219,7 @@
         div.className = 'bulk-material-row';
         div.innerHTML = `
             <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}">
-            <input type="text" class="bm-receiver" placeholder="Nama Penerima">
+            <input type="text" class="bm-giver" placeholder="Nama Pemberi">
             <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)">
             <input type="text" class="bm-desc" placeholder="Keterangan">
             <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
@@ -1298,15 +1321,13 @@
         });
     }
 
-    // HELPER: NORMALISASI TANGGAL ISO (YYYY-MM-DD)
-    function getNormalizedIsoDate(item) {
-        if (!item) return '';
-        if (item.rawDate && /^\d{4}-\d{2}-\d{2}/.test(item.rawDate)) {
-            return item.rawDate.substring(0, 10);
+    // HELPER: NORMALISASI TANGGAL ISO (YYYY-MM-DD) DARI STRING TANGGAL APAPUN
+    function parseIsoDateFromString(rawStr, fallbackRawDate = '') {
+        if (fallbackRawDate && /^\d{4}-\d{2}-\d{2}/.test(fallbackRawDate)) {
+            return fallbackRawDate.substring(0, 10);
         }
-        let rawStr = item.dateTime || item.date || '';
         if (rawStr) {
-            let datePart = rawStr.split(' ')[0];
+            let datePart = String(rawStr).trim().split(' ')[0];
             let sep = datePart.includes('/') ? '/' : (datePart.includes('-') ? '-' : '');
             if (sep) {
                 let p = datePart.split(sep);
@@ -1321,13 +1342,12 @@
         return '';
     }
 
-    // HELPER: KUNCI URUTAN KRONOLOGIS LENGKAP (YYYY-MM-DD HH:MM)
-    function getNormalizedDateTimeKey(item) {
-        let isoDate = getNormalizedIsoDate(item) || '0000-00-00';
+    // HELPER: KUNCI URUTAN KRONOLOGIS LENGKAP (YYYY-MM-DD HH:MM) DARI STRING TANGGAL & JAM
+    function parseDateTimeKeyFromString(rawStr, fallbackRawDate = '') {
+        let isoDate = parseIsoDateFromString(rawStr, fallbackRawDate) || '0000-00-00';
         let timeStr = '00:00';
-        let rawStr = (item && (item.dateTime || item.date)) ? String(item.dateTime || item.date) : '';
-        if (rawStr.includes(' ')) {
-            let tPart = rawStr.split(' ')[1].replace(/\./g, ':');
+        if (rawStr && String(rawStr).includes(' ')) {
+            let tPart = String(rawStr).split(' ')[1].replace(/\./g, ':');
             let tArr = tPart.split(':');
             if (tArr.length >= 2) {
                 timeStr = `${(tArr[0] || '00').padStart(2, '0')}:${(tArr[1] || '00').padStart(2, '0')}`;
@@ -1336,81 +1356,107 @@
         return `${isoDate} ${timeStr}`;
     }
 
-    // HELPER: HITUNG EFEK PENGELUARAN TERHADAP SISA DANA TUNAI GUDANG
-    // - Kategori "Gudang" metode "Tunai": langsung memotong (-) saldo dana gudang.
-    // - Kategori "Material": nominal pokok tidak memotong dana gudang; hanya selisih rekap nota
-    //   yang sudah di-ACC Admin Gudang yang masuk (+) atau digenapi (-) dari dana gudang.
-    function getWarehouseCashDeltaOfExpense(item) {
-        if (!item) return 0;
-        let cutoffDate = '2026-11-01';
-        let itemDate = getNormalizedIsoDate(item);
-        if (!itemDate || itemDate < cutoffDate) return 0;
-
-        if (item.category === 'Gudang' && item.method === 'Tunai') {
-            return -(Number(item.nominal) || 0);
-        }
-
-        if (item.category === 'Material') {
-            if (item.materialData && item.materialData.statusAccGudang === 'approved') {
-                let adj = Number(item.materialData.penggenapanManual) || 0;
-                if (item.materialData.arahSelisih === 'masuk') {
-                    return adj;
-                } else if (item.materialData.arahSelisih === 'keluar') {
-                    return -adj;
-                }
-            }
-            return 0;
-        }
-
-        return 0;
+    function getNormalizedIsoDate(item) {
+        if (!item) return '';
+        return parseIsoDateFromString(item.dateTime || item.date || '', item.rawDate || '');
     }
 
-    // LEDGER KRONOLOGIS TERPADU: SINKRON 100% ANTARA MENU UTAMA & SALDO BERJALAN RIWAYAT
+    function getNormalizedDateTimeKey(item) {
+        if (!item) return '0000-00-00 00:00';
+        return parseDateTimeKeyFromString(item.dateTime || item.date || '', item.rawDate || '');
+    }
+
+    // LEDGER KRONOLOGIS TERPADU KAS TUNAI GUDANG:
+    // Menggabungkan 100% seluruh mutasi kas gudang:
+    // 1. Top-Up Dana Tunai Gudang (+)
+    // 2. Pengeluaran Kategori "Gudang" Metode "Tunai" (-) mulai 1 Nov 2026
+    // 3. Penyesuaian / Penggenapan Selisih Rekap Nota Material yang sudah di-ACC Admin Gudang (+ / -)
     function buildWarehouseCashLedger() {
+        const cutoffDate = '2026-11-01';
         let events = [];
 
         warehouseTopUps.forEach(tu => {
             if (!tu) return;
+            let amt = Number(tu.amount) || 0;
             events.push({
-                kind: 'topup',
+                entryType: 'topup',
                 id: tu.id || 0,
+                displayDate: tu.dateTime || '-',
+                isoDate: getNormalizedIsoDate(tu),
                 sortKey: getNormalizedDateTimeKey(tu),
-                delta: Number(tu.amount) || 0
+                delta: amt,
+                desc: `Top-Up Kas Gudang (${tu.sender || 'Owner'}): ${tu.desc || '-'}`,
+                giverOrSender: tu.sender || 'Owner',
+                rawObj: tu
             });
         });
 
         allExpenses.forEach(exp => {
             if (!exp) return;
-            let delta = getWarehouseCashDeltaOfExpense(exp);
-            if (delta !== 0) {
-                events.push({
-                    kind: 'expense',
-                    id: exp.id || 0,
-                    sortKey: getNormalizedDateTimeKey(exp),
-                    delta: delta
-                });
+
+            if (exp.category === 'Gudang' && exp.method === 'Tunai') {
+                let isoDate = getNormalizedIsoDate(exp);
+                if (isoDate && isoDate >= cutoffDate) {
+                    events.push({
+                        entryType: 'gudang_tunai',
+                        id: exp.id || 0,
+                        displayDate: exp.date || '-',
+                        isoDate: isoDate,
+                        sortKey: getNormalizedDateTimeKey(exp),
+                        delta: -(Number(exp.nominal) || 0),
+                        desc: exp.desc || '-',
+                        isHtmlDesc: exp.isHtmlDesc || false,
+                        rawObj: exp
+                    });
+                }
+            } else if (exp.category === 'Material' && exp.materialData && exp.materialData.statusAccGudang === 'approved') {
+                let m = exp.materialData;
+                let adj = Number(m.penggenapanManual) || 0;
+                if (adj > 0) {
+                    let accDateStr = m.accTime || exp.date || '';
+                    let accIsoDate = parseIsoDateFromString(accDateStr, m.accRawDate || exp.rawDate || '');
+                    if (accIsoDate && accIsoDate >= cutoffDate) {
+                        let signedDelta = (m.arahSelisih === 'masuk') ? adj : -adj;
+                        let giverName = getMaterialGiverLabel(m);
+                        let dirDesc = (m.arahSelisih === 'masuk')
+                            ? `Pengembalian Selisih Nota Material (+ masuk kas)`
+                            : `Penggenapan Selisih Nota Material (- keluar kas)`;
+                        events.push({
+                            entryType: 'material_acc',
+                            id: exp.id || 0,
+                            displayDate: m.accTime || exp.date || '-',
+                            isoDate: accIsoDate,
+                            sortKey: parseDateTimeKeyFromString(accDateStr, m.accRawDate || exp.rawDate || ''),
+                            delta: signedDelta,
+                            arahSelisih: m.arahSelisih,
+                            desc: `${dirDesc} | Pemberi: ${giverName} (Penerima: Mas Aprin) — ${m.accNote || exp.desc || '-'}`,
+                            giverOrSender: giverName,
+                            rawObj: exp
+                        });
+                    }
+                }
             }
         });
 
+        // Urutkan kronologis dari terlama ke terbaru untuk menghitung saldo berjalan
         events.sort((a, b) => {
             if (a.sortKey !== b.sortKey) return a.sortKey.localeCompare(b.sortKey);
-            if (a.kind !== b.kind) return a.kind === 'topup' ? -1 : 1;
+            const typeOrder = { 'topup': 1, 'gudang_tunai': 2, 'material_acc': 3 };
+            if ((typeOrder[a.entryType] || 9) !== (typeOrder[b.entryType] || 9)) {
+                return (typeOrder[a.entryType] || 9) - (typeOrder[b.entryType] || 9);
+            }
             return (a.id || 0) - (b.id || 0);
         });
 
         let runningBalance = 0;
-        let expenseBalanceMap = {};
-
         events.forEach(ev => {
             runningBalance += ev.delta;
-            if (ev.kind === 'expense') {
-                expenseBalanceMap[ev.id] = runningBalance;
-            }
+            ev.runningBalance = runningBalance;
         });
 
         return {
             finalBalance: runningBalance,
-            expenseBalanceMap
+            entries: events
         };
     }
 
@@ -1457,7 +1503,7 @@
 
         if (pendingList.length > 0) {
             banner.style.display = 'flex';
-            textEl.innerText = `Terdapat ${pendingList.length} transaksi Material yang sudah direkap notanya tetapi selisihnya belum diinput manual & disetujui Admin Gudang.`;
+            textEl.innerText = `Terdapat ${pendingList.length} transaksi Material (Penerima: Mas Aprin) yang sudah direkap notanya tetapi selisihnya belum diinput manual & disetujui Admin Gudang.`;
         } else {
             banner.style.display = 'none';
         }
@@ -1529,7 +1575,7 @@
         if (tu.dateTime && tu.dateTime.includes(' ')) {
             let timePart = tu.dateTime.split(' ')[1];
             if (timePart) {
-                let tParts = timePart.split(':');
+                let tParts = timePart.replace(/\./g, ':').split(':');
                 document.getElementById('editTuTimeInput').value = `${tParts[0] || '00'}:${tParts[1] || '00'}`;
             }
         } else {
@@ -1569,7 +1615,7 @@
         let formattedDate = `${p[2]}/${p[1]}/${p[0]} ${timeVal}`;
 
         let now = new Date();
-        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}).replace('.', ':')}`;
 
         warehouseTopUps = warehouseTopUps.map(item => {
             if (item && item.id === id) {
@@ -1626,7 +1672,7 @@
         if (!targetTu) return;
 
         let now = new Date();
-        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}).replace('.', ':')}`;
 
         warehouseTopUps = warehouseTopUps.filter(item => item && item.id !== id);
 
@@ -1684,35 +1730,35 @@
         let rows = document.querySelectorAll('.bulk-material-row');
         let isValid = true;
         let totalBulkSum = 0;
-        let receiversSet = new Set();
+        let giversSet = new Set();
         let detailHtmlLines = [];
 
         rows.forEach(row => {
             let rawDate = row.querySelector('.bm-date').value;
-            let receiver = row.querySelector('.bm-receiver').value.trim();
+            let giver = row.querySelector('.bm-giver').value.trim();
             let nominal = parseCleanNumber(row.querySelector('.bm-nominal').value);
             let desc = row.querySelector('.bm-desc').value.trim();
 
-            if (!rawDate || !receiver || nominal <= 0 || !desc) {
+            if (!rawDate || !giver || nominal <= 0 || !desc) {
                 isValid = false;
                 return;
             }
             totalBulkSum += nominal;
-            receiversSet.add(receiver);
+            giversSet.add(giver);
 
             let p = rawDate.split('-');
             let formattedDate = `${p[2]}/${p[1]}/${p[0]}`;
-            detailHtmlLines.push(`• ${formattedDate}: ${formatRp(nominal)} (${desc})`);
+            detailHtmlLines.push(`• ${formattedDate} [Pemberi: ${giver}]: ${formatRp(nominal)} (${desc})`);
         });
 
         if (!isValid) {
-            alert('Mohon lengkapi seluruh kolom pada setiap baris pemberian dana dengan benar!');
+            alert('Mohon lengkapi seluruh kolom (Tanggal, Nama Pemberi, Nominal, Keterangan) pada setiap baris pemberian dana!');
             return;
         }
 
         tempBulkAccumulatedData = {
             totalSum: totalBulkSum,
-            receivers: Array.from(receiversSet).join(', '),
+            givers: Array.from(giversSet).join(', '),
             method: document.getElementById('bulkMaterialMethod').value,
             breakdownHtml: detailHtmlLines.join('<br>')
         };
@@ -1772,7 +1818,7 @@
         if (!tempBulkAccumulatedData) return;
 
         let now = new Date();
-        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
         let formattedDate = now.toLocaleDateString('id-ID');
         let dateWithTime = `${formattedDate} ${timeNow}`;
 
@@ -1801,14 +1847,15 @@
         }
 
         let materialData = {
-            receiver: tempBulkAccumulatedData.receivers,
+            giver: tempBulkAccumulatedData.givers,
+            receiver: 'Mas Aprin',
             shops,
             statusRekap,
             statusAccGudang,
             penggenapanManual: 0
         };
 
-        let finalDescString = `Akumulasi Pemberian (${tempBulkAccumulatedData.receivers})<br><b style="color:#0f766e;">Rincian Tanggal:</b><br>${tempBulkAccumulatedData.breakdownHtml}`;
+        let finalDescString = `Akumulasi Dana Material (Pemberi: ${tempBulkAccumulatedData.givers} | Penerima: Mas Aprin)<br><b style="color:#0f766e;">Rincian Tanggal:</b><br>${tempBulkAccumulatedData.breakdownHtml}`;
 
         let newRecord = {
             id: Date.now(),
@@ -1834,7 +1881,7 @@
             document.getElementById('bulkMaterialRowsContainer').innerHTML = `
                 <div class="bulk-material-row">
                     <input type="date" class="bm-date" value="${new Date().toISOString().split('T')[0]}">
-                    <input type="text" class="bm-receiver" placeholder="Nama Penerima">
+                    <input type="text" class="bm-giver" placeholder="Nama Pemberi">
                     <input type="text" class="bm-nominal" inputmode="numeric" placeholder="Nominal" oninput="formatInputNumber(this)">
                     <input type="text" class="bm-desc" placeholder="Keterangan">
                     <button type="button" class="btn-del-row" onclick="removeBulkMaterialRow(this)" style="display:none;">✕</button>
@@ -1847,7 +1894,7 @@
         e.preventDefault();
         let cat = document.getElementById('expenseCategory').value;
         let now = new Date();
-        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        let timeNow = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
 
         let rawDate = document.getElementById('expenseDate').value;
         let method = document.getElementById('expenseMethod').value;
@@ -1875,9 +1922,10 @@
 
         let materialData = null;
         if (cat === 'Material') {
-            let receiver = document.getElementById('materialReceiver').value.trim();
+            let giver = document.getElementById('materialGiver').value.trim();
             materialData = {
-                receiver,
+                giver,
+                receiver: 'Mas Aprin',
                 shops: [],
                 statusRekap: 'Belum Direkap',
                 statusAccGudang: 'none',
@@ -1906,11 +1954,19 @@
             document.getElementById('expenseDesc').value = '';
             document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
             document.getElementById('expenseCategory').value = 'Gudang';
-            document.getElementById('materialReceiver').value = '';
+            document.getElementById('materialGiver').value = '';
             toggleCategoryDetail();
         }).catch(err => {
             alert('Gagal menyimpan pengeluaran: ' + err.message);
         });
+    }
+
+    function toggleEditMaterialGiver() {
+        let cat = document.getElementById('editCategory').value;
+        let giverGroup = document.getElementById('editMaterialGiverGroup');
+        if (giverGroup) {
+            giverGroup.style.display = (cat === 'Material') ? 'block' : 'none';
+        }
     }
 
     function openEditModal(id) {
@@ -1921,6 +1977,14 @@
         document.getElementById('editCategory').value = rec.category;
         document.getElementById('editMethod').value = rec.method;
         document.getElementById('editNominal').value = formatNumber(rec.nominal);
+
+        let giverInput = document.getElementById('editMaterialGiver');
+        if (rec.category === 'Material' && rec.materialData) {
+            giverInput.value = getMaterialGiverLabel(rec.materialData) === '-' ? '' : getMaterialGiverLabel(rec.materialData);
+        } else {
+            giverInput.value = '';
+        }
+        toggleEditMaterialGiver();
         
         if (rec.rawDate) {
             document.getElementById('editDate').value = rec.rawDate;
@@ -1936,7 +2000,7 @@
         if (rec.date && rec.date.includes(' ')) {
             let timePart = rec.date.split(' ')[1];
             if (timePart) {
-                let tParts = timePart.split(':');
+                let tParts = timePart.replace(/\./g, ':').split(':');
                 document.getElementById('editTime').value = `${tParts[0] || '00'}:${tParts[1] || '00'}`;
             }
         } else {
@@ -1962,6 +2026,7 @@
         let rawDate = document.getElementById('editDate').value;
         let timeVal = document.getElementById('editTime').value;
         let newDesc = document.getElementById('editDesc').value.trim();
+        let newGiver = document.getElementById('editMaterialGiver').value.trim();
         let reason = document.getElementById('editReason').value.trim();
 
         if (!reason) {
@@ -1985,10 +2050,18 @@
         let dateWithTime = `${formattedDate} ${timeVal}`;
 
         let now = new Date();
-        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}).replace('.', ':')}`;
 
         allExpenses = allExpenses.map(item => {
             if (item && item.id === id) {
+                let updatedMatData = item.materialData || null;
+                if (newCat === 'Material') {
+                    updatedMatData = {
+                        ...(item.materialData || { shops: [], statusRekap: 'Belum Direkap', statusAccGudang: 'none', penggenapanManual: 0 }),
+                        giver: newGiver || getMaterialGiverLabel(item.materialData),
+                        receiver: 'Mas Aprin'
+                    };
+                }
                 return {
                     ...item,
                     category: newCat,
@@ -1997,7 +2070,8 @@
                     date: dateWithTime,
                     rawDate: rawDate,
                     desc: newDesc,
-                    isHtmlDesc: false
+                    isHtmlDesc: false,
+                    materialData: updatedMatData
                 };
             }
             return item;
@@ -2078,7 +2152,7 @@
         if (!targetRec) return;
 
         let now = new Date();
-        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}`;
+        let timeLog = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}).replace('.', ':')}`;
 
         allExpenses = allExpenses.filter(item => item && item.id !== id);
 
@@ -2106,7 +2180,7 @@
         if (!rec || !rec.materialData) return;
 
         document.getElementById('rekapRecordId').value = rec.id;
-        document.getElementById('modalReceiverText').innerText = rec.materialData.receiver || '-';
+        document.getElementById('modalGiverText').innerText = getMaterialGiverLabel(rec.materialData);
         document.getElementById('modalTotalDanaText').innerText = formatRp(rec.nominal);
 
         let container = document.getElementById('modalShoppingRows');
@@ -2218,6 +2292,7 @@
                     ...item,
                     materialData: {
                         ...item.materialData,
+                        receiver: 'Mas Aprin',
                         shops,
                         statusRekap,
                         statusAccGudang
@@ -2244,7 +2319,7 @@
         let selisih = (Number(rec.nominal) || 0) - totalNota;
 
         document.getElementById('accMaterialRecordId').value = rec.id;
-        document.getElementById('accMatReceiverText').innerText = m.receiver || '-';
+        document.getElementById('accMatGiverText').innerText = getMaterialGiverLabel(m);
         document.getElementById('accMatBrutoText').innerText = formatRp(rec.nominal);
         document.getElementById('accMatNotaText').innerText = formatRp(totalNota);
 
@@ -2304,9 +2379,11 @@
         if (!targetRec || !targetRec.materialData) return;
 
         let now = new Date();
-        let dateStr = now.toLocaleDateString('id-ID');
-        let timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-        let receiverLabel = targetRec.materialData.receiver || 'Petugas';
+        let isoDateNow = now.toISOString().split('T')[0];
+        let p = isoDateNow.split('-');
+        let dateStr = `${p[2]}/${p[1]}/${p[0]}`;
+        let timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+        let giverLabel = getMaterialGiverLabel(targetRec.materialData);
 
         allExpenses = allExpenses.map(item => {
             if (item && item.id === recId) {
@@ -2314,11 +2391,14 @@
                     ...item,
                     materialData: {
                         ...item.materialData,
+                        giver: giverLabel,
+                        receiver: 'Mas Aprin',
                         statusAccGudang: 'approved',
                         penggenapanManual: manualAmount,
                         arahSelisih: direction,
                         accBy: `Admin Gudang (${currentUser})`,
                         accTime: `${dateStr} ${timeStr}`,
+                        accRawDate: isoDateNow,
                         accNote: adminNote
                     }
                 };
@@ -2332,14 +2412,14 @@
             time: `${dateStr} ${timeStr}`,
             user: `Admin Gudang (${currentUser})`,
             action: 'ACC SELISIH MATERIAL',
-            details: `Material [${receiverLabel}] | Penyesuaian Manual Kas Gudang: ${dirLabel} ${formatRp(manualAmount)}`,
+            details: `Material [Pemberi: ${giverLabel} | Penerima: Mas Aprin] | Penyesuaian Manual Kas Gudang: ${dirLabel} ${formatRp(manualAmount)}`,
             reason: adminNote
         });
 
         db.ref('operational_expenses').set(allExpenses).then(() => {
             db.ref('operational_audit_logs').set(auditLogs).then(() => {
                 document.getElementById('accMaterialSelisihModal').style.display = 'none';
-                alert(`Persetujuan Admin Gudang berhasil!\nSisa Dana Tunai Gudang telah disesuaikan sebesar ${dirLabel} ${formatRp(manualAmount)}.`);
+                alert(`Persetujuan Admin Gudang berhasil!\nSisa Dana Tunai Gudang & riwayat Sisa Dana Berjalan otomatis diperbarui sebesar ${dirLabel} ${formatRp(manualAmount)}.`);
             });
         });
     }
@@ -2426,11 +2506,12 @@
     function buildMaterialDetailHtml(i) {
         if (!i.materialData) return '-';
         let m = i.materialData;
+        let giverName = getMaterialGiverLabel(m);
         let totalNota = (m.shops || []).reduce((sum, s) => sum + (Number(s.cost) || 0), 0);
         let selisih = (Number(i.nominal) || 0) - totalNota;
 
         let html = `<div class="vertical-details">`;
-        html += `👤 <b>Penerima:</b> ${m.receiver || '-'}<br>`;
+        html += `👤 <b>Pemberi:</b> ${giverName} <small style="color:#64748b;">(Penerima: Mas Aprin)</small><br>`;
         html += `🏗️ <b>Alokasi Nota:</b><br>`;
         if (m.shops && m.shops.length > 0) {
             m.shops.forEach(s => {
@@ -2456,6 +2537,25 @@
         return html;
     }
 
+    function matchesActiveDateAndSearchFilter(isoDate, searchableText, searchKeyword, selectedMonth, selectedYear, startDate, endDate) {
+        let matchSearch = (!searchKeyword || searchableText.toLowerCase().includes(searchKeyword));
+        let monthMatch = true;
+        let yearMatch = true;
+        let dateRangeMatch = true;
+
+        if (isoDate && isoDate.length >= 10) {
+            let parts = isoDate.split('-');
+            if (parts.length >= 3) {
+                yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
+                monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
+            }
+            if (startDate && isoDate < startDate) dateRangeMatch = false;
+            if (endDate && isoDate > endDate) dateRangeMatch = false;
+        }
+
+        return matchSearch && monthMatch && yearMatch && dateRangeMatch;
+    }
+
     function renderExpenses() {
         let searchKeyword = document.getElementById('searchKeyword').value.toLowerCase().trim();
         let selectedMonth = document.getElementById('recapMonthSelect').value;
@@ -2466,66 +2566,26 @@
         let safeExpenses = allExpenses.filter(i => i !== null && i !== undefined);
 
         let filteredExpenses = safeExpenses.filter(i => {
-            let descPlain = (i.desc || '').toLowerCase();
-            let receiverPlain = (i.materialData && i.materialData.receiver) ? i.materialData.receiver.toLowerCase() : '';
-            let matchSearch = (!searchKeyword || descPlain.includes(searchKeyword) || receiverPlain.includes(searchKeyword));
-            
-            let monthMatch = true;
-            let yearMatch = true;
-            let dateRangeMatch = true;
-
-            if (i.rawDate) {
-                let parts = i.rawDate.split('-');
-                if (parts.length >= 3) {
-                    yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
-                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
-                }
-                if (startDate && i.rawDate < startDate) dateRangeMatch = false;
-                if (endDate && i.rawDate > endDate) dateRangeMatch = false;
-            } else if (i.date && i.date.includes('/')) {
-                let datePart = i.date.split(' ')[0];
-                let parts = datePart.split('/');
-                if (parts.length >= 3) {
-                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
-                    yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
-                    let isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                    if (startDate && isoDate < startDate) dateRangeMatch = false;
-                    if (endDate && isoDate > endDate) dateRangeMatch = false;
-                }
-            }
-
-            return matchSearch && monthMatch && yearMatch && dateRangeMatch;
+            let descPlain = i.desc || '';
+            let giverPlain = i.materialData ? `${getMaterialGiverLabel(i.materialData)} Mas Aprin` : '';
+            let isoDate = getNormalizedIsoDate(i);
+            return matchesActiveDateAndSearchFilter(
+                isoDate,
+                `${descPlain} ${giverPlain}`,
+                searchKeyword,
+                selectedMonth,
+                selectedYear,
+                startDate,
+                endDate
+            );
         });
 
         let totalFilteredExpense = 0;
         let categoryTotals = { 'Gudang': 0, 'Rumah': 0, 'Material': 0, 'Order Toko': 0, 'Gaji Pegawai': 0 };
 
         safeExpenses.forEach(i => {
-            let monthMatch = true;
-            let yearMatch = true;
-            let dateRangeMatch = true;
-
-            if (i.rawDate) {
-                let parts = i.rawDate.split('-');
-                if (parts.length >= 3) {
-                    yearMatch = (selectedYear === 'ALL' || parts[0] === selectedYear);
-                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
-                }
-                if (startDate && i.rawDate < startDate) dateRangeMatch = false;
-                if (endDate && i.rawDate > endDate) dateRangeMatch = false;
-            } else if (i.date && i.date.includes('/')) {
-                let datePart = i.date.split(' ')[0];
-                let parts = datePart.split('/');
-                if (parts.length >= 3) {
-                    monthMatch = (selectedMonth === 'ALL' || parts[1] === selectedMonth);
-                    yearMatch = (selectedYear === 'ALL' || parts[2].substring(0, 4) === selectedYear);
-                    let isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                    if (startDate && isoDate < startDate) dateRangeMatch = false;
-                    if (endDate && isoDate > endDate) dateRangeMatch = false;
-                }
-            }
-
-            if (monthMatch && yearMatch && dateRangeMatch) {
+            let isoDate = getNormalizedIsoDate(i);
+            if (matchesActiveDateAndSearchFilter(isoDate, '', '', selectedMonth, selectedYear, startDate, endDate)) {
                 let nominal = i.nominal || 0;
                 let sisa = (i.category === 'Order Toko' && i.method === 'Tunai') ? (i.sisaSetoran || 0) : 0;
                 let net = nominal - sisa;
@@ -2605,9 +2665,22 @@
             });
         }
 
+        // Render tabel riwayat Gudang (Tunai) menggunakan ledger terpadu yang 100% sinkron dengan Menu Utama
         let ledger = buildWarehouseCashLedger();
+        let filteredLedgerEntries = ledger.entries
+            .filter(ev => matchesActiveDateAndSearchFilter(
+                ev.isoDate,
+                `${ev.desc} ${ev.giverOrSender || ''}`,
+                searchKeyword,
+                selectedMonth,
+                selectedYear,
+                startDate,
+                endDate
+            ))
+            .reverse(); // Terbaru di paling atas
 
-        renderSpecificTable('gudangTunaiBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Tunai'), 'gudang-tunai', ledger.expenseBalanceMap);
+        renderGudangTunaiLedgerTable(filteredLedgerEntries);
+
         renderSpecificTable('gudangTransferBody', filteredExpenses.filter(i => i.category === 'Gudang' && i.method === 'Transfer'), 'gudang-transfer');
         renderSpecificTable('rumahBody', filteredExpenses.filter(i => i.category === 'Rumah'), 'rumah');
         
@@ -2620,15 +2693,69 @@
         renderSpecificTable('gajiBody', filteredExpenses.filter(i => i.category === 'Gaji Pegawai'), 'gaji');
     }
 
-    function renderSpecificTable(tbodyId, dataList, type, expenseBalanceMap = {}) {
+    function renderGudangTunaiLedgerTable(ledgerEntries) {
+        let tbody = document.getElementById('gudangTunaiBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (ledgerEntries.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #64748b;">Tidak ada mutasi dana tunai gudang pada periode ini.</td></tr>`;
+            return;
+        }
+
+        ledgerEntries.forEach(ev => {
+            let actionBtn = '';
+            let typeBadge = '';
+            let amountHtml = '';
+
+            if (ev.entryType === 'topup') {
+                actionBtn = `<button class="btn-edit" onclick="openEditTopUpModal(${ev.id})">Edit</button>` +
+                            `<button class="btn-danger" onclick="openDeleteTopUpModal(${ev.id})">Hapus</button>`;
+                typeBadge = `<span style="background: #15803d; color: white; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 0.75rem;">Top-Up Kas Gudang</span>`;
+                amountHtml = `<span style="color: var(--success); font-weight: 700;">+${formatRp(ev.delta)}</span>`;
+            } else if (ev.entryType === 'gudang_tunai') {
+                actionBtn = `<button class="btn-edit" onclick="openEditModal(${ev.id})">Edit</button>` +
+                            `<button class="btn-danger" onclick="openDeleteModal(${ev.id})">Hapus</button>`;
+                typeBadge = `<b>Tunai</b> <small style="color:#b91c1c; font-weight:700;">(Pengeluaran Gudang)</small>`;
+                amountHtml = `<span style="color: var(--danger); font-weight: 700;">-${formatRp(Math.abs(ev.delta))}</span>`;
+            } else if (ev.entryType === 'material_acc') {
+                actionBtn = `<button class="btn-acc" onclick="openAccMaterialModal(${ev.id})">✅ Edit ACC</button>` +
+                            `<button class="btn-rekap" onclick="openRekapModal(${ev.id})">🧾 Rekap</button>`;
+                if (ev.delta >= 0) {
+                    typeBadge = `<span style="background: #0d9488; color: white; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 0.75rem;">ACC Selisih Material (+)</span>`;
+                    amountHtml = `<span style="color: var(--success); font-weight: 700;">+${formatRp(ev.delta)}</span>`;
+                } else {
+                    typeBadge = `<span style="background: #ea580c; color: white; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 0.75rem;">ACC Selisih Material (-)</span>`;
+                    amountHtml = `<span style="color: var(--danger); font-weight: 700;">-${formatRp(Math.abs(ev.delta))}</span>`;
+                }
+            }
+
+            let descDisplay = ev.isHtmlDesc
+                ? `<div style="white-space: normal; line-height: 1.4;">${ev.desc}</div>`
+                : `<div style="white-space: normal; line-height: 1.4;">${ev.desc}</div>`;
+
+            let balanceColor = ev.runningBalance >= 0 ? '#059669' : '#dc2626';
+            let runningSisaDana = `<span style="color: ${balanceColor}; font-weight: 800;">${formatRp(ev.runningBalance)}</span>`;
+
+            tbody.innerHTML += `<tr>
+                <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
+                <td>${ev.displayDate || '-'}</td>
+                <td>${typeBadge}</td>
+                <td>${amountHtml}</td>
+                <td>${descDisplay}</td>
+                <td>${runningSisaDana}</td>
+            </tr>`;
+        });
+    }
+
+    function renderSpecificTable(tbodyId, dataList, type) {
         let tbody = document.getElementById(tbodyId);
         if(!tbody) return;
         tbody.innerHTML = '';
 
         if (dataList.length === 0) {
             let colSpan = 7;
-            if (type === 'gudang-tunai') colSpan = 6;
-            else if (type === 'gudang-transfer' || type === 'rumah' || type === 'order-toko-transfer' || type === 'gaji') colSpan = 5;
+            if (type === 'gudang-transfer' || type === 'rumah' || type === 'order-toko-transfer' || type === 'gaji') colSpan = 5;
             tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; color: #64748b;">Tidak ada data untuk kategori ini.</td></tr>`;
             return;
         }
@@ -2648,26 +2775,7 @@
 
             let descDisplay = i.isHtmlDesc ? `<div style="white-space: normal; line-height: 1.4;">${i.desc}</div>` : i.desc;
 
-            if (type === 'gudang-tunai') {
-                let isoDate = getNormalizedIsoDate(i);
-                let runningSisaDana = '';
-                if (!isoDate || isoDate < '2026-11-01') {
-                    runningSisaDana = `<span style="color: #64748b; font-size: 0.8rem;">Sebelum 1 Nov 2026</span>`;
-                } else {
-                    let currentBalance = expenseBalanceMap.hasOwnProperty(i.id) ? expenseBalanceMap[i.id] : 0;
-                    let balanceColor = currentBalance >= 0 ? '#059669' : '#dc2626';
-                    runningSisaDana = `<span style="color: ${balanceColor}; font-weight: 700;">${formatRp(currentBalance)}</span>`;
-                }
-                
-                tbody.innerHTML += `<tr>
-                    <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
-                    <td>${i.date || '-'}</td>
-                    <td><b>${i.method}</b> <small style="color:#b91c1c;">(Kas Gudang)</small></td>
-                    <td style="color: var(--danger); font-weight: 700;">${formatRp(i.nominal)}</td>
-                    <td>${descDisplay}</td>
-                    <td>${runningSisaDana}</td>
-                </tr>`;
-            } else if (type === 'gudang-transfer' || type === 'rumah' || type === 'order-toko-transfer' || type === 'gaji') {
+            if (type === 'gudang-transfer' || type === 'rumah' || type === 'order-toko-transfer' || type === 'gaji') {
                 tbody.innerHTML += `<tr>
                     <td style="text-align: center; white-space: nowrap;">${actionBtn}</td>
                     <td>${i.date || '-'}</td>
@@ -2677,6 +2785,7 @@
                 </tr>`;
             } else if (type === 'material') {
                 let m = i.materialData || {};
+                let giverName = getMaterialGiverLabel(m);
                 let detailHtml = buildMaterialDetailHtml(i);
 
                 tbody.innerHTML += `<tr>
@@ -2684,7 +2793,7 @@
                     <td>${i.date || '-'}</td>
                     <td><b>${i.method}</b></td>
                     <td style="color: var(--danger); font-weight: 700;">${formatRp(i.nominal)}</td>
-                    <td><b>${m.receiver || '-'}</b></td>
+                    <td><b>${giverName}</b><br><small style="color:#64748b;">Penerima: Mas Aprin</small></td>
                     <td>${descDisplay}</td>
                     <td>${detailHtml}</td>
                 </tr>`;
@@ -2721,7 +2830,7 @@
                 let accStr = i.materialData.statusAccGudang === 'approved'
                     ? `ACC Gudang (${i.materialData.arahSelisih}: ${i.materialData.penggenapanManual})`
                     : (i.materialData.statusAccGudang || '-');
-                materialInfo = `Penerima: ${i.materialData.receiver || '-'} | Status: ${i.materialData.statusRekap || '-'} | ${accStr} | Alokasi: [${shopsStr}]`;
+                materialInfo = `Pemberi: ${getMaterialGiverLabel(i.materialData)} | Penerima: Mas Aprin | Status: ${i.materialData.statusRekap || '-'} | ${accStr} | Alokasi: [${shopsStr}]`;
             }
 
             return {
