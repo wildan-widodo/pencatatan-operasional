@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Pengeluaran & Dana Tunai Gudang AWW</title>
-    <meta name="app-version" content="4.1.0-material-giver-sync-warehouse-ledger">
+    <meta name="app-version" content="4.2.0-top-table-scrollbar">
     
     <!-- Library Ekspor Excel & PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -161,7 +161,47 @@
         .filter-bar { display: flex; gap: 14px; margin-bottom: 18px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; }
         .filter-item { flex: 1; min-width: 180px; margin-bottom: 0; }
 
-        .table-responsive { overflow-x: auto; margin-top: 5px; }
+        /* SCROLL BAR HORIZONTAL DI BAGIAN ATAS TABEL */
+        .top-scrollbar-wrap {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            height: 14px;
+            margin-top: 6px;
+            margin-bottom: 6px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+        .top-scrollbar-wrap::-webkit-scrollbar {
+            height: 10px;
+        }
+        .top-scrollbar-wrap::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .top-scrollbar-wrap::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 8px;
+        }
+        .top-scrollbar-wrap::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .top-scrollbar-spacer {
+            height: 1px;
+        }
+
+        /* SEMBUNYIKAN SCROLL BAR BAWAH TABEL AGAR HANYA MUNCUL DI ATAS */
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 2px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .table-responsive::-webkit-scrollbar {
+            display: none;
+        }
+
         table { width: 100%; border-collapse: collapse; white-space: nowrap; }
         th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
         th { background: #f8fafc; color: #334155; font-weight: 700; border-top: 1px solid var(--border); }
@@ -1024,11 +1064,77 @@
     let currentMaterialMode = "single";
     let tempBulkAccumulatedData = null;
     let materialChartInstance = null; 
+    const topScrollbarUpdaters = [];
 
     const pinUserMap = {
         '123123': 'Mbak Ika',
         '945336': 'Owner'
     };
+
+    // ==========================================
+    // INISIALISASI SCROLL BAR HORIZONTAL DI ATAS TABEL
+    // ==========================================
+    function initTopTableScrollbars() {
+        document.querySelectorAll('.table-responsive').forEach(tableWrap => {
+            if (tableWrap.dataset.hasTopScroll) return;
+            tableWrap.dataset.hasTopScroll = 'true';
+
+            const topScroll = document.createElement('div');
+            topScroll.className = 'top-scrollbar-wrap';
+            const spacer = document.createElement('div');
+            spacer.className = 'top-scrollbar-spacer';
+            topScroll.appendChild(spacer);
+
+            tableWrap.parentNode.insertBefore(topScroll, tableWrap);
+
+            let isSyncing = false;
+            topScroll.addEventListener('scroll', () => {
+                if (isSyncing) return;
+                isSyncing = true;
+                tableWrap.scrollLeft = topScroll.scrollLeft;
+                isSyncing = false;
+            });
+
+            tableWrap.addEventListener('scroll', () => {
+                if (isSyncing) return;
+                isSyncing = true;
+                topScroll.scrollLeft = tableWrap.scrollLeft;
+                isSyncing = false;
+            });
+
+            const updateWidth = () => {
+                const tableEl = tableWrap.querySelector('table');
+                const containerWidth = tableWrap.clientWidth;
+                const fullWidth = tableEl ? tableEl.scrollWidth : tableWrap.scrollWidth;
+                if (containerWidth > 0 && fullWidth > containerWidth) {
+                    spacer.style.width = fullWidth + 'px';
+                    topScroll.style.display = 'block';
+                    topScroll.scrollLeft = tableWrap.scrollLeft;
+                } else {
+                    topScroll.style.display = 'none';
+                }
+            };
+
+            topScrollbarUpdaters.push(updateWidth);
+            updateWidth();
+
+            if (window.ResizeObserver) {
+                const ro = new ResizeObserver(() => {
+                    requestAnimationFrame(updateWidth);
+                });
+                ro.observe(tableWrap);
+                const tableEl = tableWrap.querySelector('table');
+                if (tableEl) ro.observe(tableEl);
+            }
+            window.addEventListener('resize', updateWidth);
+        });
+    }
+
+    function refreshAllTopTableScrollbars() {
+        requestAnimationFrame(() => {
+            topScrollbarUpdaters.forEach(fn => fn());
+        });
+    }
 
     function getMaterialGiverLabel(materialData) {
         if (!materialData) return '-';
@@ -1036,6 +1142,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        initTopTableScrollbars();
+
         let loginBtn = document.getElementById('loginSubmitBtn');
         let loginInput = document.getElementById('loginPinInput');
         let logoutBtn = document.getElementById('logoutBtn');
@@ -1094,6 +1202,7 @@
 
             loadDataFromFirebase();
             toggleCategoryDetail();
+            refreshAllTopTableScrollbars();
         } else {
             let errorEl = document.getElementById('loginError');
             if(errorEl) errorEl.innerText = 'PIN Akses Salah!';
@@ -1135,6 +1244,7 @@
                 }
             });
         }
+        refreshAllTopTableScrollbars();
     }
 
     function switchSubTab(sectionId, eventObj) {
@@ -1152,6 +1262,7 @@
                 }
             });
         }
+        refreshAllTopTableScrollbars();
     }
 
     function goToMaterialApproval() {
@@ -1366,11 +1477,7 @@
         return parseDateTimeKeyFromString(item.dateTime || item.date || '', item.rawDate || '');
     }
 
-    // LEDGER KRONOLOGIS TERPADU KAS TUNAI GUDANG:
-    // Menggabungkan 100% seluruh mutasi kas gudang:
-    // 1. Top-Up Dana Tunai Gudang (+)
-    // 2. Pengeluaran Kategori "Gudang" Metode "Tunai" (-) mulai 1 Nov 2026
-    // 3. Penyesuaian / Penggenapan Selisih Rekap Nota Material yang sudah di-ACC Admin Gudang (+ / -)
+    // LEDGER KRONOLOGIS TERPADU KAS TUNAI GUDANG
     function buildWarehouseCashLedger() {
         const cutoffDate = '2026-11-01';
         let events = [];
@@ -1438,7 +1545,6 @@
             }
         });
 
-        // Urutkan kronologis dari terlama ke terbaru untuk menghitung saldo berjalan
         events.sort((a, b) => {
             if (a.sortKey !== b.sortKey) return a.sortKey.localeCompare(b.sortKey);
             const typeOrder = { 'topup': 1, 'gudang_tunai': 2, 'material_acc': 3 };
@@ -1460,7 +1566,6 @@
         };
     }
 
-    // RUMUS TUNGGAL: MENGHITUNG SISA DANA TUNAI GUDANG (UNTUK MENU UTAMA & RIWAYAT KATEGORI)
     function calculateWarehouseCashBalance() {
         let ledger = buildWarehouseCashLedger();
         let currentCash = ledger.finalBalance;
@@ -1705,6 +1810,7 @@
 
         if (warehouseTopUps.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b;">Belum ada riwayat top-up dana tunai gudang.</td></tr>`;
+            refreshAllTopTableScrollbars();
             return;
         }
 
@@ -1724,6 +1830,7 @@
                 <td>${tu.desc || '-'}</td>
             </tr>`;
         });
+        refreshAllTopTableScrollbars();
     }
 
     function openBulkRekapSetupModal() {
@@ -2611,7 +2718,6 @@
                 </div>`;
         }
 
-        // Urutkan berdasarkan Tanggal & Jam transaksi terbaru (kronologis)
         filteredExpenses.sort((a, b) => {
             let keyCmp = getNormalizedDateTimeKey(b).localeCompare(getNormalizedDateTimeKey(a));
             return keyCmp !== 0 ? keyCmp : ((b.id || 0) - (a.id || 0));
@@ -2665,7 +2771,6 @@
             });
         }
 
-        // Render tabel riwayat Gudang (Tunai) menggunakan ledger terpadu yang 100% sinkron dengan Menu Utama
         let ledger = buildWarehouseCashLedger();
         let filteredLedgerEntries = ledger.entries
             .filter(ev => matchesActiveDateAndSearchFilter(
@@ -2677,7 +2782,7 @@
                 startDate,
                 endDate
             ))
-            .reverse(); // Terbaru di paling atas
+            .reverse();
 
         renderGudangTunaiLedgerTable(filteredLedgerEntries);
 
@@ -2691,6 +2796,8 @@
         renderSpecificTable('orderTokoTunaiBody', filteredExpenses.filter(i => i.category === 'Order Toko' && i.method === 'Tunai'), 'order-toko-tunai');
         renderSpecificTable('orderTokoTransferBody', filteredExpenses.filter(i => i.category === 'Order Toko' && i.method === 'Transfer'), 'order-toko-transfer');
         renderSpecificTable('gajiBody', filteredExpenses.filter(i => i.category === 'Gaji Pegawai'), 'gaji');
+
+        refreshAllTopTableScrollbars();
     }
 
     function renderGudangTunaiLedgerTable(ledgerEntries) {
@@ -2905,6 +3012,7 @@
 
         if (safeAudit.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b;">Belum ada log audit.</td></tr>`;
+            refreshAllTopTableScrollbars();
             return;
         }
 
@@ -2922,6 +3030,7 @@
                 <td><b>${log.reason}</b></td>
             </tr>`;
         });
+        refreshAllTopTableScrollbars();
     }
 
     function renderLocations() {
@@ -2943,6 +3052,7 @@
                 </td>
             </tr>`;
         });
+        refreshAllTopTableScrollbars();
     }
 
     function addLocation() {
